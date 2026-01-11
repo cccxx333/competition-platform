@@ -1,0 +1,27 @@
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# Backend (Maven / Spring Boot)
+/backend/target/
+/backend/.mvn/wrapper/maven-wrapper.jar
+/backend/logs/
+*.log
+/backend/src/main/resources/application-local.yml
+
+# Frontend (React)
+/competition-frontend/node_modules/
+/competition-frontend/build/
+/competition-frontend/coverage/
+/competition-frontend/.pnp
+/competition-frontend/.pnp.js
+/competition-frontend/.env.local
+/competition-frontend/.env.development.local
+/competition-frontend/.env.test.local
+/competition-frontend/.env.production.local
+/competition-frontend/npm-debug.log*
+/competition-frontend/yarn-debug.log*
+/competition-frontend/yarn-error.log*
