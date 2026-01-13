@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+
 import javax.persistence.*;
+import java.time.LocalDateTime;
 
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -28,7 +30,18 @@ public class UserSkill {
     @ToString.Include
     private Skill skill;
 
-    @Column(nullable = false)
+    @Column(name = "level")
     @ToString.Include
     private Integer proficiency = 1;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        if (proficiency == null) {
+            proficiency = 1;
+        }
+    }
 }

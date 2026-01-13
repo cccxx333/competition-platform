@@ -6,18 +6,13 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import javax.persistence.*;
-import java.time.LocalDateTime;
 
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString(onlyExplicitlyIncluded = true)
 @Entity
-@Table(name = "team_members")
-public class TeamMember {
-    public enum Role {
-        LEADER, MEMBER
-    }
-
+@Table(name = "team_skills")
+public class TeamSkill {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
@@ -30,23 +25,9 @@ public class TeamMember {
     private Team team;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnore
-    private User user;
+    @JoinColumn(name = "skill_id", nullable = false)
+    private Skill skill;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
-    @ToString.Include
-    private Role role = Role.MEMBER;
-
-    @Column(name = "joined_at")
-    private LocalDateTime joinedAt;
-
-    @Column(name = "left_at")
-    private LocalDateTime leftAt;
-
-    @PrePersist
-    protected void onCreate() {
-        joinedAt = LocalDateTime.now();
-    }
+    @Column(name = "weight")
+    private Integer weight = 1;
 }

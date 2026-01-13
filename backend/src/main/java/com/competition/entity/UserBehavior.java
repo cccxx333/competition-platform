@@ -3,6 +3,7 @@ package com.competition.entity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
@@ -12,6 +13,14 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "user_behaviors")
 public class UserBehavior {
+    public enum TargetType {
+        COMPETITION, TEAM, SKILL
+    }
+
+    public enum BehaviorType {
+        VIEW, LIKE, FAVORITE, APPLY, JOIN
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
@@ -23,6 +32,11 @@ public class UserBehavior {
     private User user;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "behavior_type", nullable = false, length = 20)
+    @ToString.Include
+    private BehaviorType behaviorType;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "target_type", nullable = false, length = 20)
     @ToString.Include
     private TargetType targetType;
@@ -31,25 +45,17 @@ public class UserBehavior {
     @ToString.Include
     private Long targetId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "behavior_type", nullable = false, length = 20)
-    @ToString.Include
-    private BehaviorType behaviorType;
+    @Column(name = "weight")
+    private Integer weight = 1;
 
     @Column(name = "created_at")
-    @ToString.Include
     private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-    }
-
-    public enum TargetType {
-        COMPETITION, TEAM
-    }
-
-    public enum BehaviorType {
-        VIEW, LIKE, APPLY, JOIN
+        if (weight == null) {
+            weight = 1;
+        }
     }
 }

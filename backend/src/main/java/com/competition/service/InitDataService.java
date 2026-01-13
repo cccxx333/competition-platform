@@ -497,8 +497,8 @@ public class InitDataService implements CommandLineRunner {
             }
 
             // 更新队伍状态
-            if (team.getCurrentMembers() >= team.getMaxMembers()) {
-                team.setStatus(Team.TeamStatus.FULL);
+            if (team.getMaxMembers() != null && team.getCurrentMembers() >= team.getMaxMembers()) {
+                team.setStatus(Team.TeamStatus.CLOSED);
             }
             teamRepository.save(team);
         }
