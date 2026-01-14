@@ -13,6 +13,10 @@ public interface CompetitionRepository extends JpaRepository<Competition, Long> 
 
     List<Competition> findByStatus(Competition.CompetitionStatus status);
 
+    List<Competition> findByNameContainingIgnoreCase(String name);
+
+    List<Competition> findByNameContainingIgnoreCaseAndStatus(String name, Competition.CompetitionStatus status);
+
     List<Competition> findByCategory(String category);
 
     @Query("SELECT c FROM Competition c WHERE c.registrationDeadline >= :currentDate")

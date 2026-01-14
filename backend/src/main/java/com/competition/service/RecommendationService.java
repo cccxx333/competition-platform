@@ -51,7 +51,7 @@ public class RecommendationService {
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
         log.info("找到用户: {}", user.getUsername());
 
-        List<Competition> allCompetitions = competitionService.getAvailableCompetitions();
+        List<Competition> allCompetitions = competitionService.getAvailableCompetitionEntities();
         log.info("可用竞赛数量: {}", allCompetitions.size());
 
         if (allCompetitions.isEmpty()) {

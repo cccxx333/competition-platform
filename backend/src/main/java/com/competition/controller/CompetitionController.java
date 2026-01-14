@@ -1,6 +1,9 @@
 package com.competition.controller;
 
-import com.competition.dto.CompetitionDTO;
+import com.competition.dto.CompetitionCreateRequest;
+import com.competition.dto.CompetitionResponse;
+import com.competition.dto.CompetitionUpdateRequest;
+import com.competition.entity.Competition;
 import com.competition.service.CompetitionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -10,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/competitions")
@@ -20,10 +24,12 @@ public class CompetitionController {
     private final CompetitionService competitionService;
 
     /**
-     * 获取竞赛列表（分页）
+     * 鑾峰彇绔炶禌鍒楄〃锛堝垎椤碉級
      */
     @GetMapping
-    public ResponseEntity<Page<CompetitionDTO>> getCompetitions(
+    public ResponseEntity<Page<CompetitionResponse>> getCompetitions(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Competition.CompetitionStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -33,62 +39,66 @@ public class CompetitionController {
                 Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<CompetitionDTO> competitions = competitionService.getCompetitions(pageable);
+        Page<CompetitionResponse> competitions = competitionService.getCompetitions(pageable, name, status);
         return ResponseEntity.ok(competitions);
     }
 
     /**
-     * 根据ID获取竞赛详情
+     * 鏍规嵁ID鑾峰彇绔炶禌璇︽儏
      */
     @GetMapping("/{id}")
-    public ResponseEntity<CompetitionDTO> getCompetitionById(@PathVariable Long id) {
-        CompetitionDTO competition = competitionService.getCompetitionById(id);
+    public ResponseEntity<CompetitionResponse> getCompetitionById(@PathVariable Long id) {
+        CompetitionResponse competition = competitionService.getCompetitionById(id);
         return ResponseEntity.ok(competition);
     }
 
     /**
-     * 搜索竞赛
+     * 鎼滅储绔炶禌
      */
     @GetMapping("/search")
-    public ResponseEntity<List<CompetitionDTO>> searchCompetitions(
+    public ResponseEntity<List<CompetitionResponse>> searchCompetitions(
             @RequestParam String keyword) {
-        List<CompetitionDTO> competitions = competitionService.searchCompetitions(keyword);
+        List<CompetitionResponse> competitions = competitionService.searchCompetitions(keyword);
         return ResponseEntity.ok(competitions);
     }
 
     /**
-     * 根据分类获取竞赛
+     * 鏍规嵁鍒嗗垎绫昏幏鍙栫珵璧?
      */
     @GetMapping("/category/{category}")
-    public ResponseEntity<List<CompetitionDTO>> getCompetitionsByCategory(
+    public ResponseEntity<List<CompetitionResponse>> getCompetitionsByCategory(
             @PathVariable String category) {
-        List<CompetitionDTO> competitions = competitionService.getCompetitionsByCategory(category);
+        List<CompetitionResponse> competitions = competitionService.getCompetitionsByCategory(category);
         return ResponseEntity.ok(competitions);
     }
 
     /**
-     * 创建竞赛
+     * 鍒涘缓绔炶禌
      */
     @PostMapping
-    public ResponseEntity<CompetitionDTO> createCompetition(
-            @RequestBody CompetitionDTO competitionDTO) {
-        CompetitionDTO created = competitionService.createCompetition(competitionDTO);
+    public ResponseEntity<CompetitionResponse> createCompetition(
+            @Valid @RequestBody CompetitionCreateRequest request) {
+        CompetitionResponse created = competitionService.createCompetition(request);
         return ResponseEntity.ok(created);
     }
 
     /**
-     * 获取可用竞赛（公开接口）
+     * 鏇存柊绔炶禌
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<CompetitionResponse> updateCompetition(
+            @PathVariable Long id,
+            @Valid @RequestBody CompetitionUpdateRequest request) {
+        CompetitionResponse updated = competitionService.updateCompetition(id, request);
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * 鑾峰彇鍙敤绔炶禌锛堝叕寮€鎺ュ彛锛?
      */
     @GetMapping("/public/available")
-    public ResponseEntity<List<CompetitionDTO>> getAvailableCompetitions() {
-        List<CompetitionDTO> competitions = competitionService.getAvailableCompetitions()
-                .stream()
-                .map(competition -> {
-                    CompetitionDTO dto = new CompetitionDTO();
-                    // 转换逻辑
-                    return dto;
-                })
-                .collect(java.util.stream.Collectors.toList());
+    public ResponseEntity<List<CompetitionResponse>> getAvailableCompetitions() {
+        List<CompetitionResponse> competitions = competitionService.getAvailableCompetitions();
         return ResponseEntity.ok(competitions);
     }
 }
