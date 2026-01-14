@@ -5,6 +5,7 @@ import com.competition.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import java.util.*;
 
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "app.init-data.enabled", havingValue = "true", matchIfMissing = false)
 public class InitDataService implements CommandLineRunner {
 
     private final UserRepository userRepository;
@@ -142,7 +144,24 @@ public class InitDataService implements CommandLineRunner {
                 createSkill("渗透测试", "安全", "安全渗透测试")
         );
 
-        return skillRepository.saveAll(skills);
+        Set<String> existingNames = new HashSet<>();
+        for (Skill existing : skillRepository.findAll()) {
+            if (existing.getName() != null) {
+                existingNames.add(existing.getName());
+            }
+        }
+
+        List<Skill> toSave = new ArrayList<>();
+        for (Skill skill : skills) {
+            if (skill.getName() == null) {
+                continue;
+            }
+            if (!existingNames.contains(skill.getName())) {
+                toSave.add(skill);
+            }
+        }
+
+        return skillRepository.saveAll(toSave);
     }
 
     private List<User> initUsers() {
@@ -445,6 +464,10 @@ public class InitDataService implements CommandLineRunner {
             for (int i = 0; i < teamCount && i < users.size(); i++) { // 添加用户数量检查
                 // 随机选择队长
                 User leader = users.get(random.nextInt(users.size()));
+
+                if (teamRepository.existsByCompetitionIdAndLeaderId(competition.getId(), leader.getId())) {
+                    continue;
+                }
 
                 Team team = new Team();
                 team.setName(generateTeamName(competition.getCategory(), i + 1));

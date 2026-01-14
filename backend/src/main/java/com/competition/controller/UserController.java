@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -60,6 +61,59 @@ public class UserController {
         Long userId = getUserIdFromToken(request);
         UserDTO updatedUser = userService.updateUser(userId, userDTO);
         return ResponseEntity.ok(updatedUser);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileResponse> getCurrentUser(HttpServletRequest request) {
+        Long userId = getUserIdFromToken(request);
+        UserDTO user = userService.getUserById(userId);
+        return ResponseEntity.ok(toUserProfileResponse(user));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<UserProfileResponse> updateCurrentUser(
+            HttpServletRequest request,
+            @RequestBody UserProfileUpdateRequest updateRequest) {
+        Long userId = getUserIdFromToken(request);
+        UserDTO updateDTO = new UserDTO();
+        updateDTO.setRealName(updateRequest.getRealName());
+        updateDTO.setSchool(updateRequest.getSchool());
+        updateDTO.setMajor(updateRequest.getMajor());
+        updateDTO.setGrade(updateRequest.getGrade());
+        updateDTO.setPhone(updateRequest.getPhone());
+        updateDTO.setAvatarUrl(updateRequest.getAvatarUrl());
+        UserDTO updatedUser = userService.updateUser(userId, updateDTO);
+        return ResponseEntity.ok(toUserProfileResponse(updatedUser));
+    }
+
+    @GetMapping("/me/skills")
+    public ResponseEntity<List<UserSkillResponse>> getCurrentUserSkills(HttpServletRequest request) {
+        Long userId = getUserIdFromToken(request);
+        List<UserSkillDTO> userSkills = userService.getUserSkills(userId);
+        return ResponseEntity.ok(userSkills.stream()
+                .map(this::toUserSkillResponse)
+                .collect(Collectors.toList()));
+    }
+
+    @PostMapping("/me/skills")
+    public ResponseEntity<UserSkillResponse> bindSkill(
+            HttpServletRequest request,
+            @RequestBody UserSkillBindRequest bindRequest) {
+        Long userId = getUserIdFromToken(request);
+        UserSkillCreateDTO createDTO = new UserSkillCreateDTO();
+        createDTO.setSkillId(bindRequest.getSkillId());
+        createDTO.setProficiency(bindRequest.getProficiency() != null ? bindRequest.getProficiency() : 1);
+        UserSkillDTO userSkill = userService.addUserSkill(userId, createDTO);
+        return ResponseEntity.ok(toUserSkillResponse(userSkill));
+    }
+
+    @DeleteMapping("/me/skills/{skillId}")
+    public ResponseEntity<Void> unbindSkill(
+            HttpServletRequest request,
+            @PathVariable Long skillId) {
+        Long userId = getUserIdFromToken(request);
+        userService.deleteUserSkillBySkillId(userId, skillId);
+        return ResponseEntity.ok().build();
     }
 
     /**
@@ -202,8 +256,35 @@ public class UserController {
             List<UserSkillDTO> userSkills = userService.addUserSkills(userId, skillsData);
             return ResponseEntity.ok(userSkills);
         } catch (Exception e) {
-            log.error("批量添加用户技能失败: ", e);
+            log.error("Batch add user skills failed.", e);
             throw e;
         }
+    }
+
+    private UserProfileResponse toUserProfileResponse(UserDTO dto) {
+        UserProfileResponse response = new UserProfileResponse();
+        response.setId(dto.getId());
+        response.setAccountNo(dto.getAccountNo());
+        response.setRole(dto.getRole());
+        response.setUsername(dto.getUsername());
+        response.setRealName(dto.getRealName());
+        response.setEmail(dto.getEmail());
+        response.setPhone(dto.getPhone());
+        response.setAvatarUrl(dto.getAvatarUrl());
+        response.setSchool(dto.getSchool());
+        response.setMajor(dto.getMajor());
+        response.setGrade(dto.getGrade());
+        return response;
+    }
+
+    private UserSkillResponse toUserSkillResponse(UserSkillDTO dto) {
+        UserSkillResponse response = new UserSkillResponse();
+        response.setId(dto.getId());
+        response.setUserId(dto.getUserId());
+        response.setSkillId(dto.getSkillId());
+        response.setSkillName(dto.getSkillName());
+        response.setSkillCategory(dto.getSkillCategory());
+        response.setProficiency(dto.getProficiency());
+        return response;
     }
 }

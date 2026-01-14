@@ -3,8 +3,7 @@ package com.competition.dto;
 import lombok.Data;
 
 @Data
-public class SkillDTO {
-    private Long id;
+public class SkillUpdateRequest {
     private String name;
     private String category;
     private String description;

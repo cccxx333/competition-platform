@@ -144,6 +144,8 @@ public class UserService {
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
+        dto.setAccountNo(user.getAccountNo());
+        dto.setRole(user.getRole() != null ? user.getRole().name() : null);
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setRealName(user.getRealName());
@@ -231,6 +233,18 @@ public class UserService {
 
         userSkillRepository.delete(userSkill);
         log.info("用户 {} 的技能 {} 删除成功", userId, skillName);
+    }
+
+    /**
+     * Delete user skill by userId and skillId.
+     */
+    @Transactional
+    public void deleteUserSkillBySkillId(Long userId, Long skillId) {
+        if (!userSkillRepository.existsByUserIdAndSkillId(userId, skillId)) {
+            throw new RuntimeException("User skill not found");
+        }
+        userSkillRepository.deleteByUserIdAndSkillId(userId, skillId);
+        log.info("User {} skill {} deleted", userId, skillId);
     }
 
     /**

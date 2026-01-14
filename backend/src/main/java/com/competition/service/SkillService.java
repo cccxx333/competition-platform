@@ -75,6 +75,7 @@ public class SkillService {
         dto.setName(skill.getName());
         dto.setCategory(skill.getCategory());
         dto.setDescription(skill.getDescription());
+        dto.setIsActive(skill.getIsActive());
         return dto;
     }
 }
