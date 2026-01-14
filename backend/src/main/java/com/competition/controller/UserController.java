@@ -74,6 +74,9 @@ public class UserController {
     public ResponseEntity<UserProfileResponse> updateCurrentUser(
             HttpServletRequest request,
             @RequestBody UserProfileUpdateRequest updateRequest) {
+        if (updateRequest == null) {
+            throw new RuntimeException("Invalid request");
+        }
         Long userId = getUserIdFromToken(request);
         UserDTO updateDTO = new UserDTO();
         updateDTO.setRealName(updateRequest.getRealName());

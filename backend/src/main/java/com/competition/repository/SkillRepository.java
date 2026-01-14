@@ -33,6 +33,11 @@ public interface SkillRepository extends JpaRepository<Skill, Long> {
     List<Skill> findByNameContainingIgnoreCase(String name);
 
     /**
+     * Check skill name exists (ignore case).
+     */
+    boolean existsByNameIgnoreCase(String name);
+
+    /**
      * 根据多个ID查找技能
      */
     List<Skill> findByIdIn(List<Long> ids);

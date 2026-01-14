@@ -1,10 +1,12 @@
 package com.competition.service;
 
+import com.competition.dto.SkillCreateRequest;
 import com.competition.dto.SkillDTO;
 import com.competition.entity.Skill;
 import com.competition.repository.SkillRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,14 +22,26 @@ public class SkillService {
     private final SkillRepository skillRepository;
 
     /**
-     * 获取所有技能
+     * Get all skills.
      */
     public List<SkillDTO> getAllSkills() {
-        List<Skill> skills = skillRepository.findAll();
+        return getAllSkillsSorted("name");
+    }
+
+    /**
+     * Get all skills (sorted).
+     */
+    public List<SkillDTO> getAllSkillsSorted(String sortBy) {
+        String sortField = "name";
+        if ("createdAt".equalsIgnoreCase(sortBy)) {
+            sortField = "createdAt";
+        }
+        List<Skill> skills = skillRepository.findAll(Sort.by(Sort.Direction.ASC, sortField));
         return skills.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
+
 
     /**
      * 根据分类获取技能
@@ -67,8 +81,28 @@ public class SkillService {
     }
 
     /**
-     * 转换为DTO
+     * Create skill.
      */
+    @Transactional
+    public SkillDTO createSkill(SkillCreateRequest request) {
+        if (request == null || request.getName() == null || request.getName().trim().isEmpty()) {
+            throw new RuntimeException("Skill name is required");
+        }
+        String name = request.getName().trim();
+        if (skillRepository.existsByNameIgnoreCase(name)) {
+            throw new RuntimeException("Skill name already exists");
+        }
+        Skill skill = new Skill();
+        skill.setName(name);
+        skill.setCategory(request.getCategory());
+        skill.setDescription(request.getDescription());
+        if (request.getIsActive() != null) {
+            skill.setIsActive(request.getIsActive());
+        }
+        Skill saved = skillRepository.save(skill);
+        return convertToDTO(saved);
+    }
+
     private SkillDTO convertToDTO(Skill skill) {
         SkillDTO dto = new SkillDTO();
         dto.setId(skill.getId());

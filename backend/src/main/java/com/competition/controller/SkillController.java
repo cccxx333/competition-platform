@@ -4,7 +4,6 @@ import com.competition.dto.SkillCreateRequest;
 import com.competition.dto.SkillDTO;
 import com.competition.dto.SkillResponse;
 import com.competition.dto.SkillUpdateRequest;
-import com.competition.entity.Skill;
 import com.competition.service.SkillService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,27 +27,30 @@ public class SkillController {
      * 获取所有技能
      */
     @GetMapping
-    public ResponseEntity<List<SkillResponse>> getAllSkills() {
+    public ResponseEntity<List<SkillResponse>> getAllSkills(
+            @RequestParam(value = "sortBy", required = false, defaultValue = "name") String sortBy) {
         try {
-            List<SkillDTO> skills = skillService.getAllSkills();
-            log.info("返回技能数量: {}", skills.size());
+            List<SkillDTO> skills = skillService.getAllSkillsSorted(sortBy);
+            log.info("Skills size {}", skills.size());
             return ResponseEntity.ok(skills.stream()
                     .map(this::toSkillResponse)
                     .collect(Collectors.toList()));
         } catch (Exception e) {
-            log.error("获取技能列表失败: ", e);
+            log.error("Failed to get skills", e);
             throw e;
         }
     }
+
 
     /**
      * 根据分类获取技能
      */
     @PostMapping
     public ResponseEntity<SkillResponse> createSkill(@RequestBody SkillCreateRequest request) {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
-
+        SkillDTO skill = skillService.createSkill(request);
+        return ResponseEntity.ok(toSkillResponse(skill));
     }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<SkillResponse> updateSkill(

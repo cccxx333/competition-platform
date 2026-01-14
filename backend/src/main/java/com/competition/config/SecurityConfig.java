@@ -38,8 +38,8 @@ public class SecurityConfig {
                 .authorizeRequests()
                 .antMatchers("/api/users/register", "/api/users/login").permitAll()
                 .antMatchers("/api/competitions/public/**").permitAll()
-                /*  M1 验证：临时放行 skills（建议先放行 GET + POST，最小闭环）
-                .antMatchers("/api/skills/**").permitAll()*/
+                /*  M1 验证：临时放行 skills（建议先放行 GET + POST，最小闭环）*/
+                .antMatchers("/api/skills/**").permitAll()
                 .anyRequest().authenticated();
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
