@@ -6,15 +6,18 @@ import com.competition.dto.TeacherApplicationReviewRequest;
 import com.competition.dto.TeacherApplicationSkillDTO;
 import com.competition.entity.Competition;
 import com.competition.entity.Skill;
+import com.competition.entity.Team;
 import com.competition.entity.TeacherApplication;
 import com.competition.entity.TeacherApplicationSkill;
 import com.competition.entity.User;
 import com.competition.exception.ApiException;
 import com.competition.repository.CompetitionRepository;
 import com.competition.repository.SkillRepository;
+import com.competition.repository.TeamRepository;
 import com.competition.repository.TeacherApplicationRepository;
 import com.competition.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +34,7 @@ public class TeacherApplicationService {
     private final TeacherApplicationRepository teacherApplicationRepository;
     private final CompetitionRepository competitionRepository;
     private final SkillRepository skillRepository;
+    private final TeamRepository teamRepository;
     private final UserRepository userRepository;
 
     public TeacherApplicationResponse createApplication(Long userId, TeacherApplicationCreateRequest request) {
@@ -98,15 +102,56 @@ public class TeacherApplicationService {
             throw new ApiException(HttpStatus.CONFLICT, "application already reviewed");
         }
 
-        application.setStatus(request.getApproved()
-                ? TeacherApplication.Status.APPROVED
-                : TeacherApplication.Status.REJECTED);
+        if (request.getApproved()) {
+            Team team = ensureTeamForApplication(application);
+            application.setGeneratedTeam(team);
+            application.setStatus(TeacherApplication.Status.APPROVED);
+        } else {
+            application.setStatus(TeacherApplication.Status.REJECTED);
+        }
         application.setReviewedAt(LocalDateTime.now());
         application.setReviewedBy(admin);
         application.setReviewComment(request.getReviewComment());
 
         TeacherApplication saved = teacherApplicationRepository.save(application);
         return toResponse(saved);
+    }
+
+    private Team ensureTeamForApplication(TeacherApplication application) {
+        if (application.getGeneratedTeam() != null) {
+            return application.getGeneratedTeam();
+        }
+
+        Competition competition = application.getCompetition();
+        User teacher = application.getTeacher();
+        if (competition == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "competition not found");
+        }
+        if (teacher == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "teacher not found");
+        }
+
+        Team existing = teamRepository.findByCompetitionIdAndLeaderId(competition.getId(), teacher.getId());
+        if (existing != null) {
+            return existing;
+        }
+
+        Team team = new Team();
+        team.setCompetition(competition);
+        team.setLeader(teacher);
+        team.setStatus(Team.TeamStatus.RECRUITING);
+        team.setName("Team-" + competition.getId() + "-" + teacher.getId());
+        team.setDescription(null);
+
+        try {
+            return teamRepository.save(team);
+        } catch (DataIntegrityViolationException ex) {
+            Team retry = teamRepository.findByCompetitionIdAndLeaderId(competition.getId(), teacher.getId());
+            if (retry != null) {
+                return retry;
+            }
+            throw new ApiException(HttpStatus.CONFLICT, "team already exists");
+        }
     }
 
     private TeacherApplicationResponse toResponse(TeacherApplication application) {

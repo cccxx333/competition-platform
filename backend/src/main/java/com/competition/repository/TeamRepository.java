@@ -12,6 +12,7 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     List<Team> findByStatus(Team.TeamStatus status);
     List<Team> findByCompetitionId(Long competitionId);
     List<Team> findByLeaderId(Long leaderId);
+    Team findByCompetitionIdAndLeaderId(Long competitionId, Long leaderId);
     boolean existsByCompetitionIdAndLeaderId(Long competitionId, Long leaderId);
 
     @Query("SELECT t FROM Team t WHERE t.status = 'RECRUITING'")
