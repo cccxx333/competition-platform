@@ -50,9 +50,7 @@
 
 ## 后端启动步骤：
 
-### 创建数据库：
-```sql 
-CREATE DATABASE competition_platform CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 ```
 
 ### 修改 application.yml 中的数据库配置
