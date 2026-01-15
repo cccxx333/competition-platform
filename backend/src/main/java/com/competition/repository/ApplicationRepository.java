@@ -16,4 +16,8 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     );
 
     List<Application> findByTeamId(Long teamId);
+
+    List<Application> findByTeamIdIn(Collection<Long> teamIds);
+
+    List<Application> findByTeamIdInAndStatus(Collection<Long> teamIds, Application.Status status);
 }
