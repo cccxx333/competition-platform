@@ -1,36 +1,57 @@
 package com.competition.controller;
 
+import com.competition.dto.TeacherApplicationResponse;
 import com.competition.dto.TeacherApplicationReviewRequest;
 import com.competition.entity.TeacherApplication;
+import com.competition.service.TeacherApplicationService;
+import com.competition.utils.JwtUtils;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/teacher-applications")
 @CrossOrigin(origins = "http://localhost:3000")
+@RequiredArgsConstructor
 public class AdminTeacherApplicationController {
 
-    @GetMapping
+    private final TeacherApplicationService teacherApplicationService;
+    private final JwtUtils jwtUtils;
+
     /**
-     * 管理员查看教师申请列表
-     * 默认排序：appliedAt desc
-     * 返回体契约：TeacherApplicationResponse 列表
+     * Admin list teacher applications.
+     * Default sort: appliedAt desc.
+     * Response contract: TeacherApplicationResponse list.
      */
-    public ResponseEntity<String> getApplications(
+    @GetMapping
+    public ResponseEntity<List<TeacherApplicationResponse>> getApplications(
             @RequestParam(required = false) TeacherApplication.Status status,
             @RequestParam(required = false) Long competitionId) {
-        return ResponseEntity.ok("接口已定义，业务逻辑待实现（默认排序：appliedAt desc）");
+        return ResponseEntity.ok().build();
     }
 
-    @PutMapping("/{id}/review")
     /**
-     * 管理员审核教师申请
-     * 返回体契约：TeacherApplicationResponse
+     * Admin review teacher application.
+     * Response contract: TeacherApplicationResponse.
      */
-    public ResponseEntity<String> reviewApplication(
+    @PutMapping("/{id}/review")
+    public ResponseEntity<TeacherApplicationResponse> reviewApplication(
+            HttpServletRequest httpRequest,
             @PathVariable Long id,
             @RequestBody TeacherApplicationReviewRequest request) {
-        return ResponseEntity.ok("接口已定义，业务逻辑待实现");
+        Long userId = getUserIdFromToken(httpRequest);
+        TeacherApplicationResponse response = teacherApplicationService.reviewApplication(userId, id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    private Long getUserIdFromToken(HttpServletRequest request) {
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+            return jwtUtils.getUserIdFromToken(token);
+        }
+        throw new RuntimeException("invalid token");
     }
 }

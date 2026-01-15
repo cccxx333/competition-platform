@@ -2,6 +2,7 @@ package com.competition.service;
 
 import com.competition.dto.TeacherApplicationCreateRequest;
 import com.competition.dto.TeacherApplicationResponse;
+import com.competition.dto.TeacherApplicationReviewRequest;
 import com.competition.dto.TeacherApplicationSkillDTO;
 import com.competition.entity.Competition;
 import com.competition.entity.Skill;
@@ -74,6 +75,35 @@ public class TeacherApplicationService {
                 application.getApplicationSkills().add(applicationSkill);
             }
         }
+
+        TeacherApplication saved = teacherApplicationRepository.save(application);
+        return toResponse(saved);
+    }
+
+    public TeacherApplicationResponse reviewApplication(Long adminUserId, Long applicationId, TeacherApplicationReviewRequest request) {
+        if (request == null || request.getApproved() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "approved is required");
+        }
+
+        User admin = userRepository.findById(adminUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        if (admin.getRole() != User.Role.ADMIN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN can review");
+        }
+
+        TeacherApplication application = teacherApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "application not found"));
+
+        if (application.getStatus() != TeacherApplication.Status.PENDING) {
+            throw new ApiException(HttpStatus.CONFLICT, "application already reviewed");
+        }
+
+        application.setStatus(request.getApproved()
+                ? TeacherApplication.Status.APPROVED
+                : TeacherApplication.Status.REJECTED);
+        application.setReviewedAt(LocalDateTime.now());
+        application.setReviewedBy(admin);
+        application.setReviewComment(request.getReviewComment());
 
         TeacherApplication saved = teacherApplicationRepository.save(application);
         return toResponse(saved);
