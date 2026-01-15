@@ -18,6 +18,15 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     /**
+     * Handle business exceptions with explicit status.
+     */
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ErrorResponse> handleApiException(ApiException e) {
+        return ResponseEntity.status(e.getStatus())
+                .body(new ErrorResponse(e.getCode(), e.getMessage()));
+    }
+
+    /**
      * 处理业务异常
      */
     @ExceptionHandler(RuntimeException.class)
