@@ -9,4 +9,6 @@ public class TeamDiscussionPostCreateRequest {
     @NotBlank(message = "content is required")
     @Size(max = 2000, message = "content is too long")
     private String content;
+
+    private Long parentPostId;
 }

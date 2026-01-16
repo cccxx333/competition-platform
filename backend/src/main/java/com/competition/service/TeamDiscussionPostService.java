@@ -36,13 +36,16 @@ public class TeamDiscussionPostService {
         enforceTeamAccess(currentUser, team);
 
         return teamDiscussionPostRepository
-                .findByTeam_IdAndDeletedAtIsNullOrderByCreatedAtDesc(teamId)
+                .findByTeam_IdAndDeletedAtIsNullOrderByCreatedAtAsc(teamId)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
     public TeamDiscussionPostResponse createPost(Long currentUserId, Long teamId, TeamDiscussionPostCreateRequest req) {
+        if (req == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "content is required");
+        }
         Team team = loadTeam(teamId);
         User currentUser = loadUser(currentUserId);
         enforceTeamAccess(currentUser, team);
@@ -50,7 +53,22 @@ public class TeamDiscussionPostService {
         TeamDiscussionPost post = new TeamDiscussionPost();
         post.setTeam(team);
         post.setAuthor(currentUser);
-        post.setParentPost(null);
+        Long parentPostId = req != null ? req.getParentPostId() : null;
+        TeamDiscussionPost parent = null;
+        if (parentPostId != null) {
+            parent = teamDiscussionPostRepository
+                    .findByIdAndDeletedAtIsNull(parentPostId)
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "parent post not found"));
+            if (parent.getTeam() == null || !parent.getTeam().getId().equals(teamId)) {
+                throw new ApiException(HttpStatus.CONFLICT, "cross-team reply forbidden");
+            }
+            if (parent.getParentPost() != null) {
+                throw new ApiException(HttpStatus.CONFLICT, "only one-level reply allowed");
+            }
+            post.setParentPost(parent);
+        } else {
+            post.setParentPost(null);
+        }
         post.setContent(req.getContent());
         post.setCreatedAt(LocalDateTime.now());
         post.setUpdatedAt(null);
@@ -58,6 +76,9 @@ public class TeamDiscussionPostService {
         post.setDeletedBy(null);
 
         TeamDiscussionPost saved = teamDiscussionPostRepository.save(post);
+        if (parent != null && saved.getParentPost() == null) {
+            saved.setParentPost(parent);
+        }
         return toResponse(saved);
     }
 
