@@ -7,15 +7,19 @@ import com.competition.entity.Competition;
 import com.competition.entity.Team;
 import com.competition.entity.TeamMember;
 import com.competition.entity.User;
+import com.competition.repository.ApplicationRepository;
+import com.competition.exception.ApiException;
 import com.competition.repository.TeamMemberRepository;
 import com.competition.repository.TeamRepository;
 import com.competition.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,6 +31,7 @@ public class TeamService {
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
     private final UserRepository userRepository;
+    private final ApplicationRepository applicationRepository;
 
     @Transactional(readOnly = true)
     public Page<TeamDTO> getTeams(Pageable pageable) {
@@ -68,22 +73,23 @@ public class TeamService {
 
     public void joinTeam(Long userId, Long teamId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("鐢ㄦ埛涓嶅瓨鍦�"));
-        Team team = getTeamById(teamId);
+                .orElseThrow(() -> new RuntimeException("user not found"));
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "team not found"));
 
         if (team.getStatus() != Team.TeamStatus.RECRUITING) {
-            throw new RuntimeException("闃熶紞涓嶅湪鎷涘嫙鐘舵��");
+            throw new ApiException(HttpStatus.CONFLICT, "team is not recruiting");
         }
 
-        long currentMembers = teamMemberRepository.countByTeamId(teamId);
+        long currentMembers = teamMemberRepository.countByTeamIdAndLeftAtIsNull(teamId);
         Integer maxSize = team.getCompetition() != null ? team.getCompetition().getMaxTeamSize() : null;
         if (maxSize != null && currentMembers >= maxSize) {
-            throw new RuntimeException("闃熶紞宸叉弧鍛�");
+            throw new RuntimeException("team is full");
         }
 
-        boolean isMember = teamMemberRepository.existsByTeamIdAndUserId(teamId, userId);
+        boolean isMember = teamMemberRepository.existsByTeamIdAndUserIdAndLeftAtIsNull(teamId, userId);
         if (isMember) {
-            throw new RuntimeException("鎮ㄥ凡缁忔槸璇ラ槦浼嶆垚鍛�");
+            throw new RuntimeException("already in team");
         }
 
         TeamMember member = new TeamMember();
@@ -115,6 +121,78 @@ public class TeamService {
                 team.setStatus(Team.TeamStatus.RECRUITING);
                 teamRepository.save(team);
             }
+        }
+    }
+
+    public TeamDTO closeTeam(Long currentUserId, Long teamId) {
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        if (currentUser.getRole() == User.Role.STUDENT) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN or TEACHER can close team");
+        }
+
+        Team team = getTeamById(teamId);
+        if (team.getStatus() == Team.TeamStatus.CLOSED) {
+            throw new ApiException(HttpStatus.CONFLICT, "team already closed");
+        }
+        if (team.getStatus() == Team.TeamStatus.DISBANDED) {
+            throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
+        }
+
+        if (currentUser.getRole() == User.Role.TEACHER) {
+            if (team.getLeader() == null || !team.getLeader().getId().equals(currentUserId)) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "only team leader can close team");
+            }
+        }
+
+        team.setStatus(Team.TeamStatus.CLOSED);
+        team.setClosedAt(LocalDateTime.now());
+        team.setClosedBy(currentUser);
+        team.setUpdatedAt(LocalDateTime.now());
+        Team saved = teamRepository.save(team);
+
+        return convertToDTO(saved);
+    }
+
+    public void removeMember(Long currentUserId, Long teamId, Long userId, String reason) {
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        if (currentUser.getRole() == User.Role.STUDENT) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN or TEACHER can remove member");
+        }
+
+        Team team = getTeamById(teamId);
+        if (currentUser.getRole() == User.Role.TEACHER) {
+            if (team.getLeader() == null || !team.getLeader().getId().equals(currentUserId)) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "only team leader can remove member");
+            }
+        }
+
+        if (team.getLeader() != null && team.getLeader().getId().equals(userId)) {
+            throw new ApiException(HttpStatus.CONFLICT, "cannot remove team leader");
+        }
+
+        TeamMember member = teamMemberRepository.findByTeamIdAndUserIdAndLeftAtIsNull(teamId, userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "member not found"));
+
+        LocalDateTime now = LocalDateTime.now();
+        member.setLeftAt(now);
+        teamMemberRepository.save(member);
+
+        if (team.getCompetition() != null) {
+            applicationRepository.findByCompetitionIdAndStudentIdAndTeamIdAndIsActiveTrueAndStatus(
+                    team.getCompetition().getId(),
+                    userId,
+                    teamId,
+                    com.competition.entity.Application.Status.APPROVED
+            ).ifPresent(application -> {
+                application.setStatus(com.competition.entity.Application.Status.REMOVED);
+                application.setIsActive(false);
+                application.setRemovedAt(now);
+                application.setRemovedBy(currentUser);
+                application.setReason(reason);
+                applicationRepository.save(application);
+            });
         }
     }
 

@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/teams")
@@ -77,6 +78,32 @@ public class TeamController {
         Long userId = getUserIdFromToken(request);
         teamService.leaveTeam(userId, teamId);
         return ResponseEntity.ok("离开队伍成功");
+    }
+
+    /**
+     * 移除队伍成员
+     */
+    @DeleteMapping("/{teamId}/members/{userId}")
+    public ResponseEntity<Map<String, Object>> removeMember(
+            HttpServletRequest request,
+            @PathVariable Long teamId,
+            @PathVariable Long userId,
+            @RequestParam(required = false) String reason) {
+        Long currentUserId = getUserIdFromToken(request);
+        teamService.removeMember(currentUserId, teamId, userId, reason);
+        return ResponseEntity.ok(Map.of("ok", true));
+    }
+
+    /**
+     * 结束组队
+     */
+    @PutMapping("/{teamId}/close")
+    public ResponseEntity<TeamDTO> closeTeam(
+            HttpServletRequest request,
+            @PathVariable Long teamId) {
+        Long userId = getUserIdFromToken(request);
+        TeamDTO closedTeam = teamService.closeTeam(userId, teamId);
+        return ResponseEntity.ok(closedTeam);
     }
 
     /**

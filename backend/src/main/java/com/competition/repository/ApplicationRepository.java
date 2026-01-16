@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
@@ -20,4 +21,11 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     List<Application> findByTeamIdIn(Collection<Long> teamIds);
 
     List<Application> findByTeamIdInAndStatus(Collection<Long> teamIds, Application.Status status);
+
+    Optional<Application> findByCompetitionIdAndStudentIdAndTeamIdAndIsActiveTrueAndStatus(
+            Long competitionId,
+            Long studentId,
+            Long teamId,
+            Application.Status status
+    );
 }
