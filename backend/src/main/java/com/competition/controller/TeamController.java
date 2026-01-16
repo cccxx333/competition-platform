@@ -1,6 +1,7 @@
 package com.competition.controller;
 
 import com.competition.dto.TeamDTO;
+import com.competition.dto.TeamMemberViewResponse;
 import com.competition.service.TeamService;
 import com.competition.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +39,7 @@ public class TeamController {
     /**
      * 根据ID获取队伍详情
      */
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public ResponseEntity<TeamDTO> getTeamById(@PathVariable Long id) {
         TeamDTO team = teamService.getTeamDTOById(id);
         return ResponseEntity.ok(team);
@@ -59,7 +60,7 @@ public class TeamController {
     /**
      * 申请加入队伍
      */
-    @PostMapping("/{teamId}/join")
+    @PostMapping("/{teamId:\\d+}/join")
     public ResponseEntity<String> joinTeam(
             HttpServletRequest request,
             @PathVariable Long teamId) {
@@ -71,7 +72,7 @@ public class TeamController {
     /**
      * 离开队伍
      */
-    @PostMapping("/{teamId}/leave")
+    @PostMapping("/{teamId:\\d+}/leave")
     public ResponseEntity<String> leaveTeam(
             HttpServletRequest request,
             @PathVariable Long teamId) {
@@ -81,9 +82,21 @@ public class TeamController {
     }
 
     /**
+     * 获取队伍成员列表（仅在队成员）
+     */
+    @GetMapping("/{teamId}/members")
+    public ResponseEntity<List<TeamMemberViewResponse>> listTeamMembers(
+            HttpServletRequest request,
+            @PathVariable Long teamId) {
+        Long userId = getUserIdFromToken(request);
+        List<TeamMemberViewResponse> members = teamService.listTeamMembers(userId, teamId);
+        return ResponseEntity.ok(members);
+    }
+
+    /**
      * 移除队伍成员
      */
-    @DeleteMapping("/{teamId}/members/{userId}")
+    @DeleteMapping("/{teamId:\\d+}/members/{userId:\\d+}")
     public ResponseEntity<Map<String, Object>> removeMember(
             HttpServletRequest request,
             @PathVariable Long teamId,
@@ -97,7 +110,7 @@ public class TeamController {
     /**
      * 结束组队
      */
-    @PutMapping("/{teamId}/close")
+    @PutMapping("/{teamId:\\d+}/close")
     public ResponseEntity<TeamDTO> closeTeam(
             HttpServletRequest request,
             @PathVariable Long teamId) {

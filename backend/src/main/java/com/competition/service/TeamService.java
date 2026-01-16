@@ -3,6 +3,7 @@ package com.competition.service;
 import com.competition.dto.CompetitionDTO;
 import com.competition.dto.TeamDTO;
 import com.competition.dto.UserDTO;
+import com.competition.dto.TeamMemberViewResponse;
 import com.competition.entity.Competition;
 import com.competition.entity.Application;
 import com.competition.entity.Team;
@@ -71,6 +72,29 @@ public class TeamService {
         teamMemberRepository.save(leaderMember);
 
         return convertToDTO(savedTeam);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TeamMemberViewResponse> listTeamMembers(Long currentUserId, Long teamId) {
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "team not found"));
+
+        if (currentUser.getRole() == User.Role.TEACHER) {
+            if (team.getLeader() == null || !team.getLeader().getId().equals(currentUserId)) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "not team leader");
+            }
+        } else if (currentUser.getRole() == User.Role.STUDENT) {
+            boolean isMember = teamMemberRepository.existsByTeamIdAndUserIdAndLeftAtIsNull(teamId, currentUserId);
+            if (!isMember) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "not team member");
+            }
+        }
+
+        return teamMemberRepository.findByTeamIdAndLeftAtIsNull(teamId).stream()
+                .map(this::toMemberView)
+                .collect(Collectors.toList());
     }
 
     public void joinTeam(Long userId, Long teamId) {
@@ -254,11 +278,19 @@ public class TeamService {
             dto.setCompetition(convertCompetitionToDTO(team.getCompetition()));
         }
 
-        if (team.getTeamMembers() != null) {
-            dto.setTeamMembers(team.getTeamMembers().stream().collect(Collectors.toList()));
-        }
-
         return dto;
+    }
+
+    private TeamMemberViewResponse toMemberView(TeamMember member) {
+        TeamMemberViewResponse response = new TeamMemberViewResponse();
+        if (member.getUser() != null) {
+            response.setUserId(member.getUser().getId());
+            response.setUsername(member.getUser().getUsername());
+            response.setRealName(member.getUser().getRealName());
+        }
+        response.setRole(member.getRole() != null ? member.getRole().name() : null);
+        response.setJoinedAt(member.getJoinedAt());
+        return response;
     }
 
     private UserDTO convertUserToDTO(User user) {
