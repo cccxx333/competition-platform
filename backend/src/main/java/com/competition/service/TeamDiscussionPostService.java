@@ -97,9 +97,22 @@ public class TeamDiscussionPostService {
 
         enforceDeleteAccess(currentUser, team, post);
 
-        post.setDeletedAt(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        post.setDeletedAt(now);
         post.setDeletedBy(currentUser);
         teamDiscussionPostRepository.save(post);
+
+        if (post.getParentPost() == null) {
+            List<TeamDiscussionPost> replies = teamDiscussionPostRepository
+                    .findByParentPost_IdAndDeletedAtIsNull(post.getId());
+            if (!replies.isEmpty()) {
+                replies.forEach(reply -> {
+                    reply.setDeletedAt(now);
+                    reply.setDeletedBy(currentUser);
+                });
+                teamDiscussionPostRepository.saveAll(replies);
+            }
+        }
     }
 
     private Team loadTeam(Long teamId) {

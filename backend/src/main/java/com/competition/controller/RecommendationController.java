@@ -59,10 +59,12 @@ public class RecommendationController {
             @PathVariable Long teamId,
             @RequestParam(defaultValue = "10") int limit) {
 
-        List<RecommendationResult<User>> recommendations =
-                recommendationService.recommendTeamMembers(teamId, limit);
-
-        return ResponseEntity.ok(recommendations);
+        return ResponseEntity.status(410)
+                .body(List.of(new RecommendationResult<>(
+                        null,
+                        0.0,
+                        "deprecated, use GET /api/teams/{teamId}/members"
+                )));
     }
 
     private Long getUserIdFromToken(HttpServletRequest request) {

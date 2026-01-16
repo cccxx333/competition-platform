@@ -10,4 +10,5 @@ import java.util.List;
 public interface TeamDiscussionPostRepository extends JpaRepository<TeamDiscussionPost, Long> {
     Optional<TeamDiscussionPost> findByIdAndDeletedAtIsNull(Long id);
     List<TeamDiscussionPost> findByTeam_IdAndDeletedAtIsNullOrderByCreatedAtAsc(Long teamId);
+    List<TeamDiscussionPost> findByParentPost_IdAndDeletedAtIsNull(Long parentPostId);
 }
