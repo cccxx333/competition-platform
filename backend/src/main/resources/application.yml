@@ -36,6 +36,9 @@ jwt:
   secret: competitionPlatformSecretKey2023
   expiration: 86400 # 24 hours
 
+app:
+  upload-dir: uploads
+
 logging:
   level:
     com.competition: INFO

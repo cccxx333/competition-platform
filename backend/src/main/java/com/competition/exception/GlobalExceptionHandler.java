@@ -7,9 +7,12 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MultipartException;
 import javax.validation.ConstraintViolationException;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -85,6 +88,25 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleConstraintViolationException(ConstraintViolationException e) {
         return ResponseEntity.badRequest()
                 .body(new ErrorResponse("CONSTRAINT_ERROR", e.getMessage()));
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ErrorResponse> handleMultipartException(MultipartException e) {
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse("BUSINESS_ERROR", "Current request is not a multipart request"));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingServletRequestPartException(MissingServletRequestPartException e) {
+        return ResponseEntity.badRequest()
+                .body(new ErrorResponse("BUSINESS_ERROR", "Required request part 'file' is not present"));
+    }
+
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<ErrorResponse> handleIOException(IOException e) {
+        log.error("IO exception: ", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("BUSINESS_ERROR", "file save failed"));
     }
 
     /**
