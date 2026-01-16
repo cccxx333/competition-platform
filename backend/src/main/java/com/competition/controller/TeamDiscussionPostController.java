@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/teams")
@@ -39,6 +40,16 @@ public class TeamDiscussionPostController {
         Long userId = getUserIdFromToken(request);
         TeamDiscussionPostResponse created = teamDiscussionPostService.createPost(userId, teamId, createRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @DeleteMapping("/{teamId:\\d+}/posts/{postId:\\d+}")
+    public ResponseEntity<Map<String, Object>> deletePost(
+            HttpServletRequest request,
+            @PathVariable Long teamId,
+            @PathVariable Long postId) {
+        Long userId = getUserIdFromToken(request);
+        teamDiscussionPostService.deletePost(userId, teamId, postId);
+        return ResponseEntity.ok(Map.of("ok", true));
     }
 
     private Long getUserIdFromToken(HttpServletRequest request) {

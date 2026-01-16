@@ -82,6 +82,26 @@ public class TeamDiscussionPostService {
         return toResponse(saved);
     }
 
+    public void deletePost(Long currentUserId, Long teamId, Long postId) {
+        Team team = loadTeam(teamId);
+        User currentUser = loadUser(currentUserId);
+        TeamDiscussionPost post = teamDiscussionPostRepository.findById(postId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "post not found"));
+
+        if (post.getTeam() == null || !post.getTeam().getId().equals(teamId)) {
+            throw new ApiException(HttpStatus.CONFLICT, "cross-team post mismatch");
+        }
+        if (post.getDeletedAt() != null) {
+            throw new ApiException(HttpStatus.CONFLICT, "post already deleted");
+        }
+
+        enforceDeleteAccess(currentUser, team, post);
+
+        post.setDeletedAt(LocalDateTime.now());
+        post.setDeletedBy(currentUser);
+        teamDiscussionPostRepository.save(post);
+    }
+
     private Team loadTeam(Long teamId) {
         if (teamId == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "teamId is required");
@@ -113,6 +133,30 @@ public class TeamDiscussionPostService {
                     .existsByTeamIdAndUserIdAndLeftAtIsNull(team.getId(), currentUser.getId());
             if (!isMember) {
                 throw new ApiException(HttpStatus.FORBIDDEN, "not team member");
+            }
+            return;
+        }
+        throw new ApiException(HttpStatus.FORBIDDEN, "no permission");
+    }
+
+    private void enforceDeleteAccess(User currentUser, Team team, TeamDiscussionPost post) {
+        if (currentUser.getRole() == User.Role.ADMIN) {
+            return;
+        }
+        if (currentUser.getRole() == User.Role.TEACHER) {
+            if (team.getLeader() == null || !team.getLeader().getId().equals(currentUser.getId())) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "not team leader");
+            }
+            return;
+        }
+        if (currentUser.getRole() == User.Role.STUDENT) {
+            boolean isMember = teamMemberRepository
+                    .existsByTeamIdAndUserIdAndLeftAtIsNull(team.getId(), currentUser.getId());
+            if (!isMember) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "not team member");
+            }
+            if (post.getAuthor() == null || !post.getAuthor().getId().equals(currentUser.getId())) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "not post author");
             }
             return;
         }
