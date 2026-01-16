@@ -15,6 +15,7 @@ import com.competition.repository.TeamMemberRepository;
 import com.competition.repository.TeamRepository;
 import com.competition.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,15 +74,31 @@ public class ApplicationService {
             throw new ApiException(HttpStatus.CONFLICT, "active application exists");
         }
 
-        Application application = new Application();
+        LocalDateTime now = LocalDateTime.now();
+        Application application = applicationRepository
+                .findFirstByStudent_IdAndCompetition_IdAndIsActiveFalseOrderByIdDesc(
+                        student.getId(),
+                        competition.getId()
+                )
+                .orElseGet(Application::new);
         application.setStudent(student);
         application.setCompetition(competition);
         application.setTeam(team);
         application.setStatus(Application.Status.PENDING);
         application.setIsActive(true);
-        application.setAppliedAt(LocalDateTime.now());
+        application.setAppliedAt(now);
+        application.setReviewedAt(null);
+        application.setReviewedBy(null);
+        application.setRemovedAt(null);
+        application.setRemovedBy(null);
+        application.setReason(null);
 
-        Application saved = applicationRepository.save(application);
+        Application saved;
+        try {
+            saved = applicationRepository.save(application);
+        } catch (DataIntegrityViolationException ex) {
+            throw new ApiException(HttpStatus.CONFLICT, "active application exists");
+        }
         return toResponse(saved);
     }
 

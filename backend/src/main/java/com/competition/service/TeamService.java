@@ -4,6 +4,7 @@ import com.competition.dto.CompetitionDTO;
 import com.competition.dto.TeamDTO;
 import com.competition.dto.UserDTO;
 import com.competition.entity.Competition;
+import com.competition.entity.Application;
 import com.competition.entity.Team;
 import com.competition.entity.TeamMember;
 import com.competition.entity.User;
@@ -13,6 +14,7 @@ import com.competition.repository.TeamMemberRepository;
 import com.competition.repository.TeamRepository;
 import com.competition.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -173,26 +175,33 @@ public class TeamService {
         }
 
         TeamMember member = teamMemberRepository.findByTeamIdAndUserIdAndLeftAtIsNull(teamId, userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "member not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "member already removed"));
 
         LocalDateTime now = LocalDateTime.now();
         member.setLeftAt(now);
         teamMemberRepository.save(member);
 
         if (team.getCompetition() != null) {
-            applicationRepository.findByCompetitionIdAndStudentIdAndTeamIdAndIsActiveTrueAndStatus(
-                    team.getCompetition().getId(),
-                    userId,
-                    teamId,
-                    com.competition.entity.Application.Status.APPROVED
-            ).ifPresent(application -> {
-                application.setStatus(com.competition.entity.Application.Status.REMOVED);
-                application.setIsActive(false);
-                application.setRemovedAt(now);
-                application.setRemovedBy(currentUser);
-                application.setReason(reason);
+            Long competitionId = team.getCompetition().getId();
+            Application application = applicationRepository
+                    .findFirstByStudent_IdAndCompetition_IdAndTeam_IdAndStatusAndIsActiveTrue(
+                            userId,
+                            competitionId,
+                            teamId,
+                            Application.Status.APPROVED
+                    )
+                    .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "approved active application not found"));
+            applicationRepository.deleteAllInactiveByStudentAndCompetition(userId, competitionId);
+            application.setStatus(Application.Status.REMOVED);
+            application.setIsActive(false);
+            application.setRemovedAt(now);
+            application.setRemovedBy(currentUser);
+            application.setReason(reason);
+            try {
                 applicationRepository.save(application);
-            });
+            } catch (DataIntegrityViolationException ex) {
+                throw new ApiException(HttpStatus.CONFLICT, "application state conflict, please retry");
+            }
         }
     }
 
