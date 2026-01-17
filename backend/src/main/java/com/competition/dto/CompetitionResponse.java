@@ -22,4 +22,7 @@ public class CompetitionResponse {
     private Long createdById;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Double matchScore;
+    private Boolean recommend;
+    private String recommendReason;
 }

@@ -5,6 +5,7 @@ import com.competition.dto.CompetitionResponse;
 import com.competition.dto.CompetitionUpdateRequest;
 import com.competition.entity.Competition;
 import com.competition.service.CompetitionService;
+import com.competition.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 
 @RestController
@@ -22,14 +24,19 @@ import javax.validation.Valid;
 public class CompetitionController {
 
     private final CompetitionService competitionService;
+    private final JwtUtils jwtUtils;
 
     /**
      * 鑾峰彇绔炶禌鍒楄〃锛堝垎椤碉級
      */
     @GetMapping
     public ResponseEntity<Page<CompetitionResponse>> getCompetitions(
+            HttpServletRequest request,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Competition.CompetitionStatus status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "false") boolean recommend,
+            @RequestParam(defaultValue = "10") int topK,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -39,7 +46,9 @@ public class CompetitionController {
                 Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<CompetitionResponse> competitions = competitionService.getCompetitions(pageable, name, status);
+        Long userId = recommend ? tryGetUserId(request) : null;
+        Page<CompetitionResponse> competitions = competitionService.getCompetitions(
+                pageable, name, status, keyword, recommend, userId, topK);
         return ResponseEntity.ok(competitions);
     }
 
@@ -100,5 +109,20 @@ public class CompetitionController {
     public ResponseEntity<List<CompetitionResponse>> getAvailableCompetitions() {
         List<CompetitionResponse> competitions = competitionService.getAvailableCompetitions();
         return ResponseEntity.ok(competitions);
+    }
+
+    private Long tryGetUserId(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            try {
+                return jwtUtils.getUserIdFromToken(token.substring(7));
+            } catch (Exception ex) {
+                return null;
+            }
+        }
+        return null;
     }
 }
