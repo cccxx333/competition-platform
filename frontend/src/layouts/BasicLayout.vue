@@ -1,7 +1,7 @@
-<script lang="ts" setup>
-const route = useRoute()
+﻿<script lang="ts" setup>
+import { useAuthStore } from "@/stores/auth"
 
-import { useAuthStore } from '@/stores/auth'
+const route = useRoute()
 const authStore = useAuthStore()
 
 const userLabel = computed(() => {
@@ -17,6 +17,8 @@ const userLabel = computed(() => {
       <div class="basic-layout__logo">Competition Platform</div>
       <el-menu :default-active="route.path" router>
         <el-menu-item index="/dashboard">Dashboard</el-menu-item>
+        <el-menu-item index="/me/profile">Profile</el-menu-item>
+        <el-menu-item index="/me/skills">Skills</el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

@@ -1,4 +1,4 @@
-import type { RouteRecordRaw } from "vue-router"
+﻿import type { RouteRecordRaw } from "vue-router"
 import { createRouter } from "vue-router"
 import { routerConfig } from "@/router/config"
 import { registerNavigationGuard } from "@/router/guard"
@@ -42,6 +42,18 @@ export const constantRoutes: RouteRecordRaw[] = [
             meta: { title: "Dashboard" }
           }
         ]
+      },
+      {
+        path: "me/profile",
+        name: "MyProfile",
+        component: () => import("@/views/me/Profile.vue"),
+        meta: { title: "Profile" }
+      },
+      {
+        path: "me/skills",
+        name: "MySkills",
+        component: () => import("@/views/me/Skills.vue"),
+        meta: { title: "Skills" }
       }
     ]
   },
