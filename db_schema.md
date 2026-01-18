@@ -7,7 +7,7 @@
 
 - `id` (BIGINT, PK, AUTO)：用户唯一标识
 - `account_no` (VARCHAR(32), UNIQUE, NOT NULL)：登录账号（学号/工号）
-- `role` (VARCHAR(20), NOT NULL)：角色：ADMIN / TEACHER / STUDENT
+- `role` (ENUM, NOT NULL)：角色：ADMIN / TEACHER / STUDENT
 - `password` (VARCHAR(255), NOT NULL)：密码（加密存储）
 - `real_name` (VARCHAR(64))：真实姓名
 - `username` (VARCHAR(64))：昵称/展示名（可选）
@@ -29,7 +29,7 @@
 - `name` (VARCHAR(64), UNIQUE, NOT NULL)：技能名称
 - `category` (VARCHAR(64))：技能分类
 - `description` (TEXT)：技能描述
-- `is_active` (BIT(1), DEFAULT 1)：是否启用（1启用/0停用）
+- `is_active` (TINYINT, DEFAULT 1)：是否启用（1启用/0停用）
 - `created_at` (DATETIME)：创建时间
 - `updated_at` (DATETIME)：更新时间
 
@@ -60,7 +60,7 @@
 - `max_team_size` (INT, NOT NULL)：队伍最大人数
 - `category` (VARCHAR(64))：竞赛类别
 - `level` (VARCHAR(64))：竞赛级别
-- `status` (VARCHAR(20), DEFAULT UPCOMING)：状态：UPCOMING / ONGOING / FINISHED
+- `status` (ENUM, DEFAULT UPCOMING)：状态：UPCOMING / ONGOING / FINISHED
 - `created_by` (BIGINT, FK(users.id))：创建人（管理员）
 - `created_at` (DATETIME)：创建时间
 - `updated_at` (DATETIME)：更新时间
@@ -83,7 +83,7 @@
 - `id` (BIGINT, PK, AUTO)：申请ID
 - `competition_id` (BIGINT, FK(competitions.id))：竞赛ID
 - `teacher_id` (BIGINT, FK(users.id))：教师ID
-- `status` (VARCHAR(20), DEFAULT PENDING)：状态：PENDING / APPROVED / REJECTED
+- `status` (ENUM, DEFAULT PENDING)：状态：PENDING / APPROVED / REJECTED
 - `applied_at` (DATETIME)：申请时间
 - `reviewed_at` (DATETIME)：审核时间
 - `reviewed_by` (BIGINT, FK(users.id))：审核人（管理员）
@@ -113,7 +113,7 @@
 - `leader_id` (BIGINT, FK(users.id))：队长（语义=指导教师）
 - `name` (VARCHAR(128), NOT NULL)：队伍名称
 - `description` (TEXT)：队伍介绍/招募说明
-- `status` (VARCHAR(20), DEFAULT RECRUITING)：状态：RECRUITING / CLOSED / DISBANDED
+- `status` (ENUM, DEFAULT RECRUITING)：状态：RECRUITING / CLOSED / DISBANDED
 - `closed_at` (DATETIME)：结束组队时间
 - `closed_by` (BIGINT, FK(users.id))：结束组队操作者（教师/管理员）
 - `created_at` (DATETIME)：创建时间
@@ -141,7 +141,7 @@
 - `competition_id` (BIGINT, FK(competitions.id))：竞赛ID
 - `team_id` (BIGINT, FK(teams.id))：申请队伍
 - `student_id` (BIGINT, FK(users.id))：学生ID
-- `status` (VARCHAR(20), DEFAULT PENDING)：状态：PENDING / APPROVED / REJECTED / REMOVED
+- `status` (ENUM, DEFAULT PENDING)：状态：PENDING / APPROVED / REJECTED / REMOVED
 - `is_active` (TINYINT, DEFAULT 1)：是否当前有效（PENDING/APPROVED=1，REJECTED/REMOVED=0，由业务层维护）
 - `applied_at` (DATETIME)：申请时间
 - `reviewed_at` (DATETIME)：审核时间
@@ -161,7 +161,7 @@
 - `id` (BIGINT, PK, AUTO)：记录ID
 - `team_id` (BIGINT, FK(teams.id))：队伍ID
 - `user_id` (BIGINT, FK(users.id))：成员ID（学生）
-- `role` (VARCHAR(20), DEFAULT MEMBER)：成员角色（本项目可简化为 MEMBER）
+- `role` (ENUM, DEFAULT MEMBER)：成员角色（本项目可简化为 MEMBER）
 - `joined_at` (DATETIME)：加入时间
 - `left_at` (DATETIME)：离队时间（被移除/退出）
 
@@ -193,7 +193,7 @@
 - `file_url` (VARCHAR(512), NOT NULL)：文件存储地址（本地/对象存储URL）
 - `remark` (VARCHAR(255))：提交备注
 - `submitted_at` (DATETIME)：提交时间
-- `is_current` (BIT(1), DEFAULT 1)：是否当前有效版本（最新=1，旧版本=0）
+- `is_current` (TINYINT, DEFAULT 1)：是否当前有效版本（最新=1，旧版本=0）
 
 ---
 
@@ -202,8 +202,8 @@
 
 - `id` (BIGINT, PK, AUTO)：行为ID
 - `user_id` (BIGINT, FK(users.id))：用户ID
-- `behavior_type` (VARCHAR(20), NOT NULL)：行为类型（VIEW / LIKE / FAVORITE / APPLY / JOIN 等）
-- `target_type` (VARCHAR(20), NOT NULL)：目标类型（COMPETITION / TEAM / SKILL）
+- `behavior_type` (ENUM, NOT NULL)：行为类型（VIEW / LIKE / FAVORITE / APPLY / JOIN 等）
+- `target_type` (ENUM, NOT NULL)：目标类型（COMPETITION / TEAM / SKILL）
 - `target_id` (BIGINT, NOT NULL)：目标ID
 - `weight` (INT, DEFAULT 1)：行为权重（用于推荐）
 - `created_at` (DATETIME)：行为时间
@@ -215,3 +215,36 @@
 - 4. 建议为高频查询建立索引：`competitions(status, registration_deadline)`、`applications(team_id, status)`、`team_members(team_id, left_at)`、`user_behaviors(user_id, created_at)`
 
 ---
+
+## 附加表：竞赛奖项与获奖成员快照（M9）
+
+### team_awards（获奖发布记录）
+
+用于记录一次管理员“颁奖发布”事件，是奖项的主记录表。
+
+- id：主键
+- competition_id：所属竞赛
+- team_id：获奖队伍
+- award_name：奖项名称（如 一等奖 / 二等奖）
+- published_by：发布人（管理员）
+- published_at：发布时间
+- is_active：是否有效（用于撤回或更正）
+
+说明：
+- 同一竞赛下同一队伍仅允许存在一条有效获奖记录
+- 不随队伍解散或成员变动而删除
+
+---
+
+### award_recipients（获奖成员快照）
+
+用于冻结“奖项发布时刻”的获奖成员集合。
+
+- id：主键
+- team_award_id：对应的获奖发布记录
+- user_id：获奖学生
+- recorded_at：记录时间
+
+说明：
+- 该表用于解决成员变动导致历史荣誉漂移的问题
+- 后续统计均以该表为准
