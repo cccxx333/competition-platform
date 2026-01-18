@@ -103,6 +103,9 @@ public class TeamService {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "team not found"));
 
+        if (team.getStatus() == Team.TeamStatus.DISBANDED) {
+            throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
+        }
         if (team.getStatus() != Team.TeamStatus.RECRUITING) {
             throw new ApiException(HttpStatus.CONFLICT, "team is not recruiting");
         }
@@ -134,6 +137,9 @@ public class TeamService {
                 .orElseThrow(() -> new RuntimeException("鎮ㄤ笉鏄闃熶紞鎴愬憳"));
 
         Team team = member.getTeam();
+        if (team.getStatus() == Team.TeamStatus.DISBANDED) {
+            throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
+        }
         if (team.getLeader() != null && team.getLeader().getId().equals(userId)) {
             throw new RuntimeException("闃熼暱涓嶈兘绂诲紑闃熶紞锛岃鍏堣浆璁╅槦闀挎垨瑙ｆ暎闃熶紞");
         }
@@ -188,6 +194,12 @@ public class TeamService {
         }
 
         Team team = getTeamById(teamId);
+        if (team.getStatus() == Team.TeamStatus.DISBANDED) {
+            throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
+        }
+        if (team.getStatus() == Team.TeamStatus.CLOSED && currentUser.getRole() != User.Role.ADMIN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN can remove member from closed team");
+        }
         if (currentUser.getRole() == User.Role.TEACHER) {
             if (team.getLeader() == null || !team.getLeader().getId().equals(currentUserId)) {
                 throw new ApiException(HttpStatus.FORBIDDEN, "only team leader can remove member");
@@ -204,6 +216,17 @@ public class TeamService {
         LocalDateTime now = LocalDateTime.now();
         member.setLeftAt(now);
         teamMemberRepository.save(member);
+
+        if (team.getStatus() == Team.TeamStatus.CLOSED && team.getCompetition() != null) {
+            Integer minSize = team.getCompetition().getMinTeamSize();
+            if (minSize != null) {
+                long remainingCount = teamMemberRepository.countByTeamIdAndLeftAtIsNull(teamId);
+                if (remainingCount < minSize) {
+                    team.setStatus(Team.TeamStatus.DISBANDED);
+                    teamRepository.save(team);
+                }
+            }
+        }
 
         if (team.getCompetition() != null) {
             Long competitionId = team.getCompetition().getId();

@@ -56,6 +56,9 @@ public class ApplicationService {
         if (team.getCompetition() == null || !team.getCompetition().getId().equals(competition.getId())) {
             throw new ApiException(HttpStatus.CONFLICT, "team does not belong to competition");
         }
+        if (team.getStatus() == Team.TeamStatus.DISBANDED) {
+            throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
+        }
         if (team.getStatus() != Team.TeamStatus.RECRUITING) {
             throw new ApiException(HttpStatus.CONFLICT, "team is not recruiting");
         }
@@ -156,6 +159,9 @@ public class ApplicationService {
         Team team = teamRepository.findById(teamRef.getId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "team not found"));
 
+        if (team.getStatus() == Team.TeamStatus.DISBANDED) {
+            throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
+        }
         if (team.getLeader() == null || !teacher.getId().equals(team.getLeader().getId())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "not team leader");
         }

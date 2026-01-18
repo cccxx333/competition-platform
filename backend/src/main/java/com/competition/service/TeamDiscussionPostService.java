@@ -32,6 +32,9 @@ public class TeamDiscussionPostService {
     @Transactional(readOnly = true)
     public List<TeamDiscussionPostResponse> listPosts(Long currentUserId, Long teamId) {
         Team team = loadTeam(teamId);
+        if (team.getStatus() == Team.TeamStatus.DISBANDED) {
+            throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
+        }
         User currentUser = loadUser(currentUserId);
         enforceTeamAccess(currentUser, team);
 
@@ -84,6 +87,9 @@ public class TeamDiscussionPostService {
 
     public void deletePost(Long currentUserId, Long teamId, Long postId) {
         Team team = loadTeam(teamId);
+        if (team.getStatus() == Team.TeamStatus.DISBANDED) {
+            throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
+        }
         User currentUser = loadUser(currentUserId);
         TeamDiscussionPost post = teamDiscussionPostRepository.findById(postId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "post not found"));

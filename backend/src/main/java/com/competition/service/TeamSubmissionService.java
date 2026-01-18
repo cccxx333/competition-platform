@@ -48,6 +48,9 @@ public class TeamSubmissionService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "file is required");
         }
         Team team = loadTeam(teamId);
+        if (team.getStatus() == Team.TeamStatus.DISBANDED) {
+            throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
+        }
         User currentUser = loadUser(currentUserId);
         enforceTeamAccess(currentUser, team);
 
