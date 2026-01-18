@@ -1,7 +1,7 @@
 import { getCurrentUserApi } from "@@/apis/users"
 import { setToken as _setToken, getToken, removeToken } from "@@/utils/cache/cookies"
 import { pinia } from "@/pinia"
-import { resetRouter } from "@/router"
+import { router } from "@/router"
 import { routerConfig } from "@/router/config"
 import { useSettingsStore } from "./settings"
 import { useTagsViewStore } from "./tags-view"
@@ -45,7 +45,7 @@ export const useUserStore = defineStore("user", () => {
     removeToken()
     token.value = ""
     roles.value = []
-    resetRouter()
+    router.replace("/login")
     resetTagsView()
   }
 

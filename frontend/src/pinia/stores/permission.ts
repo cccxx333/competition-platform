@@ -1,6 +1,6 @@
 import type { RouteRecordRaw } from "vue-router"
 import { pinia } from "@/pinia"
-import { constantRoutes, dynamicRoutes } from "@/router"
+import { constantRoutes } from "@/router"
 import { routerConfig } from "@/router/config"
 import { flatMultiLevelRoutes } from "@/router/helper"
 
@@ -22,6 +22,8 @@ function filterDynamicRoutes(routes: RouteRecordRaw[], roles: string[]) {
   })
   return res
 }
+
+const dynamicRoutes: RouteRecordRaw[] = []
 
 export const usePermissionStore = defineStore("permission", () => {
   // 可访问的路由

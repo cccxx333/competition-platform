@@ -1,3 +1,4 @@
+// DEPRECATED: use src/api/client.ts
 import type { AxiosInstance, AxiosRequestConfig } from "axios"
 import { getToken } from "@@/utils/cache/cookies"
 import axios from "axios"
@@ -104,7 +105,7 @@ function createRequest(instance: AxiosInstance) {
     // 默认配置
     const defaultConfig: AxiosRequestConfig = {
       // 接口地址
-      baseURL: import.meta.env.VITE_BASE_URL,
+      baseURL: import.meta.env.VITE_API_BASE_URL ?? "/api",
       // 请求头
       headers: {
         // 携带 Token

@@ -1,4 +1,4 @@
-/// <reference types="vitest/config" />
+﻿/// <reference types="vitest/config" />
 
 import { resolve } from "node:path"
 import vue from "@vitejs/plugin-vue"
@@ -13,41 +13,42 @@ import svgLoader from "vite-svg-loader"
 
 // Configuring Vite: https://cn.vite.dev/config
 export default defineConfig(({ mode }) => {
-  const { VITE_PUBLIC_PATH } = loadEnv(mode, process.cwd(), "") as ImportMetaEnv
+  const { VITE_PUBLIC_PATH, VITE_API_PROXY_TARGET } = loadEnv(mode, process.cwd(), "") as ImportMetaEnv
+  const apiProxyTarget = VITE_API_PROXY_TARGET || "http://localhost:8080"
   return {
-    // 开发或打包构建时用到的公共基础路径
+    // 寮€鍙戞垨鎵撳寘鏋勫缓鏃剁敤鍒扮殑鍏叡鍩虹璺緞
     base: VITE_PUBLIC_PATH,
     resolve: {
       alias: {
-        // @ 符号指向 src 目录
+        // @ 绗﹀彿鎸囧悜 src 鐩綍
         "@": resolve(__dirname, "src"),
-        // @@ 符号指向 src/common 通用目录
+        // @@ 绗﹀彿鎸囧悜 src/common 閫氱敤鐩綍
         "@@": resolve(__dirname, "src/common")
       }
     },
-    // 开发环境服务器配置
+    // 寮€鍙戠幆澧冩湇鍔″櫒閰嶇疆
     server: {
-      // 是否监听所有地址
+      // 鏄惁鐩戝惉鎵€鏈夊湴鍧€
       host: true,
-      // 端口号
+      // 绔彛鍙?
       port: 3333,
-      // 端口被占用时，是否直接退出
+      // 绔彛琚崰鐢ㄦ椂锛屾槸鍚︾洿鎺ラ€€鍑?
       strictPort: false,
-      // 是否自动打开浏览器
+      // 鏄惁鑷姩鎵撳紑娴忚鍣?
       open: true,
-      // 反向代理
+      // 鍙嶅悜浠ｇ悊
       proxy: {
-        "/api/v1": {
-          target: "https://apifoxmock.com/m1/2930465-2145633-default",
-          // 是否为 WebSocket
+        "/api": {
+          target: apiProxyTarget,
+          // enable WebSocket if needed
           ws: false,
-          // 是否允许跨域
+          // change origin to avoid CORS issues
           changeOrigin: true
         }
       },
-      // 是否允许跨域
+      // 鏄惁鍏佽璺ㄥ煙
       cors: true,
-      // 预热常用文件，提高初始页面加载速度
+      // 棰勭儹甯哥敤鏂囦欢锛屾彁楂樺垵濮嬮〉闈㈠姞杞介€熷害
       warmup: {
         clientFiles: [
           "./src/layouts/**/*.*",
@@ -56,15 +57,15 @@ export default defineConfig(({ mode }) => {
         ]
       }
     },
-    // 构建配置
+    // 鏋勫缓閰嶇疆
     build: {
-      // 自定义底层的 Rollup 打包配置
+      // 鑷畾涔夊簳灞傜殑 Rollup 鎵撳寘閰嶇疆
       rollupOptions: {
         output: {
           /**
-           * @name 分块策略
-           * @description 1. 注意这些包名必须存在，否则打包会报错
-           * @description 2. 如果你不想自定义 chunk 分割策略，可以直接移除这段配置
+           * @name 鍒嗗潡绛栫暐
+           * @description 1. 娉ㄦ剰杩欎簺鍖呭悕蹇呴』瀛樺湪锛屽惁鍒欐墦鍖呬細鎶ラ敊
+           * @description 2. 濡傛灉浣犱笉鎯宠嚜瀹氫箟 chunk 鍒嗗壊绛栫暐锛屽彲浠ョ洿鎺ョЩ闄よ繖娈甸厤缃?
            */
           manualChunks: {
             vue: ["vue", "vue-router", "pinia"],
@@ -73,36 +74,36 @@ export default defineConfig(({ mode }) => {
           }
         }
       },
-      // 是否开启 gzip 压缩大小报告，禁用时能略微提高构建性能
+      // 鏄惁寮€鍚?gzip 鍘嬬缉澶у皬鎶ュ憡锛岀鐢ㄦ椂鑳界暐寰彁楂樻瀯寤烘€ц兘
       reportCompressedSize: false,
-      // 单个 chunk 文件的大小超过 2048kB 时发出警告
+      // 鍗曚釜 chunk 鏂囦欢鐨勫ぇ灏忚秴杩?2048kB 鏃跺彂鍑鸿鍛?
       chunkSizeWarningLimit: 2048
     },
-    // 混淆器
+    // 娣锋穯鍣?
     esbuild:
       mode === "development"
         ? undefined
         : {
-            // 打包构建时移除 console.log
+            // 鎵撳寘鏋勫缓鏃剁Щ闄?console.log
             pure: ["console.log"],
-            // 打包构建时移除 debugger
+            // 鎵撳寘鏋勫缓鏃剁Щ闄?debugger
             drop: ["debugger"],
-            // 打包构建时移除所有注释
+            // 鎵撳寘鏋勫缓鏃剁Щ闄ゆ墍鏈夋敞閲?
             legalComments: "none"
           },
-    // 依赖预构建
+    // 渚濊禆棰勬瀯寤?
     optimizeDeps: {
       include: ["element-plus/es/components/*/style/css"]
     },
-    // CSS 相关配置
+    // CSS 鐩稿叧閰嶇疆
     css: {
-      // 线程中运行 CSS 预处理器
+      // 绾跨▼涓繍琛?CSS 棰勫鐞嗗櫒
       preprocessorMaxWorkers: true
     },
-    // 插件配置
+    // 鎻掍欢閰嶇疆
     plugins: [
       vue(),
-      // 支持将 SVG 文件导入为 Vue 组件
+      // 鏀寔灏?SVG 鏂囦欢瀵煎叆涓?Vue 缁勪欢
       svgLoader({
         defaultImport: "url",
         svgoConfig: {
@@ -119,27 +120,27 @@ export default defineConfig(({ mode }) => {
           ]
         }
       }),
-      // 自动生成 SvgIcon 组件和 SVG 雪碧图
+      // 鑷姩鐢熸垚 SvgIcon 缁勪欢鍜?SVG 闆ⅶ鍥?
       SvgComponent({
         iconDir: [resolve(__dirname, "src/common/assets/icons")],
         preserveColor: resolve(__dirname, "src/common/assets/icons/preserve-color"),
         dts: true,
         dtsDir: resolve(__dirname, "types/auto")
       }),
-      // 原子化 CSS
+      // 鍘熷瓙鍖?CSS
       UnoCSS(),
-      // 自动按需导入 API
+      // 鑷姩鎸夐渶瀵煎叆 API
       AutoImport({
         imports: ["vue", "vue-router", "pinia"],
         dts: "types/auto/auto-imports.d.ts",
         resolvers: [ElementPlusResolver()]
       }),
-      // 自动按需导入组件
+      // 鑷姩鎸夐渶瀵煎叆缁勪欢
       Components({
         dts: "types/auto/components.d.ts",
         resolvers: [ElementPlusResolver()]
       }),
-      // 为项目开启 MCP Server
+      // 涓洪」鐩紑鍚?MCP Server
       VueMcp()
     ],
     // Configuring Vitest: https://cn.vitest.dev/config
@@ -154,3 +155,8 @@ export default defineConfig(({ mode }) => {
     }
   }
 })
+
+
+
+
+

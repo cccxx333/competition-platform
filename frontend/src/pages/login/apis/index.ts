@@ -1,19 +1,12 @@
 import type * as Auth from "./type"
-import { request } from "@/http/axios"
+import { client } from "@/api/client"
 
 /** 获取登录验证码 */
 export function getCaptchaApi() {
-  return request<Auth.CaptchaResponseData>({
-    url: "auth/captcha",
-    method: "get"
-  })
+  return client.get<Auth.CaptchaResponseData>("auth/captcha")
 }
 
 /** 登录并返回 Token */
 export function loginApi(data: Auth.LoginRequestData) {
-  return request<Auth.LoginResponseData>({
-    url: "auth/login",
-    method: "post",
-    data
-  })
+  return client.post<Auth.LoginResponseData>("auth/login", data)
 }
