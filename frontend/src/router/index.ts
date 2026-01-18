@@ -21,7 +21,27 @@ export const constantRoutes: RouteRecordRaw[] = [
         path: "dashboard",
         name: "Dashboard",
         component: () => import("@/views/Dashboard.vue"),
-        meta: { title: "Dashboard" }
+        meta: { title: "Dashboard" },
+        children: [
+          {
+            path: "student",
+            name: "StudentDashboard",
+            component: () => import("@/views/dashboard/StudentDashboard.vue"),
+            meta: { title: "Dashboard" }
+          },
+          {
+            path: "teacher",
+            name: "TeacherDashboard",
+            component: () => import("@/views/dashboard/TeacherDashboard.vue"),
+            meta: { title: "Dashboard" }
+          },
+          {
+            path: "admin",
+            name: "AdminDashboard",
+            component: () => import("@/views/dashboard/AdminDashboard.vue"),
+            meta: { title: "Dashboard" }
+          }
+        ]
       }
     ]
   },

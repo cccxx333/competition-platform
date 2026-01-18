@@ -1,62 +1,28 @@
 <script lang="ts" setup>
-import { client } from "@/api/client"
 import { useAuthStore } from "@/stores/auth"
 
-type HealthStatus = "idle" | "loading" | "success" | "error"
-
-const status = ref<HealthStatus>("idle")
-const message = ref("")
-const responseText = ref("")
-const authStore = useAuthStore()
-const authedText = computed(() => (authStore.isAuthed ? "yes" : "no"))
-
 const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
 
-const handleLogout = () => {
-  authStore.clearToken()
-  router.replace("/login")
-}
+const rolePath = computed(() => {
+  const role = authStore.user?.role?.toUpperCase()
+  if (role === "ADMIN") return "/dashboard/admin"
+  if (role === "TEACHER") return "/dashboard/teacher"
+  if (role === "STUDENT") return "/dashboard/student"
+  return ""
+})
 
-const runHealthCheck = async () => {
-  status.value = "loading"
-  message.value = ""
-  responseText.value = ""
-  try {
-    const response = await client.get("/health/db")
-    status.value = "success"
-    responseText.value = JSON.stringify(response.data, null, 2)
-  } catch (error: any) {
-    status.value = "error"
-    message.value = error?.message ?? "Request failed"
+const isRoot = computed(() => route.path === "/dashboard")
+
+watchEffect(() => {
+  if (isRoot.value && rolePath.value) {
+    router.replace(rolePath.value)
   }
-}
+})
 </script>
 
 <template>
-  <el-card shadow="never">
-    <h2>Dashboard</h2>
-    <p>Authed: {{ authedText }}</p>
-    <el-button @click="handleLogout">Logout</el-button>
-    <p>Dashboard placeholder.</p>
-    <el-button type="primary" :loading="status === 'loading'" @click="runHealthCheck">
-      Health Check
-    </el-button>
-    <div class="health-status">
-      <div>Status: {{ status }}</div>
-      <div v-if="status === 'error'">Error: {{ message }}</div>
-      <pre v-if="status === 'success'">{{ responseText }}</pre>
-    </div>
-  </el-card>
+  <router-view />
+  <div v-if="isRoot">Redirecting...</div>
 </template>
-
-<style scoped>
-.health-status {
-  margin-top: 16px;
-  font-size: 14px;
-}
-
-pre {
-  margin-top: 8px;
-  white-space: pre-wrap;
-}
-</style>

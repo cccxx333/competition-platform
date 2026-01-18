@@ -1,5 +1,14 @@
 <script lang="ts" setup>
 const route = useRoute()
+
+import { useAuthStore } from '@/stores/auth'
+const authStore = useAuthStore()
+
+const userLabel = computed(() => {
+  const name = authStore.user?.username ?? "User"
+  const role = authStore.user?.role
+  return role ? `${name} (${role})` : name
+})
 </script>
 
 <template>
@@ -13,7 +22,7 @@ const route = useRoute()
     <el-container>
       <el-header class="basic-layout__header">
         <div class="basic-layout__title">Competition Platform</div>
-        <div class="basic-layout__user">User</div>
+        <div class="basic-layout__user">{{ userLabel }}</div>
       </el-header>
       <el-main class="basic-layout__main">
         <router-view />

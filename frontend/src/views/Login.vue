@@ -25,8 +25,11 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    const token = await login(form.username, form.password)
-    authStore.setToken(token)
+    const result = await login(form.username, form.password)
+    authStore.setToken(result.token)
+    if (result.role) {
+      authStore.setUser({ username: form.username, role: result.role })
+    }
     router.replace("/dashboard")
   } catch (error: any) {
     ElMessage.error(error?.message ?? "Login failed")
