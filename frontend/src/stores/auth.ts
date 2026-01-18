@@ -6,6 +6,7 @@ export function getStoredToken(): string | null {
 
 export const useAuthStore = defineStore("auth", () => {
   const token = ref<string | null>(getStoredToken())
+  const isAuthed = computed(() => Boolean(token.value))
 
   const setToken = (value: string) => {
     token.value = value
@@ -17,5 +18,5 @@ export const useAuthStore = defineStore("auth", () => {
     localStorage.removeItem(TOKEN_KEY)
   }
 
-  return { token, setToken, clearToken }
+  return { token, isAuthed, setToken, clearToken }
 })

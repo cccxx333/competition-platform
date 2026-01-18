@@ -1,11 +1,21 @@
 <script lang="ts" setup>
 import { client } from "@/api/client"
+import { useAuthStore } from "@/stores/auth"
 
 type HealthStatus = "idle" | "loading" | "success" | "error"
 
 const status = ref<HealthStatus>("idle")
 const message = ref("")
 const responseText = ref("")
+const authStore = useAuthStore()
+const authedText = computed(() => (authStore.isAuthed ? "yes" : "no"))
+
+const router = useRouter()
+
+const handleLogout = () => {
+  authStore.clearToken()
+  router.replace("/login")
+}
 
 const runHealthCheck = async () => {
   status.value = "loading"
@@ -25,6 +35,8 @@ const runHealthCheck = async () => {
 <template>
   <el-card shadow="never">
     <h2>Dashboard</h2>
+    <p>Authed: {{ authedText }}</p>
+    <el-button @click="handleLogout">Logout</el-button>
     <p>Dashboard placeholder.</p>
     <el-button type="primary" :loading="status === 'loading'" @click="runHealthCheck">
       Health Check
