@@ -2,6 +2,8 @@ package com.competition.repository;
 
 import com.competition.entity.TeamMember;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
@@ -18,4 +20,7 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     void deleteByTeamIdAndUserId(Long teamId, Long userId);
     long countByTeamId(Long teamId);
     long countByTeamIdAndLeftAtIsNull(Long teamId);
+
+    @Query("select count(distinct tm.team.id) from TeamMember tm where tm.user.id = :userId")
+    long countDistinctTeamsByUserId(@Param("userId") Long userId);
 }

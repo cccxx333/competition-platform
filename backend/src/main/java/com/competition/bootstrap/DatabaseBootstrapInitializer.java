@@ -25,6 +25,15 @@ import java.sql.ResultSet;
 public class DatabaseBootstrapInitializer {
 
     private static final String CHECK_TABLE = "users";
+    private static final String[] REQUIRED_TABLES = {
+            "users",
+            "skills",
+            "competitions",
+            "teams",
+            "team_members",
+            "team_awards",
+            "award_recipients"
+    };
     private static final String SCHEMA_SQL = "sql/schema_v3.sql";
     private static final String DATA_SQL = "sql/init.sql";
 
@@ -72,16 +81,22 @@ public class DatabaseBootstrapInitializer {
 
     private void runIfUninitialized(Connection connection) {
         try {
-            boolean initialized = tableExists(connection, CHECK_TABLE);
-            if (initialized) {
-                log.info("Database already initialized (table '{}' exists). Skip schema/data scripts.", CHECK_TABLE);
+            boolean firstInit = !tableExists(connection, CHECK_TABLE);
+            boolean schemaMissing = anyTableMissing(connection, REQUIRED_TABLES);
+            if (!schemaMissing) {
+                log.info("Database schema already initialized. Skip schema/data scripts.");
                 return;
             }
 
-            log.warn("Database not initialized (table '{}' not found). Executing schema/data scripts...", CHECK_TABLE);
-
+            log.warn("Database schema incomplete (missing required tables). Executing schema script...");
             executeSql(connection, SCHEMA_SQL);
-            executeSql(connection, DATA_SQL);
+
+            if (firstInit) {
+                log.warn("Database not initialized (table '{}' not found). Executing data script...", CHECK_TABLE);
+                executeSql(connection, DATA_SQL);
+            } else {
+                log.info("Database already has base data (table '{}' exists). Skip data script.", CHECK_TABLE);
+            }
 
             log.info("Database bootstrap completed successfully.");
         } catch (Exception e) {
@@ -105,6 +120,15 @@ public class DatabaseBootstrapInitializer {
             log.error("Failed to check table existence: {}", tableName, e);
             throw new IllegalStateException("Failed to check table existence: " + tableName, e);
         }
+    }
+
+    private boolean anyTableMissing(Connection connection, String[] tableNames) {
+        for (String tableName : tableNames) {
+            if (!tableExists(connection, tableName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void executeSql(Connection connection, String classpathLocation) {

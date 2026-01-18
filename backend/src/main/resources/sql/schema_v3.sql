@@ -196,6 +196,33 @@ CREATE TABLE IF NOT EXISTS user_behaviors (
     CONSTRAINT fk_user_behaviors_user FOREIGN KEY (user_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS team_awards (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    competition_id BIGINT NOT NULL,
+    team_id BIGINT NOT NULL,
+    award_name VARCHAR(64) NOT NULL,
+    published_by BIGINT NOT NULL,
+    published_at DATETIME NOT NULL,
+    is_active TINYINT NOT NULL DEFAULT 1,
+    CONSTRAINT fk_team_awards_competition FOREIGN KEY (competition_id) REFERENCES competitions (id),
+    CONSTRAINT fk_team_awards_team FOREIGN KEY (team_id) REFERENCES teams (id),
+    CONSTRAINT fk_team_awards_published_by FOREIGN KEY (published_by) REFERENCES users (id),
+    UNIQUE KEY uk_team_awards_competition_team_award (competition_id, team_id, award_name),
+    KEY idx_team_awards_team (team_id),
+    KEY idx_team_awards_comp (competition_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS award_recipients (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    team_award_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    recorded_at DATETIME NOT NULL,
+    CONSTRAINT fk_award_recipients_team_award FOREIGN KEY (team_award_id) REFERENCES team_awards (id) ON DELETE RESTRICT,
+    CONSTRAINT fk_award_recipients_user FOREIGN KEY (user_id) REFERENCES users (id),
+    UNIQUE KEY uk_award_recipients_award_user (team_award_id, user_id),
+    KEY idx_award_recipients_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Recommended high-frequency indexes
 CREATE INDEX idx_competitions_status_deadline ON competitions (status, registration_deadline);
 CREATE INDEX idx_applications_team_status ON applications (team_id, status);
