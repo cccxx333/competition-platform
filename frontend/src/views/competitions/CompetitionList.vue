@@ -2,12 +2,15 @@
 import { ElMessage } from "element-plus"
 import { listCompetitions, type CompetitionListItem } from "@/api/competitions"
 
+const route = useRoute()
 const router = useRouter()
 
 const items = ref<CompetitionListItem[]>([])
 const loading = ref(false)
 const errorMessage = ref("")
 const total = ref<number | null>(null)
+const initialized = ref(false)
+const isApplying = ref(false)
 
 const filters = reactive({
   keyword: "",
@@ -15,7 +18,7 @@ const filters = reactive({
 })
 
 const pagination = reactive({
-  page: 1,
+  page: 0,
   size: 10
 })
 
@@ -48,18 +51,51 @@ const showRequestError = (error: any, fallback: string) => {
   return "服务异常，请稍后重试"
 }
 
+const buildQuery = () => {
+  const query: Record<string, string> = {
+    page: String(pagination.page),
+    size: String(pagination.size)
+  }
+  if (filters.keyword) {
+    query.keyword = filters.keyword
+  }
+  if (filters.status) {
+    query.status = filters.status
+  }
+  return query
+}
+
+const syncUrl = () => {
+  const next = buildQuery()
+  const current = route.query
+  const same =
+    String(current.page ?? "") === String(next.page ?? "") &&
+    String(current.size ?? "") === String(next.size ?? "") &&
+    String(current.keyword ?? "") === String(next.keyword ?? "") &&
+    String(current.status ?? "") === String(next.status ?? "")
+  if (!same) {
+    router.replace({ query: next })
+  }
+}
+
 const fetchList = async () => {
   loading.value = true
   errorMessage.value = ""
   try {
-    const { items: data, total: totalElements } = await listCompetitions({
+    const { items: data, total: totalElements, page, size } = await listCompetitions({
       keyword: filters.keyword || undefined,
       status: (filters.status as CompetitionListItem["status"]) || undefined,
-      page: pagination.page - 1,
+      page: pagination.page,
       size: pagination.size
     })
     items.value = data
     total.value = typeof totalElements === "number" ? totalElements : null
+    if (typeof page === "number" && page !== pagination.page) {
+      pagination.page = page
+    }
+    if (typeof size === "number" && size !== pagination.size) {
+      pagination.size = size
+    }
   } catch (error: any) {
     items.value = []
     total.value = null
@@ -72,21 +108,24 @@ const fetchList = async () => {
 let keywordTimer: number | undefined
 
 const resetFilters = () => {
+  isApplying.value = true
   filters.keyword = ""
   filters.status = ""
-  pagination.page = 1
+  pagination.page = 0
+  syncUrl()
   fetchList()
+  window.setTimeout(() => {
+    isApplying.value = false
+  }, 0)
 }
 
 const handlePageChange = (page: number) => {
-  pagination.page = page
-  fetchList()
+  pagination.page = page - 1
 }
 
 const handleSizeChange = (size: number) => {
   pagination.size = size
-  pagination.page = 1
-  fetchList()
+  pagination.page = 0
 }
 
 const goDetail = (row: CompetitionListItem) => {
@@ -101,14 +140,33 @@ const formatDateRange = (row: CompetitionListItem) => {
   return [start, end].filter(Boolean).join(" ~ ")
 }
 
+const parseNumber = (value: unknown, fallback: number) => {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return fallback
+  if (parsed < 0) return fallback
+  return parsed
+}
+
+const initFromQuery = () => {
+  const keyword = typeof route.query.keyword === "string" ? route.query.keyword : ""
+  const status = typeof route.query.status === "string" ? route.query.status : ""
+  filters.keyword = keyword
+  filters.status = status as CompetitionListItem["status"]
+  pagination.page = parseNumber(route.query.page, 0)
+  const size = parseNumber(route.query.size, 10)
+  pagination.size = size > 0 ? size : 10
+}
+
 watch(
   () => filters.keyword,
   () => {
+    if (!initialized.value || isApplying.value) return
     if (keywordTimer) {
       window.clearTimeout(keywordTimer)
     }
     keywordTimer = window.setTimeout(() => {
-      pagination.page = 1
+      pagination.page = 0
+      syncUrl()
       fetchList()
     }, 400)
   }
@@ -117,12 +175,27 @@ watch(
 watch(
   () => filters.status,
   () => {
-    pagination.page = 1
+    if (!initialized.value || isApplying.value) return
+    pagination.page = 0
+    syncUrl()
     fetchList()
   }
 )
 
-onMounted(fetchList)
+watch(
+  () => [pagination.page, pagination.size],
+  () => {
+    if (!initialized.value || isApplying.value) return
+    syncUrl()
+    fetchList()
+  }
+)
+
+onMounted(() => {
+  initFromQuery()
+  initialized.value = true
+  fetchList()
+})
 
 onBeforeUnmount(() => {
   if (keywordTimer) {
@@ -193,7 +266,7 @@ onBeforeUnmount(() => {
 
     <div v-if="total !== null" class="pagination">
       <el-pagination
-        :current-page="pagination.page"
+        :current-page="pagination.page + 1"
         :page-size="pagination.size"
         :total="total"
         layout="total, prev, pager, next, sizes"

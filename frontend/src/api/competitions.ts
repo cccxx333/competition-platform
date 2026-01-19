@@ -56,7 +56,9 @@ export async function listCompetitions(params: CompetitionListParams) {
     const payload = unwrapData<CompetitionPage | CompetitionListItem[]>(response?.data)
     const items = Array.isArray(payload) ? payload : payload?.content ?? []
     const total = Array.isArray(payload) ? undefined : payload?.totalElements
-    return { items, total }
+    const page = Array.isArray(payload) ? undefined : payload?.number
+    const size = Array.isArray(payload) ? undefined : payload?.size
+    return { items, total, page, size }
   } catch (error: any) {
     throw toError(error, "Failed to load competitions")
   }

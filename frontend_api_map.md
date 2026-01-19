@@ -72,8 +72,8 @@
 ### 3.1 竞赛列表/检索
 | Page/Module                       | API  | Method | Purpose               | Params (source)                   | Auth | Exists | Notes                            |
 | --------------------------------- | ---- | ------ | --------------------- | --------------------------------- | ---- | ------ | -------------------------------- |
-| CompetitionList                   | TBD  | GET    | 竞赛列表（分页/筛选） | Query: page,size,keyword?,status? | Yes  | ❓      | 优先以后端分页为准               |
-| CompetitionDetail                 | TBD  | GET    | 竞赛详情              | Route Param: competitionId        | Yes  | ❓      |                                  |
+| CompetitionList                   | /api/competitions       | GET    | 竞赛列表（分页/筛选） | Query: keyword?, status?, page, size, sortBy?, sortDir?, recommend?, topK? | Yes  | ✅      | 后端为 Page 结构（content/totalElements/number/size），前端按此解包；client baseURL 默认 /api |
+| CompetitionDetail                 | /api/competitions/{id}  | GET    | 竞赛详情              | Route Param: id                                                  | Yes  | ✅      |                                  |
 | CompetitionTeams (for join/apply) | TBD  | GET    | 竞赛下教师组列表      | Route Param: competitionId        | Yes  | ❓      | 若后端未提供可改为 team 搜索接口 |
 
 ---
