@@ -134,10 +134,18 @@ const goDetail = (row: CompetitionListItem) => {
 }
 
 const formatDateRange = (row: CompetitionListItem) => {
-  const start = row.startDate
-  const end = row.endDate
+  const start = formatDate(row.startDate)
+  const end = formatDate(row.endDate)
   if (!start && !end) return ""
   return [start, end].filter(Boolean).join(" ~ ")
+}
+
+const formatDate = (value?: string | null) => {
+  if (!value) return ""
+  if (value.includes("T")) {
+    return value.split("T")[0]
+  }
+  return value
 }
 
 const parseNumber = (value: unknown, fallback: number) => {
@@ -147,14 +155,39 @@ const parseNumber = (value: unknown, fallback: number) => {
   return parsed
 }
 
-const initFromQuery = () => {
+const statusTagType = (status?: CompetitionListItem["status"]) => {
+  if (status === "ONGOING") return "success"
+  if (status === "FINISHED") return "info"
+  return "warning"
+}
+
+const readQuery = () => {
   const keyword = typeof route.query.keyword === "string" ? route.query.keyword : ""
   const status = typeof route.query.status === "string" ? route.query.status : ""
-  filters.keyword = keyword
-  filters.status = status as CompetitionListItem["status"]
-  pagination.page = parseNumber(route.query.page, 0)
+  const page = parseNumber(route.query.page, 0)
   const size = parseNumber(route.query.size, 10)
-  pagination.size = size > 0 ? size : 10
+  return {
+    keyword,
+    status: status as CompetitionListItem["status"],
+    page,
+    size: size > 0 ? size : 10
+  }
+}
+
+const applyQueryFromRoute = () => {
+  const next = readQuery()
+  const same =
+    filters.keyword === next.keyword &&
+    filters.status === next.status &&
+    pagination.page === next.page &&
+    pagination.size === next.size
+  if (same) return false
+  isApplying.value = true
+  filters.keyword = next.keyword
+  filters.status = next.status
+  pagination.page = next.page
+  pagination.size = next.size
+  return true
 }
 
 watch(
@@ -192,10 +225,30 @@ watch(
 )
 
 onMounted(() => {
-  initFromQuery()
+  const applied = applyQueryFromRoute()
   initialized.value = true
   fetchList()
+  if (applied) {
+    window.setTimeout(() => {
+      isApplying.value = false
+    }, 0)
+  }
 })
+
+watch(
+  () => route.query,
+  () => {
+    if (!initialized.value) return
+    const applied = applyQueryFromRoute()
+    if (applied) {
+      syncUrl()
+      fetchList()
+      window.setTimeout(() => {
+        isApplying.value = false
+      }, 0)
+    }
+  }
+)
 
 onBeforeUnmount(() => {
   if (keywordTimer) {
@@ -248,7 +301,11 @@ onBeforeUnmount(() => {
       highlight-current-row
     >
       <el-table-column prop="name" label="Name" min-width="180" />
-      <el-table-column prop="status" label="Status" width="140" />
+      <el-table-column label="Status" width="140">
+        <template #default="{ row }">
+          <el-tag v-if="row.status" :type="statusTagType(row.status)">{{ row.status }}</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="Date Range" min-width="200">
         <template #default="{ row }">
           {{ formatDateRange(row) }}

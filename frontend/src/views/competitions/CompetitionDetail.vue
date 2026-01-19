@@ -11,6 +11,29 @@ const detail = ref<CompetitionDetail | null>(null)
 
 const competitionId = computed(() => Number(route.params.id))
 
+const formatDate = (value?: string | null) => {
+  if (!value) return ""
+  if (value.includes("T")) {
+    return value.split("T")[0]
+  }
+  return value
+}
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return ""
+  if (value.includes("T")) {
+    const [date, time] = value.split("T")
+    return `${date} ${time.slice(0, 5)}`
+  }
+  return value
+}
+
+const statusTagType = (status?: CompetitionDetail["status"]) => {
+  if (status === "ONGOING") return "success"
+  if (status === "FINISHED") return "info"
+  return "warning"
+}
+
 const showRequestError = (error: any, fallback: string) => {
   const status = error?.status ?? error?.response?.status
   const message = error?.message
@@ -58,8 +81,7 @@ const basicFields = computed(() => {
     { label: "Name", value: data.name },
     { label: "Organizer", value: data.organizer },
     { label: "Category", value: data.category },
-    { label: "Level", value: data.level },
-    { label: "Status", value: data.status }
+    { label: "Level", value: data.level }
   ].filter(item => Boolean(item.value))
 })
 
@@ -67,9 +89,9 @@ const timeFields = computed(() => {
   const data = detail.value
   if (!data) return []
   return [
-    { label: "Start Date", value: data.startDate },
-    { label: "End Date", value: data.endDate },
-    { label: "Registration Deadline", value: data.registrationDeadline }
+    { label: "Start Date", value: formatDate(data.startDate) },
+    { label: "End Date", value: formatDate(data.endDate) },
+    { label: "Registration Deadline", value: formatDate(data.registrationDeadline) }
   ].filter(item => Boolean(item.value))
 })
 
@@ -86,8 +108,8 @@ const metaFields = computed(() => {
   const data = detail.value
   if (!data) return []
   return [
-    { label: "Created At", value: data.createdAt },
-    { label: "Updated At", value: data.updatedAt }
+    { label: "Created At", value: formatDateTime(data.createdAt) },
+    { label: "Updated At", value: formatDateTime(data.updatedAt) }
   ].filter(item => Boolean(item.value))
 })
 
@@ -114,12 +136,17 @@ watch(() => route.params.id, loadDetail)
       style="margin-bottom: 12px"
     />
 
-    <div v-if="!errorMessage && detail">
+    <el-skeleton v-if="loading" :rows="6" animated />
+
+    <div v-else-if="!errorMessage && detail">
       <el-card shadow="never" class="section">
         <h3>Basic Info</h3>
-        <el-descriptions v-if="basicFields.length" :column="1">
+        <el-descriptions v-if="basicFields.length || detail.status" :column="1">
           <el-descriptions-item v-for="item in basicFields" :key="item.label" :label="item.label">
             {{ item.value }}
+          </el-descriptions-item>
+          <el-descriptions-item v-if="detail.status" label="Status">
+            <el-tag :type="statusTagType(detail.status)">{{ detail.status }}</el-tag>
           </el-descriptions-item>
         </el-descriptions>
         <div v-else>Empty</div>
@@ -156,8 +183,11 @@ watch(() => route.params.id, loadDetail)
       </el-card>
 
       <el-card v-if="detail.description" shadow="never" class="section">
-        <h3>Description</h3>
-        <div>{{ detail.description }}</div>
+        <el-collapse>
+          <el-collapse-item title="Description" name="description">
+            <pre>{{ detail.description }}</pre>
+          </el-collapse-item>
+        </el-collapse>
       </el-card>
     </div>
   </el-card>
