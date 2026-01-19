@@ -78,7 +78,10 @@
 
 ---
 
-## 4. Teacher Application & Admin Review（F4，对齐 M3）
+## 4. Teacher Application & Admin Review
+
+> Note: F4 sidebar incident was UI layout/sidebar path issue; API mapping unchanged.
+（F4，对齐 M3）
 
 ### 4.1 教师端：提交/查看申请
 | Page/Module                   | API  | Method | Purpose                  | Params (source)                  | Auth | Exists | Notes                                      |

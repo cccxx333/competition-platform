@@ -30,6 +30,7 @@ const activeMenu = computed(() => route.meta.activeMenu || route.path)
 
 const noHiddenRoutes = computed(() => permissionStore.routes.filter(item => !item.meta?.hidden))
 
+
 const isCollapse = computed(() => !appStore.sidebar.opened)
 
 const isLogo = computed(() => isLeft.value && settingsStore.showLogo)
@@ -59,7 +60,7 @@ const tipLineWidth = computed(() => !isTop.value ? "2px" : "0px")
         :active-text-color="activeTextColor"
         :collapse-transition="false"
         :mode="isTop && !isMobile ? 'horizontal' : 'vertical'"
-      >
+        >
         <Item
           v-for="noHiddenRoute in noHiddenRoutes"
           :key="noHiddenRoute.path"
@@ -93,13 +94,13 @@ const tipLineWidth = computed(() => !isTop.value ? "2px" : "0px")
 .el-scrollbar {
   height: 100%;
   :deep(.scrollbar-wrapper) {
-    // 限制水平宽度
+    // ???????????
     overflow-x: hidden;
   }
-  // 滚动条
+  // ?????
   :deep(.el-scrollbar__bar) {
     &.is-horizontal {
-      // 隐藏水平滚动条
+      // ????????????
       display: none;
     }
   }

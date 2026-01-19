@@ -9,6 +9,8 @@ const userLabel = computed(() => {
   const role = authStore.user?.role
   return role ? `${name} (${role})` : name
 })
+
+const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
 </script>
 
 <template>
@@ -18,6 +20,8 @@ const userLabel = computed(() => {
       <el-menu :default-active="route.path" router>
         <el-menu-item index="/dashboard">Dashboard</el-menu-item>
         <el-menu-item index="/competitions">Competitions</el-menu-item>
+        <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teacher/applications">我的教师申请</el-menu-item>
+        <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/teacher-applications">教师申请审核</el-menu-item>
         <el-menu-item index="/me/profile">Profile</el-menu-item>
         <el-menu-item index="/me/skills">Skills</el-menu-item>
       </el-menu>

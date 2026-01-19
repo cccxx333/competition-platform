@@ -79,13 +79,13 @@
 ### 4.1 教师端：提交申请（F4）
 | Route Name         | Path                                         | requireAuth | Roles   | Phase | 页面/用途        | 备注                                      |
 | ------------------ | -------------------------------------------- | ----------: | ------- | ----- | ---------------- | ----------------------------------------- |
-| TeacherApplyList   | `/teacher/applications`                      |        true | teacher | F4    | 我的教师申请列表 | 展示申请状态（PENDING/APPROVED/REJECTED） |
+| TeacherApplyList   | `/teacher/applications`                      |        true | teacher | F4    | 我的教师申请列表 | 展示申请状态（PENDING/APPROVED/REJECTED）；侧边栏入口已完成 | | Sidebar entry available via active layout sidebar (teacher only).
 | TeacherApplyCreate | `/competitions/:competitionId/teacher-apply` |        true | teacher | F4    | 提交教师申请     | 从竞赛详情进入更自然                      |
 
 ### 4.2 管理员端：审核教师申请（F4）
 | Route Name               | Path                          | requireAuth | Roles | Phase | 页面/用途    | 备注                 |
 | ------------------------ | ----------------------------- | ----------: | ----- | ----- | ------------ | -------------------- |
-| AdminTeacherApplications | `/admin/teacher-applications` |        true | admin | F4    | 教师申请审核 | 列表 + 审核通过/拒绝 |
+| AdminTeacherApplications | `/admin/teacher-applications` |        true | admin | F4    | 教师申请审核 | 列表 + 审核通过/拒绝；侧边栏入口已完成 | | Sidebar entry available via active layout sidebar (admin only).
 
 ---
 

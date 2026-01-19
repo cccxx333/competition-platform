@@ -166,3 +166,17 @@ AI 在任何分析、设计或实现前，必须理解并遵守该分层结构�
 
 若多个文件内容出现冲突：  
 以 **agent.md → project_spec.md → docs/frontend/* → db_schema.md → 计划表** 的优先级为准。
+---
+
+## Active Layout & Sidebar (Important)
+
+- Active frontend dir: `frontend/`
+- Active Layout: `frontend/src/layouts/BasicLayout.vue`
+- Active Sidebar: `frontend/src/layouts/BasicLayout.vue` (static `<el-menu>` inside layout, no separate Sidebar component)
+- Active chain: router (`frontend/src/router/index.ts`) -> `BasicLayout` -> static menu
+- Note: F4 sidebar issue was caused by editing an inactive Sidebar file; fixes must target the active layout file.
+- Prevention checklist for UI changes not taking effect:
+  1) Confirm runtime directory and dev command (e.g. `cd frontend && npm run dev`)
+  2) Locate active component via router -> layout -> sidebar reference chain
+  3) Use a temporary visual marker to confirm the active file, then remove it before commit
+
