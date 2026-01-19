@@ -1,0 +1,36 @@
+:root {
+  /* page */
+  --cp-bg: #f6f7fb;
+  --cp-surface: #ffffff;
+  --cp-surface-hover: #f3f4f6; /* 浅灰 hover/active 背景 */
+
+  /* text */
+  --cp-text: #111827;
+  --cp-text-muted: #6b7280;
+
+  /* border / divider */
+  --cp-border: #e5e7eb;
+
+  /* brand */
+  --cp-primary: #3b82f6;
+
+  /* radius */
+  --cp-radius-sm: 8px;
+  --cp-radius-md: 12px;
+  --cp-radius-lg: 16px;
+
+  /* shadow (very light, notion-like) */
+  --cp-shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --cp-shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+
+  /* spacing scale */
+  --cp-space-2: 8px;
+  --cp-space-3: 12px;
+  --cp-space-4: 16px;
+  --cp-space-6: 24px;
+
+  /* layout */
+  --cp-sidebar-w: 240px;
+  --cp-topbar-h: 56px;
+
+}

@@ -1,34 +1,84 @@
-// Layout 相关
+// ============================
+// Layout 相关（风格基础）
+// ============================
 
+/* 内容区背景（灰） */
+.app-main {
+  background: var(--cp-bg);
+}
+
+/* Sidebar */
 .app-wrapper {
-  // 侧边栏
   .sidebar-container {
-    background-color: var(--el-bg-color);
+    width: var(--cp-sidebar-w);
+    background-color: var(--cp-surface);
+    border-right: 1px solid var(--cp-border);
+
     .el-menu {
-      background-color: var(--el-bg-color);
+      background-color: transparent;
+
       .el-menu-item {
-        background-color: var(--el-bg-color);
+        background-color: transparent;
+
         &.is-active,
         &:hover {
-          background-color: var(--el-bg-color-overlay);
-          color: #ffffff;
+          background-color: var(--cp-surface-hover);
+          color: var(--cp-text);
         }
       }
     }
+
     .el-sub-menu__title {
-      background-color: var(--el-bg-color);
+      background-color: transparent;
     }
+
     .el-sub-menu {
       &.is-active {
         > .el-sub-menu__title {
-          color: #ffffff;
+          color: var(--cp-text);
         }
       }
     }
   }
 }
 
-// 右侧设置面板
-.handle-button {
-  background-color: lighten($theme-bg-color, 20%) !important;
+/* ============================
+   页面基础结构（全站复用）
+   ============================ */
+
+/* 页面纵向容器 */
+.cp-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cp-space-4);
+}
+
+/* 通用 Card */
+.cp-card {
+  background: var(--cp-surface);
+  border: 1px solid var(--cp-border);
+  border-radius: var(--cp-radius-lg);
+  box-shadow: var(--cp-shadow-sm);
+  padding: var(--cp-space-6);
+}
+
+/* 概览 / 卡片网格 */
+.cp-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--cp-space-4);
+}
+
+/* 中等屏幕：2 列 */
+@media (max-width: 1200px) {
+  .cp-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* 小屏：1 列 */
+@media (max-width: 768px) {
+  .cp-grid {
+    grid-template-columns: 1fr;
+  }
 }

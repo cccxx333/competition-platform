@@ -77,9 +77,12 @@ function logout() {
 
 <style lang="scss" scoped>
 .navigation-bar {
-  height: var(--v3-navigationbar-height);
+  background-color: var(--cp-surface);
+  border-bottom: 1px solid var(--cp-border);
+  color: var(--cp-text);
+  height: var(--cp-topbar-h);
+  padding: 0 24px;
   overflow: hidden;
-  color: var(--v3-navigationbar-text-color);
   display: flex;
   justify-content: space-between;
   .hamburger {
@@ -117,6 +120,11 @@ function logout() {
     display: flex;
     align-items: center;
     &-item {
+      padding: 6px 8px;
+      border-radius: var(--cp-radius-md, 12px);
+    &:hover {
+      background-color: var(--cp-surface-hover);
+    }
       margin: 0 10px;
       cursor: pointer;
       &:last-child {

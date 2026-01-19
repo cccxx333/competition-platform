@@ -6,6 +6,7 @@ import { router } from "@/router"
 import { installPlugins } from "@/plugins"
 import App from "@/App.vue"
 // css
+import "./common/assets/styles/token.css"
 import "normalize.css"
 import "nprogress/nprogress.css"
 import "element-plus/theme-chalk/dark/css-vars.css"
