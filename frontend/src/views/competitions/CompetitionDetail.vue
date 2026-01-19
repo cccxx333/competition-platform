@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { getCompetitionDetail, type CompetitionDetail } from "@/api/competitions"
+import StatusPill from "@@/components/StatusPill/index.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -28,11 +29,6 @@ const formatDateTime = (value?: string | null) => {
   return value
 }
 
-const statusTagType = (status?: CompetitionDetail["status"]) => {
-  if (status === "ONGOING") return "success"
-  if (status === "FINISHED") return "info"
-  return "warning"
-}
 
 const showRequestError = (error: any, fallback: string) => {
   const status = error?.status ?? error?.response?.status
@@ -146,7 +142,7 @@ watch(() => route.params.id, loadDetail)
             {{ item.value }}
           </el-descriptions-item>
           <el-descriptions-item v-if="detail.status" label="Status">
-            <el-tag :type="statusTagType(detail.status)">{{ detail.status }}</el-tag>
+            <StatusPill :value="detail.status" kind="competition" />
           </el-descriptions-item>
         </el-descriptions>
         <div v-else>Empty</div>

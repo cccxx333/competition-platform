@@ -1,6 +1,8 @@
 package com.competition.service;
 
+import com.competition.dto.AdminTeacherApplicationListItemDTO;
 import com.competition.dto.TeacherApplicationCreateRequest;
+import com.competition.dto.TeacherApplicationListItemDTO;
 import com.competition.dto.TeacherApplicationResponse;
 import com.competition.dto.TeacherApplicationReviewRequest;
 import com.competition.dto.TeacherApplicationSkillDTO;
@@ -18,6 +20,8 @@ import com.competition.repository.TeacherApplicationRepository;
 import com.competition.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,6 +86,37 @@ public class TeacherApplicationService {
 
         TeacherApplication saved = teacherApplicationRepository.save(application);
         return toResponse(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TeacherApplicationListItemDTO> listMyApplications(Long userId,
+                                                                  TeacherApplication.Status status,
+                                                                  Pageable pageable) {
+        User teacher = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        if (teacher.getRole() != User.Role.TEACHER) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only TEACHER can view applications");
+        }
+
+        Page<TeacherApplication> page = (status == null)
+                ? teacherApplicationRepository.findByTeacher_Id(teacher.getId(), pageable)
+                : teacherApplicationRepository.findByTeacher_IdAndStatus(teacher.getId(), status, pageable);
+        return page.map(this::toTeacherListItem);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AdminTeacherApplicationListItemDTO> listAdminApplications(Long adminUserId,
+                                                                          TeacherApplication.Status status,
+                                                                          String keyword,
+                                                                          Pageable pageable) {
+        User admin = userRepository.findById(adminUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        if (admin.getRole() != User.Role.ADMIN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN can view applications");
+        }
+
+        Page<TeacherApplication> page = teacherApplicationRepository.searchAdmin(status, keyword, pageable);
+        return page.map(this::toAdminListItem);
     }
 
     public TeacherApplicationResponse reviewApplication(Long adminUserId, Long applicationId, TeacherApplicationReviewRequest request) {
@@ -178,5 +213,47 @@ public class TeacherApplicationService {
         }
 
         return response;
+    }
+
+    private TeacherApplicationListItemDTO toTeacherListItem(TeacherApplication application) {
+        TeacherApplicationListItemDTO dto = new TeacherApplicationListItemDTO();
+        dto.setId(application.getId());
+        if (application.getCompetition() != null) {
+            dto.setCompetitionId(application.getCompetition().getId());
+            dto.setCompetitionName(application.getCompetition().getName());
+        }
+        dto.setStatus(application.getStatus());
+        dto.setCreatedAt(application.getAppliedAt());
+        dto.setUpdatedAt(application.getReviewedAt());
+        return dto;
+    }
+
+    private AdminTeacherApplicationListItemDTO toAdminListItem(TeacherApplication application) {
+        AdminTeacherApplicationListItemDTO dto = new AdminTeacherApplicationListItemDTO();
+        dto.setId(application.getId());
+        if (application.getTeacher() != null) {
+            dto.setTeacherId(application.getTeacher().getId());
+            dto.setTeacherName(resolveTeacherName(application.getTeacher()));
+        }
+        if (application.getCompetition() != null) {
+            dto.setCompetitionId(application.getCompetition().getId());
+            dto.setCompetitionName(application.getCompetition().getName());
+        }
+        dto.setStatus(application.getStatus());
+        dto.setCreatedAt(application.getAppliedAt());
+        return dto;
+    }
+
+    private String resolveTeacherName(User teacher) {
+        if (teacher == null) {
+            return null;
+        }
+        if (teacher.getRealName() != null && !teacher.getRealName().isBlank()) {
+            return teacher.getRealName();
+        }
+        if (teacher.getUsername() != null && !teacher.getUsername().isBlank()) {
+            return teacher.getUsername();
+        }
+        return teacher.getAccountNo();
     }
 }

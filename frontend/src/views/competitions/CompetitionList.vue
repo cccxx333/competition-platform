@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { listCompetitions, type CompetitionListItem } from "@/api/competitions"
+import StatusPill from "@@/components/StatusPill/index.vue"
 
 const route = useRoute()
 const router = useRouter()
@@ -155,11 +156,6 @@ const parseNumber = (value: unknown, fallback: number) => {
   return parsed
 }
 
-const statusTagType = (status?: CompetitionListItem["status"]) => {
-  if (status === "ONGOING") return "success"
-  if (status === "FINISHED") return "info"
-  return "warning"
-}
 
 const readQuery = () => {
   const keyword = typeof route.query.keyword === "string" ? route.query.keyword : ""
@@ -303,7 +299,7 @@ onBeforeUnmount(() => {
       <el-table-column prop="name" label="Name" min-width="180" />
       <el-table-column label="Status" width="140">
         <template #default="{ row }">
-          <el-tag v-if="row.status" :type="statusTagType(row.status)">{{ row.status }}</el-tag>
+          <StatusPill :value="row.status" kind="competition" />
         </template>
       </el-table-column>
       <el-table-column label="Date Range" min-width="200">
