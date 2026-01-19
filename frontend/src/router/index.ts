@@ -54,6 +54,18 @@ export const constantRoutes: RouteRecordRaw[] = [
         name: "MySkills",
         component: () => import("@/views/me/Skills.vue"),
         meta: { title: "Skills" }
+      },
+      {
+        path: "competitions",
+        name: "CompetitionList",
+        component: () => import("@/views/competitions/CompetitionList.vue"),
+        meta: { title: "Competitions" }
+      },
+      {
+        path: "competitions/:id",
+        name: "CompetitionDetail",
+        component: () => import("@/views/competitions/CompetitionDetail.vue"),
+        meta: { title: "Competition Detail", hidden: true }
       }
     ]
   },

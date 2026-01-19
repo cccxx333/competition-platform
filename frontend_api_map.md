@@ -41,29 +41,29 @@
 
 ## 1. Auth / Session（F1）
 
-| Page/Module       | API  | Method   | Purpose                     | Params (source)                 | Auth | Exists | Notes                              |
-| ----------------- | ---- | -------- | --------------------------- | ------------------------------- | ---- | ------ | ---------------------------------- |
-| Login             | TBD  | POST     | 登录获取 token 与 role      | Body: username/password（表单） | No   | ❓      | 以实际后端登录接口为准             |
-| Fetch Me          | TBD  | GET      | 获取当前用户信息（含 role） | Header: Bearer token            | Yes  | ❓      | 登录后与刷新时调用                 |
-| Logout (optional) | TBD  | POST/GET | 退出（如后端需要）          | Header: token                   | Yes  | ❓      | 若后端无登出接口，前端本地清 token |
+| Page/Module       | API              | Method | Purpose                     | Params (source)                      | Auth | Exists | Notes                                                |
+| ----------------- | ---------------- | ------ | --------------------------- | ------------------------------------ | ---- | ------ | ---------------------------------------------------- |
+| Login             | /api/users/login | POST   | 登录获取 token 与 role      | Body: { username, password }（表单） | No   | ✅      | 已验证；返回 { token }，role 通过 /api/users/me 获取 |
+| Fetch Me          | /api/users/me    | GET    | 获取当前用户信息（含 role） | Header: Authorization Bearer <token> | Yes  | ✅      | 登录后与刷新时调用                                   |
+| Logout (optional) | —                | —      | 退出登录（前端清 token）    | LocalStorage / Store                 | —    | ✅      | 后端无登出接口，前端本地处理                         |
 
 ---
 
 ## 2. Profile & Skills（F2，对齐 M1）
 
 ### 2.1 个人信息
-| Page/Module | API  | Method    | Purpose      | Params (source)              | Auth | Exists | Notes                  |
-| ----------- | ---- | --------- | ------------ | ---------------------------- | ---- | ------ | ---------------------- |
-| Profile     | TBD  | GET       | 查看个人信息 | Header: token                | Yes  | ❓      | 一般是 `/api/users/me` |
-| Profile     | TBD  | PUT/PATCH | 更新个人信息 | Body: profile fields（表单） | Yes  | ❓      | 字段以 DTO 为准        |
+| Page/Module | API           | Method    | Purpose      | Params (source)              | Auth | Exists | Notes                                            |
+| ----------- | ------------- | --------- | ------------ | ---------------------------- | ---- | ------ | ------------------------------------------------ |
+| Profile     | /api/users/me | GET       | 查看个人信息 | Header: token                | Yes  | ✅      | 后端已确认存在；前端页面骨架阶段，业务字段待接入 |
+| Profile     | TBD           | PUT/PATCH | 更新个人信息 | Body: profile fields（表单） | Yes  | ❓      | 字段以 DTO 为准                                  |
 
 ### 2.2 技能画像
-| Page/Module             | API  | Method | Purpose                | Params (source)              | Auth | Exists | Notes                                          |
-| ----------------------- | ---- | ------ | ---------------------- | ---------------------------- | ---- | ------ | ---------------------------------------------- |
-| MySkills                | TBD  | GET    | 查询我的技能列表       | Header: token                | Yes  | ✅/❓    | 你后端 M1 已实现则标 ✅                         |
-| MySkills                | TBD  | POST   | 绑定技能               | Body: {skillId}（表单/选择） | Yes  | ✅/❓    |                                                |
-| MySkills                | TBD  | DELETE | 解绑技能               | Route/Path: skillId（选择）  | Yes  | ✅/❓    |                                                |
-| SkillCatalog (optional) | TBD  | GET    | 技能库列表（用于选择） | Query: keyword?              | Yes  | ❓      | 若无该接口可用初始化 skills 表直接分页查询接口 |
+| Page/Module             | API                            | Method | Purpose                | Params (source)              | Auth | Exists | Notes                                          |
+| ----------------------- | ------------------------------ | ------ | ---------------------- | ---------------------------- | ---- | ------ | ---------------------------------------------- |
+| MySkills                | /api/users/me/skills           | GET    | 查询我的技能列表       | Header: token                | Yes  | ✅      | 后端已确认存在（M1）；前端页面结构阶段         |
+| MySkills                | /api/users/me/skills           | POST   | 绑定技能               | Body: {skillId}（表单/选择） | Yes  | ✅      | postman 已验证 200 / 409 冲突                  |
+| MySkills                | /api/users/me/skills/{skillId} | DELETE | 解绑技能               | Route: skillId（选择）       | Yes  | ✅      | postman 已验证                                 |
+| SkillCatalog (optional) | TBD                            | GET    | 技能库列表（用于选择） | Query: keyword?              | Yes  | ❓      | 若无该接口可用初始化 skills 表直接分页查询接口 |
 
 ---
 
@@ -72,8 +72,8 @@
 ### 3.1 竞赛列表/检索
 | Page/Module                       | API  | Method | Purpose               | Params (source)                   | Auth | Exists | Notes                            |
 | --------------------------------- | ---- | ------ | --------------------- | --------------------------------- | ---- | ------ | -------------------------------- |
-| CompetitionList                   | TBD  | GET    | 竞赛列表（分页/筛选） | Query: page,size,keyword?,status? | Yes  | ✅/❓    | 优先以后端分页为准               |
-| CompetitionDetail                 | TBD  | GET    | 竞赛详情              | Route Param: competitionId        | Yes  | ✅/❓    |                                  |
+| CompetitionList                   | TBD  | GET    | 竞赛列表（分页/筛选） | Query: page,size,keyword?,status? | Yes  | ❓      | 优先以后端分页为准               |
+| CompetitionDetail                 | TBD  | GET    | 竞赛详情              | Route Param: competitionId        | Yes  | ❓      |                                  |
 | CompetitionTeams (for join/apply) | TBD  | GET    | 竞赛下教师组列表      | Route Param: competitionId        | Yes  | ❓      | 若后端未提供可改为 team 搜索接口 |
 
 ---

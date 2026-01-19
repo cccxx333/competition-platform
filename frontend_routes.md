@@ -8,9 +8,14 @@
 - authed：任意已登录用户（student/teacher/admin）
 
 ### 0.2 路由守卫约定
-- requireAuth=true：必须登录
-- roles：允许访问的角色集合（空表示所有已登录用户）
-- 禁止在路由层做业务裁决；最终以服务端 401/403/409 为准
+- requireAuth=true：
+  - 无 token → 强制跳转 /login
+- 已登录访问 /login：
+  - 自动跳转 /dashboard
+- 页面刷新：
+  - 若存在 token，自动调用 /api/users/me 初始化用户状态
+- 401：
+  - axios 拦截，清 token，跳转 /login
 
 ### 0.3 阶段归属
 - 每条路由标注所属阶段（F0–F9），用于按计划推进逐步落地页面
@@ -29,13 +34,26 @@
 
 ## 2. 应用壳与通用路由（Authed）
 
-| Route Name                  | Path            | requireAuth | Roles   | Phase | 页面/用途          | 备注                                        |
-| --------------------------- | --------------- | ----------: | ------- | ----- | ------------------ | ------------------------------------------- |
-| Root                        | `/`             |        true | authed  | F0    | Layout 容器        | 进入后默认重定向到各角色首页                |
-| DashboardRedirect           | `/dashboard`    |        true | authed  | F1    | 角色首页跳转       | student/teacher/admin 各自重定向            |
-| Profile                     | `/me/profile`   |        true | authed  | F2    | 个人信息           | 展示/编辑基础信息                           |
-| MySkills                    | `/me/skills`    |        true | student | F2    | 我的技能画像       | 绑定/解绑技能；若教师也需要技能可放宽 roles |
-| AdminSkillManage (optional) | `/admin/skills` |        true | admin   | F2    | 技能库管理（可选） | 若后端无该功能可保留占位                    |
+| Route Name                  | Path                 | requireAuth | Roles   | Phase | 页面/用途          | 备注                                                         |
+| --------------------------- | -------------------- | ----------: | ------- | ----- | ------------------ | ------------------------------------------------------------ |
+| Root                        | `/`                  |        true | authed  | F0    | Layout 容器        | 进入后重定向至 /dashboard                                    |
+| DashboardRedirect           | `/dashboard`         |        true | authed  | F1    | 角色首页跳转       | 根据 role 重定向至子路由                                     |
+| StudentDashboard            | `/dashboard/student` |        true | student | F1/F2 | 学生首页占位页     | F1：完成登录后按角色跳转与鉴权验证；<br/>F2：完成 Notion 风格布局骨架（cp-page / cp-grid / cp-card），页面为结构占位。 |
+| TeacherDashboard            | `/dashboard/teacher` |        true | teacher | F2    | 教师首页占位页     | 与 StudentDashboard 共用布局骨架；页面内容后续补齐           |
+| AdminDashboard              | `/dashboard/admin`   |        true | admin   | F2    | 管理员首页占位页   | 与 StudentDashboard 共用布局骨架；页面内容后续补齐           |
+| Profile                     | `/me/profile`        |        true | authed  | F2    | 个人信息           | 页面骨架完成（cp-page / cp-card）；业务字段与接口在后续阶段接入 |
+| MySkills                    | `/me/skills`         |        true | student | F2    | 我的技能画像       | 页面结构已规划；功能实现对齐后端 M1，在后续 F2 子阶段完成    |
+| AdminSkillManage (optional) | `/admin/skills`      |        true | admin   | F2    | 技能库管理（可选） | 是否实现取决于后端能力；当前仅作为路由与菜单占位             |
+
+> 当前 student/teacher/admin 子路由已建；仅 student 已完成运行态验证，teacher/admin 为占位页。
+>
+> F2 阶段
+>
+> - “完成”定义为：**路由存在 + Layout 正常 + 页面骨架与样式基础成立**，不等同于“业务功能完成”
+> - F2 阶段说明：
+>   - F2 聚焦“前端页面结构与样式基础”，不追求业务功能完整
+>   - 所有 F2 页面均统一采用 Notion 风格布局骨架（cp-page / cp-grid / cp-card）
+>   - 具体字段展示、接口联调与交互逻辑在后续对应功能阶段补齐
 
 ---
 

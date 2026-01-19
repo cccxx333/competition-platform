@@ -17,6 +17,7 @@ const userLabel = computed(() => {
       <div class="basic-layout__logo">Competition Platform</div>
       <el-menu :default-active="route.path" router>
         <el-menu-item index="/dashboard">Dashboard</el-menu-item>
+        <el-menu-item index="/competitions">Competitions</el-menu-item>
         <el-menu-item index="/me/profile">Profile</el-menu-item>
         <el-menu-item index="/me/skills">Skills</el-menu-item>
       </el-menu>
