@@ -10,6 +10,15 @@ export type UserSkill = {
   [key: string]: unknown
 }
 
+export type Skill = {
+  id?: number
+  name?: string
+  category?: string
+  description?: string
+  isActive?: number
+  [key: string]: unknown
+}
+
 const unwrapData = <T>(payload: any): T => {
   return (payload?.data ?? payload) as T
 }
@@ -26,6 +35,15 @@ export async function listMySkills(): Promise<UserSkill[]> {
   try {
     const response = await client.get("/users/me/skills")
     return unwrapData<UserSkill[]>(response?.data)
+  } catch (error: any) {
+    throw toError(error, "Failed to load skills")
+  }
+}
+
+export async function listSkills(): Promise<Skill[]> {
+  try {
+    const response = await client.get("/skills")
+    return unwrapData<Skill[]>(response?.data)
   } catch (error: any) {
     throw toError(error, "Failed to load skills")
   }

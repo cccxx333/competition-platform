@@ -48,6 +48,29 @@ body {
   height: 100%;
 }
 
+html,
+body,
+#app {
+  overflow-x: hidden;
+}
+
+body {
+  overscroll-behavior-x: none;
+}
+
+html,
+body {
+  touch-action: pan-y;
+}
+
+.app-wrapper,
+.layout,
+.main-container,
+.basic-layout,
+.basic-layout__main {
+  overflow-x: hidden;
+}
+
 *,
 *::before,
 *::after {
