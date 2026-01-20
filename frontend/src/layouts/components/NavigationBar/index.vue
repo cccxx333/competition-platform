@@ -6,19 +6,17 @@ Do not edit. Kept for historical reference.
 <script lang="ts" setup>
 import Notify from "@@/components/Notify/index.vue"
 import Screenfull from "@@/components/Screenfull/index.vue"
-import SearchMenu from "@@/components/SearchMenu/index.vue"
 import ThemeSwitch from "@@/components/ThemeSwitch/index.vue"
 import { useDevice } from "@@/composables/useDevice"
-import { useLayoutMode } from "@@/composables/useLayoutMode"
 import { UserFilled } from "@element-plus/icons-vue"
 import { useAppStore } from "@/pinia/stores/app"
 import { useSettingsStore } from "@/pinia/stores/settings"
 import { useUserStore } from "@/pinia/stores/user"
-import { Breadcrumb, Hamburger, Sidebar } from "../index"
+import { Breadcrumb, Hamburger } from "../index"
 
 const { isMobile } = useDevice()
 
-const { isTop } = useLayoutMode()
+const isTop = false
 
 const router = useRouter()
 
@@ -51,9 +49,7 @@ function logout() {
       @toggle-click="toggleSidebar"
     />
     <Breadcrumb v-if="!isTop || isMobile" class="breadcrumb" />
-    <Sidebar v-if="isTop && !isMobile" class="sidebar" />
     <div class="right-menu">
-      <SearchMenu v-if="showSearchMenu" class="right-menu-item" />
       <Screenfull v-if="showScreenfull" class="right-menu-item" />
       <ThemeSwitch v-if="showThemeSwitch" class="right-menu-item" />
       <Notify v-if="showNotify" class="right-menu-item" />

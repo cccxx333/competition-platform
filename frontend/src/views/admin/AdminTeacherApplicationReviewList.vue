@@ -1,6 +1,8 @@
 <script lang="ts" setup>
+import { ElMessage } from "element-plus"
 import {
   adminListTeacherApplicationPage,
+  adminReviewTeacherApplication,
   type AdminTeacherApplicationListItem
 } from "@/api/teacherApplications"
 import StatusPill from "@@/components/StatusPill/index.vue"
@@ -21,6 +23,33 @@ const formatDateTime = (value?: string | null) => {
     return `${date} ${time.slice(0, 5)}`
   }
   return value
+}
+
+const showRequestError = (error: any, fallback: string) => {
+  const status = error?.status ?? error?.response?.status
+  const message = error?.message
+  if (message && message !== fallback) {
+    ElMessage.error(message)
+    return message
+  }
+  if (status === 400) {
+    ElMessage.error("Invalid request")
+    return "Invalid request"
+  }
+  if (status === 403) {
+    ElMessage.error("No permission")
+    return "No permission"
+  }
+  if (status === 404) {
+    ElMessage.error("Application not found")
+    return "Application not found"
+  }
+  if (status === 409) {
+    ElMessage.error("Application already reviewed")
+    return "Application already reviewed"
+  }
+  ElMessage.error("Request failed, please try again")
+  return "Request failed, please try again"
 }
 
 const fetchList = async () => {
@@ -58,6 +87,74 @@ const handleSizeChange = (size: number) => {
   fetchList()
 }
 
+const handleApprove = async (row: AdminTeacherApplicationListItem) => {
+  if (!row.id) return
+  try {
+    await ElMessageBox.confirm("Approve this application?", "Confirm", {
+      type: "warning",
+      confirmButtonText: "Approve",
+      cancelButtonText: "Cancel"
+    })
+  } catch {
+    return
+  }
+  try {
+    await adminReviewTeacherApplication(row.id, { approved: true })
+    ElMessage.success("Approved")
+    await fetchList()
+  } catch (error: any) {
+    showRequestError(error, "Failed to review application")
+  }
+}
+
+const reviewDialogVisible = ref(false)
+const reviewAction = ref<"approve" | "reject">("approve")
+const reviewReason = ref("")
+const reviewTargetId = ref<number | null>(null)
+const reviewSubmitting = ref(false)
+
+const openApproveDialog = (row: AdminTeacherApplicationListItem) => {
+  if (!row.id) return
+  reviewTargetId.value = row.id
+  reviewAction.value = "approve"
+  reviewReason.value = ""
+  reviewDialogVisible.value = true
+}
+
+const openRejectDialog = (row: AdminTeacherApplicationListItem) => {
+  if (!row.id) return
+  reviewTargetId.value = row.id
+  reviewAction.value = "reject"
+  reviewReason.value = ""
+  reviewDialogVisible.value = true
+}
+
+const closeReviewDialog = (force = false) => {
+  if (reviewSubmitting.value && !force) return
+  reviewDialogVisible.value = false
+  reviewReason.value = ""
+  reviewTargetId.value = null
+}
+
+const submitReview = async () => {
+  if (!reviewTargetId.value || reviewSubmitting.value) return
+  const reviewComment = reviewAction.value === "reject" ? reviewReason.value.trim() || undefined : undefined
+  reviewSubmitting.value = true
+  try {
+    await adminReviewTeacherApplication(reviewTargetId.value, {
+      approved: reviewAction.value === "approve",
+      reviewComment
+    })
+    ElMessage.success(reviewAction.value === "approve" ? "Approved" : "Rejected")
+    closeReviewDialog(true)
+    await fetchList()
+  } catch (error: any) {
+    showRequestError(error, "Failed to review application")
+  } finally {
+    reviewSubmitting.value = false
+  }
+}
+
 onMounted(fetchList)
 </script>
 
@@ -80,6 +177,26 @@ onMounted(fetchList)
           {{ formatDateTime(row.createdAt) || "-" }}
         </template>
       </el-table-column>
+      <el-table-column label="Actions" width="200">
+        <template #default="{ row }">
+          <el-button
+            size="small"
+            type="primary"
+            :disabled="row.status !== 'PENDING'"
+            @click="openApproveDialog(row)"
+          >
+            Approve
+          </el-button>
+          <el-button
+            size="small"
+            type="danger"
+            :disabled="row.status !== 'PENDING'"
+            @click="openRejectDialog(row)"
+          >
+            Reject
+          </el-button>
+        </template>
+      </el-table-column>
     </el-table>
 
     <div class="pagination">
@@ -92,6 +209,44 @@ onMounted(fetchList)
         @size-change="handleSizeChange"
       />
     </div>
+
+    <el-dialog
+      v-model="reviewDialogVisible"
+      :title="reviewAction === 'approve' ? 'Approve' : 'Reject'"
+      width="480px"
+      center
+      :close-on-click-modal="true"
+      :close-on-press-escape="true"
+      :before-close="closeReviewDialog"
+    >
+      <div v-if="reviewAction === 'approve'">Approve this application?</div>
+      <el-input
+        v-else
+        v-model="reviewReason"
+        type="textarea"
+        :rows="4"
+        placeholder="Provide a reject reason (optional)"
+      />
+      <template #footer>
+        <el-button :disabled="reviewSubmitting" @click="closeReviewDialog">Cancel</el-button>
+        <el-button
+          v-if="reviewAction === 'approve'"
+          type="primary"
+          :loading="reviewSubmitting"
+          @click="submitReview"
+        >
+          Approve
+        </el-button>
+        <el-button
+          v-else
+          type="danger"
+          :loading="reviewSubmitting"
+          @click="submitReview"
+        >
+          Reject
+        </el-button>
+      </template>
+    </el-dialog>
   </el-card>
 </template>
 

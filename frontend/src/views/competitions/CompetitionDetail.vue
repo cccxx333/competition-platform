@@ -1,16 +1,23 @@
 <script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { getCompetitionDetail, type CompetitionDetail } from "@/api/competitions"
+import { createTeacherApplication } from "@/api/teacherApplications"
+import { useAuthStore } from "@/stores/auth"
 import StatusPill from "@@/components/StatusPill/index.vue"
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const loading = ref(false)
+const submitting = ref(false)
+const submitDialogVisible = ref(false)
+const submitError = ref("")
 const errorMessage = ref("")
 const detail = ref<CompetitionDetail | null>(null)
 
 const competitionId = computed(() => Number(route.params.id))
+const isTeacher = computed(() => String(authStore.user?.role ?? "").toUpperCase() === "TEACHER")
 
 const formatDate = (value?: string | null) => {
   if (!value) return ""
@@ -113,6 +120,43 @@ const handleBack = () => {
   router.push("/competitions")
 }
 
+const openSubmitDialog = () => {
+  submitError.value = ""
+  submitDialogVisible.value = true
+}
+
+const closeSubmitDialog = (force = false) => {
+  if (submitting.value && !force) return
+  submitDialogVisible.value = false
+  submitError.value = ""
+}
+
+const handleApply = async () => {
+  if (submitting.value) return
+  if (!Number.isFinite(competitionId.value) || competitionId.value <= 0) {
+    ElMessage.error("Invalid competition")
+    return
+  }
+  submitting.value = true
+  try {
+    await createTeacherApplication(competitionId.value, {})
+    ElMessage.success("Application submitted")
+    closeSubmitDialog(true)
+    router.push("/teacher/applications")
+  } catch (error: any) {
+    const status = error?.status ?? error?.response?.status
+    const message = error?.message ?? error?.response?.data?.message
+    const code = error?.response?.data?.code
+    if (status === 409 || code === "BUSINESS_ERROR" || (typeof message === "string" && message.includes("already exists"))) {
+      submitError.value = message || "Application already exists"
+      return
+    }
+    submitError.value = message || "Failed to submit teacher application"
+  } finally {
+    submitting.value = false
+  }
+}
+
 onMounted(loadDetail)
 watch(() => route.params.id, loadDetail)
 </script>
@@ -121,7 +165,19 @@ watch(() => route.params.id, loadDetail)
   <el-card shadow="never" v-loading="loading">
     <div class="page-header">
       <h2>Competition Detail</h2>
-      <el-button size="small" @click="handleBack">Back</el-button>
+      <div class="header-actions">
+        <el-button
+          v-if="isTeacher"
+          size="small"
+          type="primary"
+          :loading="submitting"
+          :disabled="loading || submitting"
+          @click="openSubmitDialog"
+        >
+          Submit Teacher Application
+        </el-button>
+        <el-button size="small" @click="handleBack">Back</el-button>
+      </div>
     </div>
 
     <el-alert
@@ -186,6 +242,33 @@ watch(() => route.params.id, loadDetail)
         </el-collapse>
       </el-card>
     </div>
+
+    <el-dialog
+      v-model="submitDialogVisible"
+      title="Confirm"
+      width="480px"
+      center
+      :close-on-click-modal="true"
+      :close-on-press-escape="true"
+      :before-close="closeSubmitDialog"
+    >
+      <div>Submit teacher application for this competition?</div>
+      <div style="margin-top: 8px; color: #909399;">After submission, wait for admin review.</div>
+      <el-alert
+        v-if="submitError"
+        :title="submitError"
+        type="error"
+        show-icon
+        :closable="false"
+        style="margin-top: 12px"
+      />
+      <template #footer>
+        <el-button :disabled="submitting" @click="closeSubmitDialog">Cancel</el-button>
+        <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleApply">
+          Submit
+        </el-button>
+      </template>
+    </el-dialog>
   </el-card>
 </template>
 
@@ -195,6 +278,12 @@ watch(() => route.params.id, loadDetail)
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .section {

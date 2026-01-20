@@ -4,13 +4,12 @@ Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
 Do not edit. Kept for historical reference.
 -->
 <script lang="ts" setup>
-import { useLayoutMode } from "@@/composables/useLayoutMode"
 import { removeLayoutsConfig } from "@@/utils/cache/local-storage"
 import { Refresh } from "@element-plus/icons-vue"
 import { useSettingsStore } from "@/pinia/stores/settings"
 import SelectLayoutMode from "./SelectLayoutMode.vue"
 
-const { isLeft } = useLayoutMode()
+const isLeft = { value: true }
 
 const settingsStore = useSettingsStore()
 

@@ -7,7 +7,6 @@ Do not edit. Kept for historical reference.
 import logoText1 from "@@/assets/images/layouts/logo-text-1.png?url"
 import logoText2 from "@@/assets/images/layouts/logo-text-2.png?url"
 import logo from "@@/assets/images/layouts/logo.png?url"
-import { useLayoutMode } from "@@/composables/useLayoutMode"
 
 interface Props {
   collapse?: boolean
@@ -15,7 +14,8 @@ interface Props {
 
 const { collapse = true } = defineProps<Props>()
 
-const { isLeft, isTop } = useLayoutMode()
+const isLeft = true
+const isTop = false
 </script>
 
 <template>
