@@ -9,6 +9,7 @@ public class TeamSubmissionResponse {
     private Long teamId;
     private Long competitionId;
     private Long submittedBy;
+    private String submitterUsername;
     private String fileName;
     private String fileUrl;
     private String remark;

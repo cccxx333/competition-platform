@@ -161,6 +161,7 @@ public class TeamSubmissionService {
         response.setTeamId(submission.getTeam() != null ? submission.getTeam().getId() : null);
         response.setCompetitionId(submission.getCompetition() != null ? submission.getCompetition().getId() : null);
         response.setSubmittedBy(submission.getSubmittedBy() != null ? submission.getSubmittedBy().getId() : null);
+        response.setSubmitterUsername(submission.getSubmittedBy() != null ? submission.getSubmittedBy().getUsername() : null);
         response.setFileName(submission.getFileName());
         response.setFileUrl(submission.getFileUrl());
         response.setRemark(submission.getRemark());

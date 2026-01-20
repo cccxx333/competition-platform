@@ -44,6 +44,10 @@ export default defineConfig(({ mode }) => {
           ws: false,
           // change origin to avoid CORS issues
           changeOrigin: true
+        },
+        "/files": {
+          target: apiProxyTarget,
+          changeOrigin: true
         }
       },
       // 鏄惁鍏佽璺ㄥ煙
