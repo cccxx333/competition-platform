@@ -18,6 +18,9 @@ const filters = reactive({
   status: "" as CompetitionListItem["status"] | ""
 })
 
+const recommendMode = ref(false)
+const topK = ref(10)
+
 const pagination = reactive({
   page: 0,
   size: 10
@@ -63,6 +66,10 @@ const buildQuery = () => {
   if (filters.status) {
     query.status = filters.status
   }
+  if (recommendMode.value) {
+    query.recommend = "true"
+    query.topK = String(topK.value)
+  }
   return query
 }
 
@@ -73,7 +80,9 @@ const syncUrl = () => {
     String(current.page ?? "") === String(next.page ?? "") &&
     String(current.size ?? "") === String(next.size ?? "") &&
     String(current.keyword ?? "") === String(next.keyword ?? "") &&
-    String(current.status ?? "") === String(next.status ?? "")
+    String(current.status ?? "") === String(next.status ?? "") &&
+    String(current.recommend ?? "") === String(next.recommend ?? "") &&
+    String(current.topK ?? "") === String(next.topK ?? "")
   if (!same) {
     router.replace({ query: next })
   }
@@ -87,7 +96,9 @@ const fetchList = async () => {
       keyword: filters.keyword || undefined,
       status: (filters.status as CompetitionListItem["status"]) || undefined,
       page: pagination.page,
-      size: pagination.size
+      size: pagination.size,
+      recommend: recommendMode.value || undefined,
+      topK: recommendMode.value ? topK.value : undefined
     })
     items.value = data
     total.value = typeof totalElements === "number" ? totalElements : null
@@ -156,15 +167,29 @@ const parseNumber = (value: unknown, fallback: number) => {
   return parsed
 }
 
+const parseBoolean = (value: unknown) => {
+  return value === true || value === "true" || value === "1"
+}
+
+const clampTopK = (value: number) => {
+  if (!Number.isFinite(value)) return 10
+  if (value < 1) return 1
+  if (value > 50) return 50
+  return value
+}
 
 const readQuery = () => {
   const keyword = typeof route.query.keyword === "string" ? route.query.keyword : ""
   const status = typeof route.query.status === "string" ? route.query.status : ""
+  const recommend = parseBoolean(route.query.recommend)
+  const topKValue = clampTopK(parseNumber(route.query.topK, 10))
   const page = parseNumber(route.query.page, 0)
   const size = parseNumber(route.query.size, 10)
   return {
     keyword,
     status: status as CompetitionListItem["status"],
+    recommend,
+    topK: topKValue,
     page,
     size: size > 0 ? size : 10
   }
@@ -175,12 +200,16 @@ const applyQueryFromRoute = () => {
   const same =
     filters.keyword === next.keyword &&
     filters.status === next.status &&
+    recommendMode.value === next.recommend &&
+    topK.value === next.topK &&
     pagination.page === next.page &&
     pagination.size === next.size
   if (same) return false
   isApplying.value = true
   filters.keyword = next.keyword
   filters.status = next.status
+  recommendMode.value = next.recommend
+  topK.value = next.topK
   pagination.page = next.page
   pagination.size = next.size
   return true
@@ -205,6 +234,27 @@ watch(
   () => filters.status,
   () => {
     if (!initialized.value || isApplying.value) return
+    pagination.page = 0
+    syncUrl()
+    fetchList()
+  }
+)
+
+watch(
+  () => recommendMode.value,
+  () => {
+    if (!initialized.value || isApplying.value) return
+    pagination.page = 0
+    syncUrl()
+    fetchList()
+  }
+)
+
+watch(
+  () => topK.value,
+  () => {
+    if (!initialized.value || isApplying.value) return
+    if (!recommendMode.value) return
     pagination.page = 0
     syncUrl()
     fetchList()
@@ -261,25 +311,43 @@ onBeforeUnmount(() => {
 
     <el-form class="filter-bar" label-position="top" label-width="80px">
       <el-row :gutter="12" align="bottom">
-        <el-col :span="10">
+        <el-col :span="8">
           <el-form-item label="Keyword">
             <el-input v-model="filters.keyword" clearable placeholder="keyword" />
           </el-form-item>
         </el-col>
-        <el-col :span="6">
+        <el-col :span="5">
           <el-form-item label="Status">
             <el-select v-model="filters.status" clearable placeholder="status" style="min-width: 160px">
               <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
         </el-col>
-        <el-col :span="8">
+        <el-col :span="4">
+          <el-form-item label="Recommend">
+            <el-switch v-model="recommendMode" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="4">
+          <el-form-item label="TopK">
+            <el-input-number v-model="topK" :min="1" :max="50" :disabled="!recommendMode" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="3">
           <el-form-item label=" " label-width="80px">
             <el-button type="primary" @click="resetFilters">Reset</el-button>
           </el-form-item>
         </el-col>
       </el-row>
     </el-form>
+
+    <el-alert
+      v-if="recommendMode"
+      type="info"
+      :closable="false"
+      title="Recommendation mode uses keyword and status as filters."
+      style="margin-bottom: 12px"
+    />
 
     <el-alert
       v-if="errorMessage"

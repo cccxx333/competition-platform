@@ -36,6 +36,8 @@ export type CompetitionListParams = {
   status?: CompetitionListItem["status"]
   page?: number
   size?: number
+  recommend?: boolean
+  topK?: number
 }
 
 const unwrapData = <T>(payload: any): T => {

@@ -20,6 +20,7 @@ const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase(
       <el-menu :default-active="route.path" router>
         <el-menu-item index="/dashboard">Dashboard</el-menu-item>
         <el-menu-item index="/competitions">Competitions</el-menu-item>
+        <el-menu-item index="/recommendations/competitions">Competition Recommendations</el-menu-item>
         <el-sub-menu index="/teams">
           <template #title>Teams</template>
           <el-menu-item v-if="roleUpper === 'STUDENT'" index="/teams/join">Join</el-menu-item>
