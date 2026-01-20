@@ -2,6 +2,7 @@
 import { ElMessage } from "element-plus"
 import { listPendingApplications, reviewApplication, type ApplicationItem } from "@/api/teamApplications"
 
+const router = useRouter()
 const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogLoading = ref(false)
@@ -31,6 +32,10 @@ const showRequestError = (error: any, fallback: string) => {
     ElMessage.error("无权限")
     return "无权限"
   }
+  if (status === 401) {
+    ElMessage.error("登录已过期，请重新登录")
+    return "登录已过期"
+  }
   if (status === 404) {
     ElMessage.error("资源不存在")
     return "资源不存在"
@@ -38,6 +43,10 @@ const showRequestError = (error: any, fallback: string) => {
   if (status === 409) {
     ElMessage.error("业务冲突")
     return "业务冲突"
+  }
+  if (status === 400) {
+    ElMessage.error("参数错误")
+    return "参数错误"
   }
   ElMessage.error("服务异常，请稍后重试")
   return fallback
@@ -81,7 +90,16 @@ const submitReview = async () => {
     dialogVisible.value = false
     await loadApplications()
   } catch (error: any) {
-    showRequestError(error, "Failed to review application")
+    const status = error?.status ?? error?.response?.status
+    const message = error?.message ?? ""
+    if (status === 409 && message.includes("disbanded")) {
+      ElMessage.error("队伍已解散，操作已禁止")
+      if (current.value?.teamId) {
+        router.push(`/teams/${current.value.teamId}`)
+      }
+    } else {
+      showRequestError(error, "Failed to review application")
+    }
   } finally {
     dialogLoading.value = false
   }

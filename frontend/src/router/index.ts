@@ -98,6 +98,24 @@ export const constantRoutes: RouteRecordRaw[] = [
         meta: { title: "My Team" }
       },
       {
+        path: "teams/lookup",
+        name: "TeamLookup",
+        component: () => import("@/views/teams/TeamLookup.vue"),
+        meta: { title: "Team Lookup", roles: ["ADMIN", "TEACHER"] }
+      },
+      {
+        path: "teams/:teamId",
+        name: "TeamDetail",
+        component: () => import("@/views/teams/TeamDetail.vue"),
+        meta: { title: "Team Detail", hidden: true }
+      },
+      {
+        path: "teams/:teamId/members",
+        name: "TeamMembers",
+        component: () => import("@/views/teams/TeamMembers.vue"),
+        meta: { title: "Team Members", hidden: true }
+      },
+      {
         path: "teams/review",
         name: "TeacherReviewApplications",
         component: () => import("@/views/teams/TeacherReview.vue"),
