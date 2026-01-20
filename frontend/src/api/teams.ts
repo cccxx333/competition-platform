@@ -50,6 +50,8 @@ const toError = (error: any, fallback: string) => {
   const message = error?.response?.data?.message ?? error?.response?.data?.reason ?? fallback
   const err = new Error(message)
   ;(err as any).status = status
+  ;(err as any).rawMessage = message
+  ;(err as any).responseData = error?.response?.data
   return err
 }
 

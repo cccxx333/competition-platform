@@ -3,6 +3,7 @@ import { ElMessage } from "element-plus"
 import { createApplication } from "@/api/teamApplications"
 import { getTeamDetail, type TeamDto } from "@/api/teams"
 import { isDisbanded } from "@/utils/teamGuards"
+import { getApiErrorMessage } from "@/utils/errorMessage"
 
 const router = useRouter()
 const loading = ref(false)
@@ -16,40 +17,26 @@ const form = reactive({
 const teamInfo = ref<TeamDto | null>(null)
 const isTeamDisbanded = computed(() => isDisbanded(teamInfo.value))
 
+const getFallbackMessage = (status?: number) => {
+  if (status === 400) return "参数错误"
+  if (status === 401) return "登录已过期，请重新登录"
+  if (status === 403) return "无权访问"
+  if (status === 404) return "队伍不存在或已删除"
+  if (status === 409) return "操作冲突，请稍后重试"
+  return "服务异常，请稍后重试"
+}
+
 const showRequestError = (error: any, fallback: string) => {
   const status = error?.status ?? error?.response?.status
-  const message = error?.message
+  const fallbackMessage = status ? getFallbackMessage(status) : fallback
+  const message = getApiErrorMessage(error, fallbackMessage)
   const showUiError = (value: string) => {
     errorDialogMessage.value = value
     errorDialogVisible.value = true
     redirectAfterError.value = null
   }
-  if (message && message !== fallback) {
-    showUiError(message)
-    return message
-  }
-  if (status === 403) {
-    showUiError("无权限")
-    return "无权限"
-  }
-  if (status === 401) {
-    showUiError("登录已过期，请重新登录")
-    return "登录已过期"
-  }
-  if (status === 404) {
-    showUiError("资源不存在")
-    return "资源不存在"
-  }
-  if (status === 409) {
-    showUiError("业务冲突")
-    return "业务冲突"
-  }
-  if (status === 400) {
-    showUiError("参数错误")
-    return "参数错误"
-  }
-  showUiError("服务异常，请稍后重试")
-  return fallback
+  showUiError(message)
+  return message
 }
 
 const submit = async () => {
@@ -64,7 +51,7 @@ const submit = async () => {
       teamInfo.value = await getTeamDetail(form.teamId)
       if (isTeamDisbanded.value) {
         errorDialogMessage.value = "队伍已解散，操作已禁止"
-        redirectAfterError.value = `/teams/${form.teamId}`
+        redirectAfterError.value = "/teams/my"
         errorDialogVisible.value = true
         return
       }
@@ -83,7 +70,7 @@ const submit = async () => {
     const message = error?.message ?? ""
     if (status === 409 && message.includes("disbanded")) {
       errorDialogMessage.value = "队伍已解散，操作已禁止"
-      redirectAfterError.value = `/teams/${form.teamId}`
+      redirectAfterError.value = "/teams/my"
       errorDialogVisible.value = true
     } else {
       showRequestError(error, "Request failed")

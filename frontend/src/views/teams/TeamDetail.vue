@@ -2,7 +2,8 @@
 import { ElMessage } from "element-plus"
 import { closeTeam, getTeamDetail, listTeamMembers, type TeamDto, type TeamMemberView } from "@/api/teams"
 import { useAuthStore } from "@/stores/auth"
-import { canCloseRecruiting, isDisbanded } from "@/utils/teamGuards"
+import { canCloseRecruiting, getTeamWriteBlockReason, isDisbanded } from "@/utils/teamGuards"
+import { getApiErrorMessage } from "@/utils/errorMessage"
 
 const route = useRoute()
 const router = useRouter()
@@ -16,6 +17,7 @@ const actionLoading = ref(false)
 const closeDialogVisible = ref(false)
 const errorDialogVisible = ref(false)
 const errorDialogMessage = ref("")
+const redirectAfterError = ref<string | null>(null)
 
 const teamId = computed(() => {
   const raw = Number(route.params.teamId)
@@ -31,6 +33,7 @@ const isLeader = computed(() => {
 const isTeamDisbanded = computed(() => isDisbanded(team.value))
 const returnLabel = computed(() => (roleUpper.value === "STUDENT" ? "返回我的队伍" : "返回队伍查询"))
 const returnPath = computed(() => (roleUpper.value === "STUDENT" ? "/teams/my" : "/teams/lookup"))
+const writeBlockReason = computed(() => getTeamWriteBlockReason(team.value))
 const currentCount = computed(() => {
   if (membersLoaded.value) return String(members.value.length)
   const fallback = team.value?.currentMembers
@@ -49,39 +52,26 @@ const closeDisabledReason = computed(() => {
   return ""
 })
 
+const getFallbackMessage = (status?: number) => {
+  if (status === 400) return "参数错误"
+  if (status === 401) return "登录已过期，请重新登录"
+  if (status === 403) return "无权访问"
+  if (status === 404) return "队伍不存在或已删除"
+  if (status === 409) return "操作冲突，请稍后重试"
+  return "服务异常，请稍后重试"
+}
+
 const showRequestError = (error: any, fallback: string) => {
   const status = error?.status ?? error?.response?.status
-  const message = error?.message
+  const fallbackMessage = status ? getFallbackMessage(status) : fallback
+  const message = getApiErrorMessage(error, fallbackMessage)
   const showUiError = (value: string) => {
     errorDialogMessage.value = value
     errorDialogVisible.value = true
+    redirectAfterError.value = null
   }
-  if (message && message !== fallback) {
-    showUiError(message)
-    return message
-  }
-  if (status === 400) {
-    showUiError("参数错误")
-    return "参数错误"
-  }
-  if (status === 401) {
-    showUiError("登录已过期，请重新登录")
-    return "登录已过期"
-  }
-  if (status === 403) {
-    showUiError("你无权执行此操作")
-    return "你无权执行此操作"
-  }
-  if (status === 404) {
-    showUiError("队伍不存在")
-    return "队伍不存在"
-  }
-  if (status === 409) {
-    showUiError("业务冲突，请刷新后重试")
-    return "业务冲突"
-  }
-  showUiError("服务异常，请稍后重试")
-  return fallback
+  showUiError(message)
+  return message
 }
 
 const loadTeam = async () => {
@@ -111,19 +101,30 @@ const loadTeam = async () => {
   }
 }
 
+const handleDisbandedRedirect = () => {
+  errorDialogMessage.value = "队伍已解散，操作已禁止"
+  errorDialogVisible.value = true
+  redirectAfterError.value = returnPath.value
+}
+
+const onCloseErrorDialog = () => {
+  errorDialogVisible.value = false
+  redirectAfterError.value = null
+}
+
 const submitCloseTeam = async () => {
   if (!teamId.value) return
   actionLoading.value = true
   try {
-    team.value = await closeTeam(teamId.value)
+    await closeTeam(teamId.value)
     ElMessage.success("已停止招人")
     closeDialogVisible.value = false
+    await loadTeam()
   } catch (error: any) {
     const status = error?.status ?? error?.response?.status
     const message = error?.message ?? ""
     if (status === 409 && message.includes("disbanded")) {
-      errorDialogMessage.value = "队伍已解散，操作已禁止"
-      errorDialogVisible.value = true
+      handleDisbandedRedirect()
     } else {
       showRequestError(error, "Failed to close team")
     }
@@ -151,10 +152,10 @@ onMounted(loadTeam)
     </div>
 
     <el-alert
-      v-if="isTeamDisbanded"
+      v-if="writeBlockReason"
       type="warning"
       show-icon
-      title="队伍已解散，操作已禁止"
+      :title="writeBlockReason"
       class="status-alert"
     />
 
@@ -194,7 +195,8 @@ onMounted(loadTeam)
   <el-dialog v-model="errorDialogVisible" title="提示" width="420px">
     <div>{{ errorDialogMessage }}</div>
     <template #footer>
-      <el-button type="primary" @click="errorDialogVisible = false">确定</el-button>
+      <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回</el-button>
+      <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
     </template>
   </el-dialog>
 </template>
