@@ -2,6 +2,8 @@ package com.competition.controller;
 
 import com.competition.dto.*;
 import com.competition.entity.UserSkill;
+import com.competition.service.ApplicationService;
+import com.competition.service.TeamService;
 import com.competition.service.UserService;
 import com.competition.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 public class UserController {
 
     private final UserService userService;
+    private final ApplicationService applicationService;
+    private final TeamService teamService;
     private final JwtUtils jwtUtils;
 
     /**
@@ -87,6 +91,24 @@ public class UserController {
         updateDTO.setAvatarUrl(updateRequest.getAvatarUrl());
         UserDTO updatedUser = userService.updateUser(userId, updateDTO);
         return ResponseEntity.ok(toUserProfileResponse(updatedUser));
+    }
+
+    @GetMapping("/me/applications")
+    public ResponseEntity<List<ApplicationResponse>> getMyApplications(
+            HttpServletRequest request,
+            @RequestParam(required = false) Long competitionId) {
+        Long userId = getUserIdFromToken(request);
+        List<ApplicationResponse> applications = applicationService.listMyApplications(userId, competitionId);
+        return ResponseEntity.ok(applications);
+    }
+
+    @GetMapping("/me/team")
+    public ResponseEntity<TeamDTO> getMyTeam(
+            HttpServletRequest request,
+            @RequestParam(required = false) Long competitionId) {
+        Long userId = getUserIdFromToken(request);
+        TeamDTO team = teamService.getMyTeam(userId, competitionId);
+        return ResponseEntity.ok(team);
     }
 
     @GetMapping("/me/skills")

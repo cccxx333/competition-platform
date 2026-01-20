@@ -25,6 +25,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     List<Application> findByTeamIdInAndStatus(Collection<Long> teamIds, Application.Status status);
 
+    List<Application> findByStudent_IdOrderByAppliedAtDesc(Long studentId);
+
+    List<Application> findByStudent_IdAndCompetition_IdOrderByAppliedAtDesc(
+            Long studentId,
+            Long competitionId
+    );
+
     Optional<Application> findByCompetitionIdAndStudentIdAndTeamIdAndIsActiveTrueAndStatus(
             Long competitionId,
             Long studentId,

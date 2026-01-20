@@ -106,6 +106,27 @@ public class ApplicationService {
     }
 
     @Transactional(readOnly = true)
+    public List<ApplicationResponse> listMyApplications(Long currentUserId, Long competitionIdOptional) {
+        User student = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        if (student.getRole() != User.Role.STUDENT) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only STUDENT can view applications");
+        }
+
+        List<Application> applications;
+        if (competitionIdOptional != null) {
+            applications = applicationRepository
+                    .findByStudent_IdAndCompetition_IdOrderByAppliedAtDesc(student.getId(), competitionIdOptional);
+        } else {
+            applications = applicationRepository.findByStudent_IdOrderByAppliedAtDesc(student.getId());
+        }
+
+        return applications.stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<ApplicationResponse> listForTeacher(Long currentUserId, Long teamIdOptional, String statusOptional) {
         User teacher = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));

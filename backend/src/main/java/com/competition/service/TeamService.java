@@ -280,6 +280,32 @@ public class TeamService {
         return userRepository.findAll();
     }
 
+    @Transactional(readOnly = true)
+    public TeamDTO getMyTeam(Long currentUserId, Long competitionIdOptional) {
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        if (currentUser.getRole() != User.Role.STUDENT) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only STUDENT can view team");
+        }
+
+        TeamMember member = competitionIdOptional == null
+                ? teamMemberRepository.findFirstByUserIdAndLeftAtIsNullOrderByJoinedAtDesc(currentUserId).orElse(null)
+                : teamMemberRepository
+                    .findFirstByUserIdAndTeam_Competition_IdAndLeftAtIsNullOrderByJoinedAtDesc(
+                            currentUserId,
+                            competitionIdOptional
+                    )
+                    .orElse(null);
+
+        if (member == null || member.getTeam() == null) {
+            return null;
+        }
+
+        Team team = teamRepository.findById(member.getTeam().getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "team not found"));
+        return convertToDTO(team);
+    }
+
     private TeamDTO convertToDTO(Team team) {
         TeamDTO dto = new TeamDTO();
         dto.setId(team.getId());
