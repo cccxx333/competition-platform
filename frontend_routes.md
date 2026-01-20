@@ -79,13 +79,13 @@
 ### 4.1 æ•™å¸ˆç«¯ï¼šæäº¤ç”³è¯·ï¼ˆF4ï¼?
 | Route Name         | Path                                         | requireAuth | Roles   | Phase | é¡µé¢/ç”¨é€?       | å¤‡æ³¨                                      |
 | ------------------ | -------------------------------------------- | ----------: | ------- | ----- | ---------------- | ----------------------------------------- |
-| TeacherApplyList   | `/teacher/applications`                      |        true | teacher | F4    | ÎÒµÄ½ÌÊ¦ÉêÇëÁÐ±í | Õ¹Ê¾ÉêÇë×´Ì¬£¨PENDING/APPROVED/REJECTED£©£»¾ºÈüÏêÇéÒ³Ö§³ÖÌá½»ÉêÇë | | Sidebar entry available via active layout sidebar (teacher only).
+| TeacherApplyList   | `/teacher/applications`                      |        true | teacher | F4    | ÎÒµÄ½ÌÊ¦ÉêÇëÁÐ±í | Õ¹Ê¾×´Ì¬ + ÉóºËÔ­Òò£¨ÈçÓÐ£© | | Sidebar entry available via active layout sidebar (teacher only).
 | TeacherApplyCreate | `/competitions/:competitionId/teacher-apply` |        true | teacher | F4    | Ìá½»½ÌÊ¦ÉêÇë     | Èë¿ÚÀ´×Ô¾ºÈüÏêÇé£»Ç°¶ËÌáÊ¾²»¿ÉÉêÇëÔ­Òò£»ºó¶ËÇ¿ÖÆÐ£Ñé |
 
 ### 4.2 ç®¡ç†å‘˜ç«¯ï¼šå®¡æ ¸æ•™å¸ˆç”³è¯·ï¼ˆF4ï¼?
 | Route Name               | Path                          | requireAuth | Roles | Phase | é¡µé¢/ç”¨é€?   | å¤‡æ³¨                 |
 | ------------------------ | ----------------------------- | ----------: | ----- | ----- | ------------ | -------------------- |
-| AdminTeacherApplications | `/admin/teacher-applications` |        true | admin | F4    | ½ÌÊ¦ÉêÇëÉóºË | ÁÐ±í + ÉóºËÍ¨¹ý/¾Ü¾ø£¨¶¯×÷ÒÑ½ÓÈë£©£»²à±ßÀ¸Èë¿ÚÒÑÍê³É | | Sidebar entry available via active layout sidebar (admin only).
+| AdminTeacherApplications | `/admin/teacher-applications` |        true | admin | F4    | ½ÌÊ¦ÉêÇëÉóºË | ÉóºË¿ÉÌîÐ´Ô­Òò£¨approve/reject£©£»ÁÐ±íÍ¬²½ | | Sidebar entry available via active layout sidebar (admin only).
 
 ---
 
@@ -163,5 +163,6 @@
 - ç«žèµ›åˆ—è¡¨ `/competitions`
 - æ•™å¸ˆç”³è¯·å®¡æ ¸ `/admin/teacher-applications`
 - ï¼ˆå¯é€‰ï¼‰æŠ€èƒ½åº“ç®¡ç† `/admin/skills`
+
 
 

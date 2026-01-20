@@ -20,6 +20,11 @@ const formatDateTime = (value?: string | null) => {
   return value
 }
 
+const getReason = (item: TeacherApplicationListItem) => {
+  if (item.status === "PENDING") return "-"
+  return item.reviewComment?.trim() || "-"
+}
+
 const fetchList = async () => {
   loading.value = true
   try {
@@ -71,9 +76,22 @@ onMounted(fetchList)
           <StatusPill :value="row.status" kind="teacherApplication" />
         </template>
       </el-table-column>
-      <el-table-column label="Created At" width="180">
+      <el-table-column label="Applied At" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.createdAt) || "-" }}
+        </template>
+      </el-table-column>
+      <el-table-column label="Reviewed At" width="180">
+        <template #default="{ row }">
+          {{ formatDateTime(row.updatedAt) || "-" }}
+        </template>
+      </el-table-column>
+      <el-table-column label="Reason" min-width="200">
+        <template #default="{ row }">
+          <el-tooltip v-if="getReason(row) !== '-'" :content="getReason(row)" placement="top">
+            <span class="truncate">{{ getReason(row) }}</span>
+          </el-tooltip>
+          <span v-else>-</span>
         </template>
       </el-table-column>
     </el-table>
@@ -103,5 +121,14 @@ onMounted(fetchList)
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
+}
+
+.truncate {
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 </style>

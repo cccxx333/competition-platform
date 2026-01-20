@@ -13,4 +13,5 @@ public class TeacherApplicationListItemDTO {
     private TeacherApplication.Status status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String reviewComment;
 }

@@ -250,6 +250,7 @@ public class TeacherApplicationService {
         dto.setStatus(application.getStatus());
         dto.setCreatedAt(application.getAppliedAt());
         dto.setUpdatedAt(application.getReviewedAt());
+        dto.setReviewComment(application.getReviewComment());
         return dto;
     }
 

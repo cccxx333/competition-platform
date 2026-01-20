@@ -44,6 +44,7 @@ export type TeacherApplicationListItem = {
   status?: TeacherApplicationStatus
   createdAt?: string
   updatedAt?: string
+  reviewComment?: string
 }
 
 export type AdminTeacherApplicationListItem = {

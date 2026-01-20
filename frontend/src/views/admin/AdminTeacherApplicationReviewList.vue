@@ -87,37 +87,19 @@ const handleSizeChange = (size: number) => {
   fetchList()
 }
 
-const handleApprove = async (row: AdminTeacherApplicationListItem) => {
-  if (!row.id) return
-  try {
-    await ElMessageBox.confirm("Approve this application?", "Confirm", {
-      type: "warning",
-      confirmButtonText: "Approve",
-      cancelButtonText: "Cancel"
-    })
-  } catch {
-    return
-  }
-  try {
-    await adminReviewTeacherApplication(row.id, { approved: true })
-    ElMessage.success("Approved")
-    await fetchList()
-  } catch (error: any) {
-    showRequestError(error, "Failed to review application")
-  }
-}
-
 const reviewDialogVisible = ref(false)
 const reviewAction = ref<"approve" | "reject">("approve")
 const reviewReason = ref("")
 const reviewTargetId = ref<number | null>(null)
 const reviewSubmitting = ref(false)
+const submitError = ref("")
 
 const openApproveDialog = (row: AdminTeacherApplicationListItem) => {
   if (!row.id) return
   reviewTargetId.value = row.id
   reviewAction.value = "approve"
   reviewReason.value = ""
+  submitError.value = ""
   reviewDialogVisible.value = true
 }
 
@@ -126,6 +108,7 @@ const openRejectDialog = (row: AdminTeacherApplicationListItem) => {
   reviewTargetId.value = row.id
   reviewAction.value = "reject"
   reviewReason.value = ""
+  submitError.value = ""
   reviewDialogVisible.value = true
 }
 
@@ -134,11 +117,12 @@ const closeReviewDialog = (force = false) => {
   reviewDialogVisible.value = false
   reviewReason.value = ""
   reviewTargetId.value = null
+  submitError.value = ""
 }
 
 const submitReview = async () => {
   if (!reviewTargetId.value || reviewSubmitting.value) return
-  const reviewComment = reviewAction.value === "reject" ? reviewReason.value.trim() || undefined : undefined
+  const reviewComment = reviewReason.value.trim() || undefined
   reviewSubmitting.value = true
   try {
     await adminReviewTeacherApplication(reviewTargetId.value, {
@@ -150,6 +134,8 @@ const submitReview = async () => {
     await fetchList()
   } catch (error: any) {
     showRequestError(error, "Failed to review application")
+    submitError.value =
+      error?.response?.data?.message ?? error?.message ?? "Failed to review application"
   } finally {
     reviewSubmitting.value = false
   }
@@ -219,13 +205,20 @@ onMounted(fetchList)
       :close-on-press-escape="true"
       :before-close="closeReviewDialog"
     >
-      <div v-if="reviewAction === 'approve'">Approve this application?</div>
+      <div class="review-note">Reason (optional)</div>
+      <el-alert
+        v-if="submitError"
+        :title="submitError"
+        type="error"
+        show-icon
+        :closable="false"
+        style="margin-bottom: 12px"
+      />
       <el-input
-        v-else
         v-model="reviewReason"
         type="textarea"
         :rows="4"
-        placeholder="Provide a reject reason (optional)"
+        placeholder="Provide a reason (optional)"
       />
       <template #footer>
         <el-button :disabled="reviewSubmitting" @click="closeReviewDialog">Cancel</el-button>
@@ -262,5 +255,11 @@ onMounted(fetchList)
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
+}
+
+.review-note {
+  margin-bottom: 8px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
 }
 </style>
