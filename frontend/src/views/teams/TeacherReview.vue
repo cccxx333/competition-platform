@@ -1,15 +1,15 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { listPendingApplications, reviewApplication, type ApplicationItem } from "@/api/teamApplications"
 
 const loading = ref(false)
 const dialogVisible = ref(false)
 const dialogLoading = ref(false)
-const errorMessage = ref("")
 const items = ref<ApplicationItem[]>([])
 const current = ref<ApplicationItem | null>(null)
 const reviewAction = ref<"approve" | "reject">("approve")
 const reason = ref("")
+const teamIdFilter = ref<number | null>(null)
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return ""
@@ -45,12 +45,14 @@ const showRequestError = (error: any, fallback: string) => {
 
 const loadApplications = async () => {
   loading.value = true
-  errorMessage.value = ""
   try {
-    items.value = await listPendingApplications("PENDING")
+    items.value = await listPendingApplications({
+      status: "PENDING",
+      teamId: teamIdFilter.value ?? undefined
+    })
   } catch (error: any) {
     items.value = []
-    errorMessage.value = showRequestError(error, "Failed to load applications")
+    showRequestError(error, "Failed to load applications")
   } finally {
     loading.value = false
   }
@@ -65,13 +67,17 @@ const openDialog = (item: ApplicationItem, action: "approve" | "reject") => {
 
 const submitReview = async () => {
   if (!current.value?.id) return
+  if (reviewAction.value === "reject" && !reason.value.trim()) {
+    ElMessage.warning("请填写拒绝原因")
+    return
+  }
   dialogLoading.value = true
   try {
     await reviewApplication(current.value.id, {
       approved: reviewAction.value === "approve",
       reason: reason.value
     })
-    ElMessage.success(reviewAction.value === "approve" ? "Approved" : "Rejected")
+    ElMessage.success(reviewAction.value === "approve" ? "已通过" : "已拒绝")
     dialogVisible.value = false
     await loadApplications()
   } catch (error: any) {
@@ -87,17 +93,12 @@ onMounted(loadApplications)
 <template>
   <el-card shadow="never" v-loading="loading">
     <div class="page-header">
-      <h2>Teacher Review</h2>
-      <el-button :loading="loading" @click="loadApplications">Refresh</el-button>
+      <h2>教师审核</h2>
+      <div class="page-header__filters">
+        <el-input-number v-model="teamIdFilter" :min="1" :controls="false" placeholder="Team ID" />
+        <el-button :loading="loading" @click="loadApplications">刷新</el-button>
+      </div>
     </div>
-
-    <el-alert
-      v-if="errorMessage"
-      type="error"
-      :closable="false"
-      :title="errorMessage"
-      style="margin-bottom: 12px"
-    />
 
     <el-table v-if="items.length" :data="items" style="width: 100%">
       <el-table-column prop="id" label="ID" width="80" />
@@ -117,24 +118,18 @@ onMounted(loadApplications)
       </el-table-column>
     </el-table>
 
-    <el-empty v-else-if="!errorMessage && !loading" description="No applications yet" />
+    <el-empty v-else-if="!loading" description="暂无待审申请" />
   </el-card>
 
-  <el-dialog v-model="dialogVisible" :title="reviewAction === 'approve' ? 'Approve' : 'Reject'" width="420px">
+  <el-dialog v-model="dialogVisible" :title="reviewAction === 'approve' ? '通过审核' : '拒绝申请'" width="420px">
     <el-form label-width="80px">
-      <el-form-item label="Reason">
-        <el-input v-model="reason" type="textarea" :rows="3" placeholder="Optional" />
+      <el-form-item label="原因">
+        <el-input v-model="reason" type="textarea" :rows="3" placeholder="拒绝原因（必填）" />
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="dialogVisible = false">Cancel</el-button>
-      <el-button
-        type="primary"
-        :loading="dialogLoading"
-        @click="submitReview"
-      >
-        Submit
-      </el-button>
+      <el-button @click="dialogVisible = false">取消</el-button>
+      <el-button type="primary" :loading="dialogLoading" @click="submitReview">提交</el-button>
     </template>
   </el-dialog>
 </template>
@@ -145,5 +140,11 @@ onMounted(loadApplications)
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.page-header__filters {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
 }
 </style>

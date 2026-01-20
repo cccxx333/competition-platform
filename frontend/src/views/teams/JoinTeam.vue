@@ -23,28 +23,28 @@ const showRequestError = (error: any, fallback: string) => {
     return message
   }
   if (status === 403) {
-    showUiError("No permission")
-    return "No permission"
+    showUiError("无权限")
+    return "无权限"
   }
   if (status === 404) {
-    showUiError("Resource not found")
-    return "Resource not found"
+    showUiError("资源不存在")
+    return "资源不存在"
   }
   if (status === 409) {
-    showUiError("Business conflict")
-    return "Business conflict"
+    showUiError("业务冲突")
+    return "业务冲突"
   }
   if (status === 400) {
-    showUiError("Invalid request")
-    return "Invalid request"
+    showUiError("参数错误")
+    return "参数错误"
   }
-  showUiError("Service error, please try again")
+  showUiError("服务异常，请稍后重试")
   return fallback
 }
 
 const submit = async () => {
   if (!form.competitionId || !form.teamId) {
-    errorDialogMessage.value = "Please fill competitionId and teamId"
+    errorDialogMessage.value = "请填写 competitionId 与 teamId"
     errorDialogVisible.value = true
     return
   }
@@ -54,7 +54,7 @@ const submit = async () => {
       competitionId: form.competitionId,
       teamId: form.teamId
     })
-    ElMessage.success("Application submitted")
+    ElMessage.success("已提交申请")
     router.push("/teams/my-applications")
   } catch (error: any) {
     showRequestError(error, "Request failed")
@@ -83,10 +83,10 @@ const submit = async () => {
     </el-form>
   </el-card>
 
-  <el-dialog v-model="errorDialogVisible" title="Error" :close-on-click-modal="true" width="420px">
+  <el-dialog v-model="errorDialogVisible" title="操作失败" :close-on-click-modal="true" width="420px">
     <div>{{ errorDialogMessage }}</div>
     <template #footer>
-      <el-button type="primary" @click="errorDialogVisible = false">OK</el-button>
+      <el-button type="primary" @click="errorDialogVisible = false">确定</el-button>
     </template>
   </el-dialog>
 </template>

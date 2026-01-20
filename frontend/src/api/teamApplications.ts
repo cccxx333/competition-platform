@@ -63,9 +63,11 @@ export async function getMyTeam(): Promise<TeamDto | null> {
   }
 }
 
-export async function listPendingApplications(status = "PENDING"): Promise<ApplicationItem[]> {
+export async function listPendingApplications(params: { status?: string; teamId?: number } = {}): Promise<ApplicationItem[]> {
   try {
-    const response = await client.get("/teacher/applications", { params: { status } })
+    const response = await client.get("/teacher/applications", {
+      params: { status: params.status ?? "PENDING", teamId: params.teamId }
+    })
     return unwrapData<ApplicationItem[]>(response?.data) ?? []
   } catch (error: any) {
     throw toError(error, "Failed to load pending applications")

@@ -1,10 +1,9 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { getMyTeam, type TeamDto } from "@/api/teamApplications"
 
 const router = useRouter()
 const loading = ref(false)
-const errorMessage = ref("")
 const team = ref<TeamDto | null>(null)
 
 const showRequestError = (error: any, fallback: string) => {
@@ -28,12 +27,11 @@ const showRequestError = (error: any, fallback: string) => {
 
 const loadTeam = async () => {
   loading.value = true
-  errorMessage.value = ""
   try {
     team.value = await getMyTeam()
   } catch (error: any) {
     team.value = null
-    errorMessage.value = showRequestError(error, "Failed to load team")
+    showRequestError(error, "Failed to load team")
   } finally {
     loading.value = false
   }
@@ -45,19 +43,11 @@ onMounted(loadTeam)
 <template>
   <el-card shadow="never" v-loading="loading">
     <div class="page-header">
-      <h2>My Team</h2>
-      <el-button @click="router.push('/teams/my-applications')">Back to Applications</el-button>
+      <h2>我的队伍</h2>
+      <el-button @click="router.push('/teams/my-applications')">返回我的申请</el-button>
     </div>
 
-    <el-alert
-      v-if="errorMessage"
-      type="error"
-      :closable="false"
-      :title="errorMessage"
-      style="margin-bottom: 12px"
-    />
-
-    <el-empty v-else-if="!team && !loading" description="暂无队伍（可能尚未通过审核）" />
+    <el-empty v-if="!team && !loading" description="暂无队伍（可能尚未通过审核或未加入任何队伍）" />
 
     <el-descriptions v-else-if="team" border :column="1">
       <el-descriptions-item label="Team ID">{{ team.id ?? "-" }}</el-descriptions-item>
