@@ -20,13 +20,24 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     @Query("SELECT t FROM Team t WHERE t.status = 'RECRUITING'")
     List<Team> findAvailableTeams();
 
-    @Query("""
-            SELECT t
-            FROM Team t
-            LEFT JOIN t.competition c
-            WHERE LOWER(t.name) LIKE %:keyword%
-               OR LOWER(t.description) LIKE %:keyword%
-               OR LOWER(c.name) LIKE %:keyword%
-            """)
+    @Query(
+        "SELECT t " +
+        "FROM Team t " +
+        "LEFT JOIN t.competition c " +
+        "WHERE LOWER(t.name) LIKE CONCAT('%', LOWER(:keyword), '%') " +
+        "   OR LOWER(COALESCE(t.description, '')) LIKE CONCAT('%', LOWER(:keyword), '%') " +
+        "   OR LOWER(COALESCE(c.name, '')) LIKE CONCAT('%', LOWER(:keyword), '%') "
+    )
+    List<Team> searchTeams(@Param("keyword") String keyword);
+
+    @Query(
+        "SELECT t " +
+        "FROM Team t " +
+        "LEFT JOIN t.competition c " +
+        "WHERE LOWER(t.name) LIKE CONCAT('%', LOWER(:keyword), '%') " +
+        "   OR LOWER(COALESCE(t.description, '')) LIKE CONCAT('%', LOWER(:keyword), '%') " +
+        "   OR LOWER(COALESCE(c.name, '')) LIKE CONCAT('%', LOWER(:keyword), '%') "
+    )
     List<Team> findByKeyword(@Param("keyword") String keyword);
+
 }

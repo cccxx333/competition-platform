@@ -110,6 +110,18 @@ export const constantRoutes: RouteRecordRaw[] = [
         meta: { title: "Team Detail", hidden: true }
       },
       {
+        path: "teams/:teamId/posts",
+        name: "TeamPosts",
+        component: () => import("@/views/teams/TeamPosts.vue"),
+        meta: { title: "Team Posts", hidden: true }
+      },
+      {
+        path: "teams/:teamId/posts/:postId",
+        name: "PostThread",
+        component: () => import("@/views/teams/PostThread.vue"),
+        meta: { title: "Post Thread", hidden: true }
+      },
+      {
         path: "teams/:teamId/members",
         name: "TeamMembers",
         component: () => import("@/views/teams/TeamMembers.vue"),

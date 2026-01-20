@@ -145,6 +145,7 @@ onMounted(loadTeam)
       </div>
       <div class="page-actions">
         <el-button @click="router.push(returnPath)">{{ returnLabel }}</el-button>
+        <el-button :disabled="!teamId" @click="router.push(`/teams/${teamId}/posts`)">讨论区</el-button>
         <el-button type="primary" :disabled="!teamId" @click="router.push(`/teams/${teamId}/members`)">
           成员管理
         </el-button>
