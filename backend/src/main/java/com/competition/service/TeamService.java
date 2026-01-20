@@ -269,7 +269,44 @@ public class TeamService {
 
     @Transactional(readOnly = true)
     public List<TeamDTO> searchTeams(String keyword) {
-        List<Team> teams = teamRepository.findByKeyword(keyword);
+        String trimmed = keyword != null ? keyword.trim() : "";
+        List<Team> teams;
+        if (trimmed.isEmpty()) {
+            teams = teamRepository.findAll();
+        } else if (trimmed.matches("\\d+")) {
+            Long teamId = Long.valueOf(trimmed);
+            teams = teamRepository.findById(teamId)
+                    .map(List::of)
+                    .orElseGet(List::of);
+        } else {
+            teams = teamRepository.findByKeyword(trimmed.toLowerCase());
+        }
+        return teams.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<TeamDTO> listMyTeams(Long currentUserId, String keyword) {
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        if (currentUser.getRole() != User.Role.TEACHER) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only TEACHER can view teams");
+        }
+
+        List<Team> teams;
+        String trimmed = keyword != null ? keyword.trim() : "";
+        if (trimmed.isEmpty()) {
+            teams = teamRepository.findByLeaderId(currentUserId);
+        } else if (trimmed.matches("\\d+")) {
+            Long teamId = Long.valueOf(trimmed);
+            teams = teamRepository.findByIdAndLeaderId(teamId, currentUserId)
+                    .map(List::of)
+                    .orElseGet(List::of);
+        } else {
+            teams = teamRepository.findByLeaderIdAndNameContainingIgnoreCase(currentUserId, trimmed);
+        }
+
         return teams.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());

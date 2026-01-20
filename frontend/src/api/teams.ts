@@ -41,6 +41,11 @@ export type TeamMemberView = {
   [key: string]: unknown
 }
 
+export type TeamListResult = {
+  items: TeamDto[]
+  total?: number
+}
+
 const unwrapData = <T>(payload: any): T => {
   return (payload?.data ?? payload) as T
 }
@@ -98,5 +103,35 @@ export async function removeMember(teamId: number, userId: number, reason?: stri
     })
   } catch (error: any) {
     throw toError(error, "Failed to remove member")
+  }
+}
+
+export async function listTeams(params: { keyword?: string; page?: number; size?: number } = {}): Promise<TeamListResult> {
+  try {
+    if (params.keyword?.trim()) {
+      const response = await client.get("/teams/search", { params: { keyword: params.keyword.trim() } })
+      const items = unwrapData<TeamDto[]>(response?.data) ?? []
+      return { items, total: items.length }
+    }
+    const response = await client.get("/teams", {
+      params: { page: params.page ?? 0, size: params.size ?? 20 }
+    })
+    const payload = unwrapData<any>(response?.data)
+    const items = (payload?.content ?? payload ?? []) as TeamDto[]
+    const total = typeof payload?.totalElements === "number" ? payload.totalElements : items.length
+    return { items, total }
+  } catch (error: any) {
+    throw toError(error, "Failed to load teams")
+  }
+}
+
+export async function listMyTeams(params: { keyword?: string } = {}): Promise<TeamDto[]> {
+  try {
+    const response = await client.get("/teams/mine", {
+      params: params.keyword?.trim() ? { keyword: params.keyword.trim() } : undefined
+    })
+    return unwrapData<TeamDto[]>(response?.data) ?? []
+  } catch (error: any) {
+    throw toError(error, "Failed to load my teams")
   }
 }

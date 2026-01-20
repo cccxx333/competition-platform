@@ -128,6 +128,18 @@ public class TeamController {
         return ResponseEntity.ok(teams);
     }
 
+    /**
+     * 获取当前教师名下队伍
+     */
+    @GetMapping("/mine")
+    public ResponseEntity<List<TeamDTO>> listMyTeams(
+            HttpServletRequest request,
+            @RequestParam(required = false) String keyword) {
+        Long userId = getUserIdFromToken(request);
+        List<TeamDTO> teams = teamService.listMyTeams(userId, keyword);
+        return ResponseEntity.ok(teams);
+    }
+
     private Long getUserIdFromToken(HttpServletRequest request) {
         String token = request.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer ")) {
