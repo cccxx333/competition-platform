@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import type { RouteRecordNameGeneric, RouteRecordRaw } from "vue-router"
 import { useDevice } from "@@/composables/useDevice"
@@ -7,7 +12,7 @@ import { usePermissionStore } from "@/pinia/stores/permission"
 import Footer from "./Footer.vue"
 import Result from "./Result.vue"
 
-/** 控制 modal 显隐 */
+/** 鎺у埗 modal 鏄鹃殣 */
 const modelValue = defineModel<boolean>({ required: true })
 
 const router = useRouter()
@@ -26,26 +31,26 @@ const result = shallowRef<RouteRecordRaw[]>([])
 
 const activeRouteName = ref<RouteRecordNameGeneric | undefined>(undefined)
 
-/** 是否按下了上键或下键（用于解决和 mouseenter 事件的冲突） */
+/** 鏄惁鎸変笅浜嗕笂閿垨涓嬮敭锛堢敤浜庤В鍐冲拰 mouseenter 浜嬩欢鐨勫啿绐侊級 */
 const isPressUpOrDown = ref<boolean>(false)
 
-/** 控制搜索对话框宽度 */
+/** 鎺у埗鎼滅储瀵硅瘽妗嗗搴?*/
 const modalWidth = computed(() => (isMobile.value ? "80vw" : "40vw"))
 
-/** 树形菜单 */
+/** 鏍戝舰鑿滃崟 */
 const menus = computed(() => cloneDeep(usePermissionStore().routes))
 
-/** 搜索（防抖） */
+/** 鎼滅储锛堥槻鎶栵級 */
 const handleSearch = debounce(() => {
   const flatMenus = flatTree(menus.value)
   const _keywords = keyword.value.toLocaleLowerCase().trim()
   result.value = flatMenus.filter(menu => keyword.value ? menu.meta?.title?.toLocaleLowerCase().includes(_keywords) : false)
-  // 默认选中搜索结果的第一项
+  // 榛樿閫変腑鎼滅储缁撴灉鐨勭涓€椤?
   const length = result.value?.length
   activeRouteName.value = length > 0 ? result.value[0].name : undefined
 }, 500)
 
-/** 将树形菜单扁平化为一维数组，用于菜单搜索 */
+/** 灏嗘爲褰㈣彍鍗曟墎骞冲寲涓轰竴缁存暟缁勶紝鐢ㄤ簬鑿滃崟鎼滅储 */
 function flatTree(arr: RouteRecordRaw[], result: RouteRecordRaw[] = []) {
   arr.forEach((item) => {
     result.push(item)
@@ -54,40 +59,40 @@ function flatTree(arr: RouteRecordRaw[], result: RouteRecordRaw[] = []) {
   return result
 }
 
-/** 关闭搜索对话框 */
+/** 鍏抽棴鎼滅储瀵硅瘽妗?*/
 function handleClose() {
   modelValue.value = false
-  // 延时处理防止用户看到重置数据的操作
+  // 寤舵椂澶勭悊闃叉鐢ㄦ埛鐪嬪埌閲嶇疆鏁版嵁鐨勬搷浣?
   setTimeout(() => {
     keyword.value = ""
     result.value = []
   }, 200)
 }
 
-/** 根据下标位置进行滚动 */
+/** 鏍规嵁涓嬫爣浣嶇疆杩涜婊氬姩 */
 function scrollTo(index: number) {
   if (!resultRef.value) return
   const scrollTop = resultRef.value.getScrollTop(index)
-  // 手动控制 el-scrollbar 滚动条滚动，设置滚动条到顶部的距离
+  // 鎵嬪姩鎺у埗 el-scrollbar 婊氬姩鏉℃粴鍔紝璁剧疆婊氬姩鏉″埌椤堕儴鐨勮窛绂?
   scrollbarRef.value?.setScrollTop(scrollTop)
 }
 
-/** 键盘上键 */
+/** 閿洏涓婇敭 */
 function handleUp() {
   isPressUpOrDown.value = true
   const { length } = result.value
   if (length === 0) return
-  // 获取该 name 在菜单中第一次出现的位置
+  // 鑾峰彇璇?name 鍦ㄨ彍鍗曚腑绗竴娆″嚭鐜扮殑浣嶇疆
   const index = result.value.findIndex(item => item.name === activeRouteName.value)
-  // 如果已处在顶部
+  // 濡傛灉宸插鍦ㄩ《閮?
   if (index === 0) {
     const bottomName = result.value[length - 1].name
-    // 如果顶部和底部的 bottomName 相同，且长度大于 1，就再跳一个位置（可解决遇到首尾两个相同 name 导致的上键不能生效的问题）
+    // 濡傛灉椤堕儴鍜屽簳閮ㄧ殑 bottomName 鐩稿悓锛屼笖闀垮害澶т簬 1锛屽氨鍐嶈烦涓€涓綅缃紙鍙В鍐抽亣鍒伴灏句袱涓浉鍚?name 瀵艰嚧鐨勪笂閿笉鑳界敓鏁堢殑闂锛?
     if (activeRouteName.value === bottomName && length > 1) {
       activeRouteName.value = result.value[length - 2].name
       scrollTo(length - 2)
     } else {
-      // 跳转到底部
+      // 璺宠浆鍒板簳閮?
       activeRouteName.value = bottomName
       scrollTo(length - 1)
     }
@@ -97,22 +102,22 @@ function handleUp() {
   }
 }
 
-/** 键盘下键 */
+/** 閿洏涓嬮敭 */
 function handleDown() {
   isPressUpOrDown.value = true
   const { length } = result.value
   if (length === 0) return
-  // 获取该 name 在菜单中最后一次出现的位置（可解决遇到连续两个相同 name 导致的下键不能生效的问题）
+  // 鑾峰彇璇?name 鍦ㄨ彍鍗曚腑鏈€鍚庝竴娆″嚭鐜扮殑浣嶇疆锛堝彲瑙ｅ喅閬囧埌杩炵画涓や釜鐩稿悓 name 瀵艰嚧鐨勪笅閿笉鑳界敓鏁堢殑闂锛?
   const index = result.value.map(item => item.name).lastIndexOf(activeRouteName.value)
-  // 如果已处在底部
+  // 濡傛灉宸插鍦ㄥ簳閮?
   if (index === length - 1) {
     const topName = result.value[0].name
-    // 如果底部和顶部的 topName 相同，且长度大于 1，就再跳一个位置（可解决遇到首尾两个相同 name 导致的下键不能生效的问题）
+    // 濡傛灉搴曢儴鍜岄《閮ㄧ殑 topName 鐩稿悓锛屼笖闀垮害澶т簬 1锛屽氨鍐嶈烦涓€涓綅缃紙鍙В鍐抽亣鍒伴灏句袱涓浉鍚?name 瀵艰嚧鐨勪笅閿笉鑳界敓鏁堢殑闂锛?
     if (activeRouteName.value === topName && length > 1) {
       activeRouteName.value = result.value[1].name
       scrollTo(1)
     } else {
-      // 跳转到顶部
+      // 璺宠浆鍒伴《閮?
       activeRouteName.value = topName
       scrollTo(0)
     }
@@ -122,23 +127,23 @@ function handleDown() {
   }
 }
 
-/** 键盘回车键 */
+/** 閿洏鍥炶溅閿?*/
 function handleEnter() {
   const { length } = result.value
   if (length === 0) return
   const name = activeRouteName.value
   const path = result.value.find(item => item.name === name)?.path
   if (path && isExternal(path)) return window.open(path, "_blank", "noopener, noreferrer")
-  if (!name) return ElMessage.warning("无法通过搜索进入该菜单，请为对应的路由设置唯一的 Name")
+  if (!name) return ElMessage.warning("鏃犳硶閫氳繃鎼滅储杩涘叆璇ヨ彍鍗曪紝璇蜂负瀵瑰簲鐨勮矾鐢辫缃敮涓€鐨?Name")
   try {
     router.push({ name })
   } catch {
-    return ElMessage.warning("该菜单有必填的动态参数，无法通过搜索进入")
+    return ElMessage.warning("璇ヨ彍鍗曟湁蹇呭～鐨勫姩鎬佸弬鏁帮紝鏃犳硶閫氳繃鎼滅储杩涘叆")
   }
   handleClose()
 }
 
-/** 释放上键或下键 */
+/** 閲婃斁涓婇敭鎴栦笅閿?*/
 function handleReleaseUpOrDown() {
   isPressUpOrDown.value = false
 }
@@ -159,14 +164,14 @@ function handleReleaseUpOrDown() {
     @keydown.enter="handleEnter"
     @keyup.up.down="handleReleaseUpOrDown"
   >
-    <el-input ref="inputRef" v-model="keyword" placeholder="搜索菜单" size="large" clearable @input="handleSearch">
+    <el-input ref="inputRef" v-model="keyword" placeholder="鎼滅储鑿滃崟" size="large" clearable @input="handleSearch">
       <template #prefix>
         <SvgIcon name="search" class="svg-icon" />
       </template>
     </el-input>
-    <el-empty v-if="result.length === 0" description="暂无搜索结果" :image-size="100" />
+    <el-empty v-if="result.length === 0" description="鏆傛棤鎼滅储缁撴灉" :image-size="100" />
     <template v-else>
-      <p>搜索结果</p>
+      <p>鎼滅储缁撴灉</p>
       <el-scrollbar ref="scrollbarRef" max-height="40vh" always>
         <Result
           ref="resultRef"
@@ -197,3 +202,4 @@ function handleReleaseUpOrDown() {
   }
 }
 </style>
+

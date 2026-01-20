@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import type { RouteRecordRaw } from "vue-router"
 import { isExternal } from "@@/utils/validate"
@@ -11,16 +16,16 @@ interface Props {
 
 const { item, basePath = "" } = defineProps<Props>()
 
-/** 是否始终显示根菜单 */
+/** 鏄惁濮嬬粓鏄剧ず鏍硅彍鍗?*/
 const alwaysShowRootMenu = computed(() => item.meta?.alwaysShow)
 
-/** 显示的子菜单 */
+/** 鏄剧ず鐨勫瓙鑿滃崟 */
 const showingChildren = computed(() => item.children?.filter(child => !child.meta?.hidden) ?? [])
 
-/** 显示的子菜单数量 */
+/** 鏄剧ず鐨勫瓙鑿滃崟鏁伴噺 */
 const showingChildNumber = computed(() => showingChildren.value.length)
 
-/** 唯一的子菜单项 */
+/** 鍞竴鐨勫瓙鑿滃崟椤?*/
 const theOnlyOneChild = computed(() => {
   const number = showingChildNumber.value
   switch (true) {
@@ -33,7 +38,7 @@ const theOnlyOneChild = computed(() => {
   }
 })
 
-/** 解析路径 */
+/** 瑙ｆ瀽璺緞 */
 function resolvePath(routePath: string) {
   switch (true) {
     case isExternal(routePath):
@@ -94,3 +99,4 @@ function resolvePath(routePath: string) {
   @extend %ellipsis;
 }
 </style>
+

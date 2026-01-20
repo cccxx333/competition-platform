@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import { isExternal } from "@@/utils/validate"
 
@@ -16,3 +21,4 @@ const props = defineProps<Props>()
     <slot />
   </router-link>
 </template>
+

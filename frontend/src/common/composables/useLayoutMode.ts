@@ -1,3 +1,8 @@
+﻿/*
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+*/
 import { LayoutModeEnum } from "@@/constants/app-key"
 import { useSettingsStore } from "@/pinia/stores/settings"
 
@@ -13,7 +18,8 @@ function setLayoutMode(mode: LayoutModeEnum) {
   settingsStore.layoutMode = mode
 }
 
-/** 布局模式 Composable */
+/** 甯冨眬妯″紡 Composable */
 export function useLayoutMode() {
   return { isLeft, isTop, isLeftTop, setLayoutMode }
 }
+

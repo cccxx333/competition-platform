@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import type { RouteRecordNameGeneric, RouteRecordRaw } from "vue-router"
 
@@ -8,14 +13,14 @@ interface Props {
 
 const props = defineProps<Props>()
 
-/** 选中的菜单 */
+/** 閫変腑鐨勮彍鍗?*/
 const modelValue = defineModel<RouteRecordNameGeneric | undefined>({ required: true })
 
 const instance = getCurrentInstance()
 
 const scrollbarHeight = ref<number>(0)
 
-/** 菜单的样式 */
+/** 鑿滃崟鐨勬牱寮?*/
 function itemStyle(item: RouteRecordRaw) {
   const flag = item.name === modelValue.value
   return {
@@ -24,40 +29,40 @@ function itemStyle(item: RouteRecordRaw) {
   }
 }
 
-/** 鼠标移入 */
+/** 榧犳爣绉诲叆 */
 function handleMouseenter(item: RouteRecordRaw) {
-  // 如果上键或下键与 mouseenter 事件同时生效，则以上下键为准，不执行该函数的赋值逻辑
+  // 濡傛灉涓婇敭鎴栦笅閿笌 mouseenter 浜嬩欢鍚屾椂鐢熸晥锛屽垯浠ヤ笂涓嬮敭涓哄噯锛屼笉鎵ц璇ュ嚱鏁扮殑璧嬪€奸€昏緫
   if (props.isPressUpOrDown) return
   modelValue.value = item.name
 }
 
-/** 计算滚动可视区高度 */
+/** 璁＄畻婊氬姩鍙鍖洪珮搴?*/
 function getScrollbarHeight() {
   // el-scrollbar max-height="40vh"
   scrollbarHeight.value = Number((window.innerHeight * 0.4).toFixed(1))
 }
 
-/** 根据下标计算到顶部的距离 */
+/** 鏍规嵁涓嬫爣璁＄畻鍒伴《閮ㄧ殑璺濈 */
 function getScrollTop(index: number) {
   const currentInstance = instance?.proxy?.$refs[`resultItemRef${index}`] as HTMLDivElement[]
   if (!currentInstance) return 0
   const currentRef = currentInstance[0]
-  // 128 = 两个 result-item （56 + 56 = 112）高度与上下 margin（8 + 8 = 16）大小之和
+  // 128 = 涓や釜 result-item 锛?6 + 56 = 112锛夐珮搴︿笌涓婁笅 margin锛? + 8 = 16锛夊ぇ灏忎箣鍜?
   const scrollTop = currentRef.offsetTop + 128
   return scrollTop > scrollbarHeight.value ? scrollTop - scrollbarHeight.value : 0
 }
 
-// 在组件挂载前添加窗口大小变化事件监听器
+// 鍦ㄧ粍浠舵寕杞藉墠娣诲姞绐楀彛澶у皬鍙樺寲浜嬩欢鐩戝惉鍣?
 onBeforeMount(() => {
   window.addEventListener("resize", getScrollbarHeight)
 })
 
-// 在组件挂载时立即计算滚动可视区高度
+// 鍦ㄧ粍浠舵寕杞芥椂绔嬪嵆璁＄畻婊氬姩鍙鍖洪珮搴?
 onMounted(() => {
   getScrollbarHeight()
 })
 
-// 在组件卸载前移除窗口大小变化事件监听器
+// 鍦ㄧ粍浠跺嵏杞藉墠绉婚櫎绐楀彛澶у皬鍙樺寲浜嬩欢鐩戝惉鍣?
 onBeforeUnmount(() => {
   window.removeEventListener("resize", getScrollbarHeight)
 })
@@ -66,7 +71,7 @@ defineExpose({ getScrollTop })
 </script>
 
 <template>
-  <!-- 外层 div 不能删除，是用来接收父组件 click 事件的 -->
+  <!-- 澶栧眰 div 涓嶈兘鍒犻櫎锛屾槸鐢ㄦ潵鎺ユ敹鐖剁粍浠?click 浜嬩欢鐨?-->
   <div>
     <div
       v-for="(item, index) in props.data"
@@ -113,3 +118,4 @@ defineExpose({ getScrollTop })
   }
 }
 </style>
+

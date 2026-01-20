@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import Notify from "@@/components/Notify/index.vue"
 import Screenfull from "@@/components/Screenfull/index.vue"
@@ -25,12 +30,12 @@ const settingsStore = useSettingsStore()
 
 const { showNotify, showThemeSwitch, showScreenfull, showSearchMenu } = storeToRefs(settingsStore)
 
-/** 切换侧边栏 */
+/** 鍒囨崲渚ц竟鏍?*/
 function toggleSidebar() {
   appStore.toggleSidebar(false)
 }
 
-/** 登出 */
+/** 鐧诲嚭 */
 function logout() {
   userStore.logout()
   router.push("/login")
@@ -66,7 +71,7 @@ function logout() {
               <el-dropdown-item>Gitee</el-dropdown-item>
             </a>
             <el-dropdown-item divided @click="logout">
-              退出登录
+              閫€鍑虹櫥褰?
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -94,14 +99,14 @@ function logout() {
   }
   .breadcrumb {
     flex: 1;
-    // 参考 Bootstrap 的响应式设计将宽度设置为 576
+    // 鍙傝€?Bootstrap 鐨勫搷搴斿紡璁捐灏嗗搴﹁缃负 576
     @media screen and (max-width: 576px) {
       display: none;
     }
   }
   .sidebar {
     flex: 1;
-    // 设置 min-width 是为了让 Sidebar 里的 el-menu 宽度自适应
+    // 璁剧疆 min-width 鏄负浜嗚 Sidebar 閲岀殑 el-menu 瀹藉害鑷€傚簲
     min-width: 0px;
     :deep(.el-menu) {
       background-color: transparent;
@@ -144,3 +149,4 @@ function logout() {
   }
 }
 </style>
+

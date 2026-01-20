@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import { useLayoutMode } from "@@/composables/useLayoutMode"
 import { removeLayoutsConfig } from "@@/utils/cache/local-storage"
@@ -9,7 +14,7 @@ const { isLeft } = useLayoutMode()
 
 const settingsStore = useSettingsStore()
 
-// 使用 storeToRefs 将提取的属性保持其响应性
+// 浣跨敤 storeToRefs 灏嗘彁鍙栫殑灞炴€т繚鎸佸叾鍝嶅簲鎬?
 const {
   showTagsView,
   showLogo,
@@ -25,28 +30,28 @@ const {
   showColorWeakness
 } = storeToRefs(settingsStore)
 
-/** 定义 switch 设置项 */
+/** Switch labels */
 const switchSettings = {
-  "显示标签栏": showTagsView,
-  "显示 Logo": showLogo,
-  "固定 Header": fixedHeader,
-  "显示页脚": showFooter,
-  "显示消息通知": showNotify,
-  "显示切换主题按钮": showThemeSwitch,
-  "显示全屏按钮": showScreenfull,
-  "显示搜索按钮": showSearchMenu,
-  "是否缓存标签栏": cacheTagsView,
-  "开启系统水印": showWatermark,
-  "显示灰色模式": showGreyMode,
-  "显示色弱模式": showColorWeakness
+  "Show Tags View": showTagsView,
+  "Show Logo": showLogo,
+  "Fixed Header": fixedHeader,
+  "Show Footer": showFooter,
+  "Show Notify": showNotify,
+  "Show Theme Switch": showThemeSwitch,
+  "Show Screenfull": showScreenfull,
+  "Show Search Menu": showSearchMenu,
+  "Cache Tags View": cacheTagsView,
+  "Show Watermark": showWatermark,
+  "Show Grey Mode": showGreyMode,
+  "Show Color Weakness": showColorWeakness
 }
 
-// 非左侧模式时，Header 都是 fixed 布局
+// 闈炲乏渚фā寮忔椂锛孒eader 閮芥槸 fixed 甯冨眬
 watchEffect(() => {
   !isLeft.value && (fixedHeader.value = true)
 })
 
-/** 重置项目配置 */
+/** 閲嶇疆椤圭洰閰嶇疆 */
 function resetLayoutsConfig() {
   removeLayoutsConfig()
   location.reload()
@@ -55,16 +60,16 @@ function resetLayoutsConfig() {
 
 <template>
   <div class="setting-container">
-    <h4>布局配置</h4>
+    <h4>Layout Settings</h4>
     <SelectLayoutMode />
     <el-divider />
-    <h4>功能配置</h4>
+    <h4>Feature Settings</h4>
     <div v-for="(settingValue, settingName, index) in switchSettings" :key="index" class="setting-item">
       <span class="setting-name">{{ settingName }}</span>
-      <el-switch v-model="settingValue.value" :disabled="!isLeft && settingName === '固定 Header'" />
+      <el-switch v-model="settingValue.value" :disabled="!isLeft && settingName === 'Fixed Header'" />
     </div>
     <el-button type="danger" :icon="Refresh" @click="resetLayoutsConfig">
-      重 置
+      Reset
     </el-button>
   </div>
 </template>
@@ -91,3 +96,4 @@ function resetLayoutsConfig() {
   }
 }
 </style>
+

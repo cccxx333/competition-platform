@@ -1,10 +1,15 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import Modal from "./Modal.vue"
 
-/** 控制 modal 显隐 */
+/** 鎺у埗 modal 鏄鹃殣 */
 const visible = ref<boolean>(false)
 
-/** 打开 modal */
+/** 鎵撳紑 modal */
 function handleOpen() {
   visible.value = true
 }
@@ -12,7 +17,7 @@ function handleOpen() {
 
 <template>
   <div>
-    <el-tooltip effect="dark" content="搜索菜单" placement="bottom">
+    <el-tooltip effect="dark" content="鎼滅储鑿滃崟" placement="bottom">
       <SvgIcon name="search" @click="handleOpen" class="svg-icon" />
     </el-tooltip>
     <Modal v-model="visible" />
@@ -27,3 +32,4 @@ function handleOpen() {
   }
 }
 </style>
+

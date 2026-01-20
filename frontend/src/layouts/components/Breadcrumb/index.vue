@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import type { RouteLocationMatched } from "vue-router"
 import { useRouteListener } from "@@/composables/useRouteListener"
@@ -9,28 +14,28 @@ const router = useRouter()
 
 const { listenerRouteChange } = useRouteListener()
 
-/** 定义响应式数据 breadcrumbs，用于存储面包屑导航信息 */
+/** 瀹氫箟鍝嶅簲寮忔暟鎹?breadcrumbs锛岀敤浜庡瓨鍌ㄩ潰鍖呭睉瀵艰埅淇℃伅 */
 const breadcrumbs = ref<RouteLocationMatched[]>([])
 
-/** 获取面包屑导航信息 */
+/** 鑾峰彇闈㈠寘灞戝鑸俊鎭?*/
 function getBreadcrumb() {
   breadcrumbs.value = route.matched.filter(item => item.meta?.title && item.meta?.breadcrumb !== false)
 }
 
-/** 编译路由路径 */
+/** 缂栬瘧璺敱璺緞 */
 function pathCompile(path: string) {
   const toPath = compile(path)
   return toPath(route.params)
 }
 
-/** 处理面包屑导航点击事件 */
+/** 澶勭悊闈㈠寘灞戝鑸偣鍑讳簨浠?*/
 function handleLink(item: RouteLocationMatched) {
   const { redirect, path } = item
   if (redirect) return router.push(redirect as string)
   router.push(pathCompile(path))
 }
 
-// 监听路由变化，更新面包屑导航信息
+// 鐩戝惉璺敱鍙樺寲锛屾洿鏂伴潰鍖呭睉瀵艰埅淇℃伅
 listenerRouteChange((route) => {
   if (route.path.startsWith("/redirect/")) return
   getBreadcrumb()
@@ -61,3 +66,4 @@ listenerRouteChange((route) => {
   }
 }
 </style>
+

@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import { useDevice } from "@@/composables/useDevice"
 
@@ -15,19 +20,19 @@ const { isMobile } = useDevice()
     <template v-if="!isMobile">
       <span class="search-footer-item">
         <SvgIcon name="keyboard-enter" class="svg-icon" />
-        <span>确认</span>
+        <span>纭</span>
       </span>
       <span class="search-footer-item">
         <SvgIcon name="keyboard-up" class="svg-icon" />
         <SvgIcon name="keyboard-down" class="svg-icon" />
-        <span>切换</span>
+        <span>鍒囨崲</span>
       </span>
       <span class="search-footer-item">
         <SvgIcon name="keyboard-esc" class="svg-icon" />
-        <span>关闭</span>
+        <span>鍏抽棴</span>
       </span>
     </template>
-    <span class="search-footer-total">共 {{ props.total }} 项</span>
+    <span class="search-footer-total">Total: {{ props.total }}</span>
   </div>
 </template>
 
@@ -52,3 +57,4 @@ const { isMobile } = useDevice()
   }
 }
 </style>
+

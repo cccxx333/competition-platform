@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import { useAppStore } from "@/pinia/stores/app"
 import { useSettingsStore } from "@/pinia/stores/settings"
@@ -9,7 +14,7 @@ const settingsStore = useSettingsStore()
 
 const { showTagsView, showLogo } = storeToRefs(settingsStore)
 
-/** 定义计算属性 layoutClasses，用于控制布局的类名 */
+/** 瀹氫箟璁＄畻灞炴€?layoutClasses锛岀敤浜庢帶鍒跺竷灞€鐨勭被鍚?*/
 const layoutClasses = computed(() => {
   return {
     hideSidebar: !appStore.sidebar.opened
@@ -19,7 +24,7 @@ const layoutClasses = computed(() => {
 
 <template>
   <div :class="layoutClasses" class="app-wrapper">
-    <!-- 头部导航栏和标签栏 -->
+    <!-- 澶撮儴瀵艰埅鏍忓拰鏍囩鏍?-->
     <div class="fixed-header layout-header">
       <Logo v-if="showLogo" :collapse="false" class="logo" />
       <div class="content">
@@ -27,11 +32,11 @@ const layoutClasses = computed(() => {
         <TagsView v-show="showTagsView" />
       </div>
     </div>
-    <!-- 主容器 -->
+    <!-- 涓诲鍣?-->
     <div :class="{ hasTagsView: showTagsView }" class="main-container">
-      <!-- 左侧边栏 -->
+      <!-- 宸︿晶杈规爮 -->
       <Sidebar class="sidebar-container" />
-      <!-- 页面主体内容 -->
+      <!-- 椤甸潰涓讳綋鍐呭 -->
       <AppMain class="app-main" />
     </div>
   </div>
@@ -111,3 +116,4 @@ $transition-time: 0.35s;
   }
 }
 </style>
+

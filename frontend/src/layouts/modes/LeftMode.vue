@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import { useDevice } from "@@/composables/useDevice"
 import { useLayoutMode } from "@@/composables/useLayoutMode"
@@ -15,7 +20,7 @@ const settingsStore = useSettingsStore()
 
 const { showTagsView, fixedHeader } = storeToRefs(settingsStore)
 
-/** 定义计算属性 layoutClasses，用于控制布局的类名 */
+/** 瀹氫箟璁＄畻灞炴€?layoutClasses锛岀敤浜庢帶鍒跺竷灞€鐨勭被鍚?*/
 const layoutClasses = computed(() => {
   return {
     hideSidebar: !appStore.sidebar.opened,
@@ -26,7 +31,7 @@ const layoutClasses = computed(() => {
   }
 })
 
-/** 用于处理点击 mobile 端侧边栏遮罩层的事件 */
+/** 鐢ㄤ簬澶勭悊鐐瑰嚮 mobile 绔晶杈规爮閬僵灞傜殑浜嬩欢 */
 function handleClickOutside() {
   appStore.closeSidebar(false)
 }
@@ -34,18 +39,18 @@ function handleClickOutside() {
 
 <template>
   <div :class="layoutClasses" class="app-wrapper">
-    <!-- mobile 端侧边栏遮罩层 -->
+    <!-- mobile 绔晶杈规爮閬僵灞?-->
     <div v-if="layoutClasses.mobile && layoutClasses.openSidebar" class="drawer-bg" @click="handleClickOutside" />
-    <!-- 左侧边栏 -->
+    <!-- 宸︿晶杈规爮 -->
     <Sidebar class="sidebar-container" />
-    <!-- 主容器 -->
+    <!-- 涓诲鍣?-->
     <div :class="{ hasTagsView: showTagsView }" class="main-container">
-      <!-- 头部导航栏和标签栏 -->
+      <!-- 澶撮儴瀵艰埅鏍忓拰鏍囩鏍?-->
       <div :class="{ 'fixed-header': fixedHeader }" class="layout-header">
         <NavigationBar />
         <TagsView v-show="showTagsView" />
       </div>
-      <!-- 页面主体内容 -->
+      <!-- 椤甸潰涓讳綋鍐呭 -->
       <AppMain class="app-main" />
     </div>
   </div>
@@ -141,7 +146,7 @@ $transition-time: 0.35s;
   }
 }
 
-// 适配 mobile 端
+// 閫傞厤 mobile 绔?
 .mobile {
   .sidebar-container {
     transition: transform $transition-time;
@@ -164,7 +169,7 @@ $transition-time: 0.35s;
       transform: translate3d(calc(0px - var(--v3-sidebar-width)), 0, 0);
     }
   }
-  // 既是 mobile 又是顶部或混合布局模式
+  // 鏃㈡槸 mobile 鍙堟槸椤堕儴鎴栨贩鍚堝竷灞€妯″紡
   &.noLeft {
     .sidebar-container {
       background-color: var(--el-bg-color);
@@ -179,3 +184,4 @@ $transition-time: 0.35s;
   }
 }
 </style>
+

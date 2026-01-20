@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import type { RouteLocationNormalizedGeneric, RouteRecordRaw, RouterLink } from "vue-router"
 import type { TagView } from "@/pinia/stores/tags-view"
@@ -18,35 +23,35 @@ const permissionStore = usePermissionStore()
 
 const { listenerRouteChange } = useRouteListener()
 
-/** 标签页组件元素的引用数组 */
+/** 鏍囩椤电粍浠跺厓绱犵殑寮曠敤鏁扮粍 */
 const tagRefs = useTemplateRef<InstanceType<typeof RouterLink>[]>("tagRefs")
 
-/** 右键菜单的状态 */
+/** 鍙抽敭鑿滃崟鐨勭姸鎬?*/
 const visible = ref(false)
 
-/** 右键菜单的 top 位置 */
+/** 鍙抽敭鑿滃崟鐨?top 浣嶇疆 */
 const top = ref(0)
 
-/** 右键菜单的 left 位置 */
+/** 鍙抽敭鑿滃崟鐨?left 浣嶇疆 */
 const left = ref(0)
 
-/** 当前正在右键操作的标签页 */
+/** 褰撳墠姝ｅ湪鍙抽敭鎿嶄綔鐨勬爣绛鹃〉 */
 const selectedTag = ref<TagView>({})
 
-/** 固定的标签页 */
+/** 鍥哄畾鐨勬爣绛鹃〉 */
 let affixTags: TagView[] = []
 
-/** 判断标签页是否激活 */
+/** 鍒ゆ柇鏍囩椤垫槸鍚︽縺娲?*/
 function isActive(tag: TagView) {
   return tag.path === route.path
 }
 
-/** 判断标签页是否固定 */
+/** 鍒ゆ柇鏍囩椤垫槸鍚﹀浐瀹?*/
 function isAffix(tag: TagView) {
   return tag.meta?.affix
 }
 
-/** 筛选出固定标签页 */
+/** 绛涢€夊嚭鍥哄畾鏍囩椤?*/
 function filterAffixTags(routes: RouteRecordRaw[], basePath = "/") {
   const tags: TagView[] = []
   routes.forEach((route) => {
@@ -67,16 +72,16 @@ function filterAffixTags(routes: RouteRecordRaw[], basePath = "/") {
   return tags
 }
 
-/** 初始化标签页 */
+/** 鍒濆鍖栨爣绛鹃〉 */
 function initTags() {
   affixTags = filterAffixTags(permissionStore.routes)
   for (const tag of affixTags) {
-    // 必须含有 name 属性
+    // 蹇呴』鍚湁 name 灞炴€?
     tag.name && tagsViewStore.addVisitedView(tag)
   }
 }
 
-/** 添加标签页 */
+/** 娣诲姞鏍囩椤?*/
 function addTags(route: RouteLocationNormalizedGeneric) {
   if (route.name) {
     tagsViewStore.addVisitedView(route)
@@ -84,20 +89,20 @@ function addTags(route: RouteLocationNormalizedGeneric) {
   }
 }
 
-/** 刷新当前正在右键操作的标签页 */
+/** 鍒锋柊褰撳墠姝ｅ湪鍙抽敭鎿嶄綔鐨勬爣绛鹃〉 */
 function refreshSelectedTag(view: TagView) {
   tagsViewStore.delCachedView(view)
   router.replace({ path: `/redirect${view.path}`, query: view.query })
 }
 
-/** 关闭当前正在右键操作的标签页 */
+/** 鍏抽棴褰撳墠姝ｅ湪鍙抽敭鎿嶄綔鐨勬爣绛鹃〉 */
 function closeSelectedTag(view: TagView) {
   tagsViewStore.delVisitedView(view)
   tagsViewStore.delCachedView(view)
   isActive(view) && toLastView(tagsViewStore.visitedViews, view)
 }
 
-/** 关闭其他标签页 */
+/** 鍏抽棴鍏朵粬鏍囩椤?*/
 function closeOthersTags() {
   const fullPath = selectedTag.value.fullPath
   if (fullPath !== route.path && fullPath !== undefined) {
@@ -107,7 +112,7 @@ function closeOthersTags() {
   tagsViewStore.delOthersCachedViews(selectedTag.value)
 }
 
-/** 关闭所有标签页 */
+/** 鍏抽棴鎵€鏈夋爣绛鹃〉 */
 function closeAllTags(view: TagView) {
   tagsViewStore.delAllVisitedViews()
   tagsViewStore.delAllCachedViews()
@@ -115,16 +120,16 @@ function closeAllTags(view: TagView) {
   toLastView(tagsViewStore.visitedViews, view)
 }
 
-/** 跳转到最后一个标签页 */
+/** 璺宠浆鍒版渶鍚庝竴涓爣绛鹃〉 */
 function toLastView(visitedViews: TagView[], view: TagView) {
   const latestView = visitedViews.slice(-1)[0]
   const fullPath = latestView?.fullPath
   if (fullPath !== undefined) {
     router.push(fullPath)
   } else {
-    // 如果 TagsView 全部被关闭了，则默认重定向到主页
+    // 濡傛灉 TagsView 鍏ㄩ儴琚叧闂簡锛屽垯榛樿閲嶅畾鍚戝埌涓婚〉
     if (view.name === "Dashboard") {
-      // 重新加载主页
+      // 閲嶆柊鍔犺浇涓婚〉
       router.push({ path: `/redirect${view.path}`, query: view.query })
     } else {
       router.push("/")
@@ -132,24 +137,24 @@ function toLastView(visitedViews: TagView[], view: TagView) {
   }
 }
 
-/** 打开右键菜单面板 */
+/** 鎵撳紑鍙抽敭鑿滃崟闈㈡澘 */
 function openMenu(tag: TagView, e: MouseEvent) {
   const menuMinWidth = 100
-  // 当前页面宽度
+  // 褰撳墠椤甸潰瀹藉害
   const offsetWidth = document.body.offsetWidth
-  // 面板的最大左边距
+  // 闈㈡澘鐨勬渶澶у乏杈硅窛
   const maxLeft = offsetWidth - menuMinWidth
-  // 面板距离鼠标指针的距离
+  // 闈㈡澘璺濈榧犳爣鎸囬拡鐨勮窛绂?
   const left15 = e.clientX + 10
   left.value = left15 > maxLeft ? maxLeft : left15
   top.value = e.clientY
-  // 显示面板
+  // 鏄剧ず闈㈡澘
   visible.value = true
-  // 更新当前正在右键操作的标签页
+  // 鏇存柊褰撳墠姝ｅ湪鍙抽敭鎿嶄綔鐨勬爣绛鹃〉
   selectedTag.value = tag
 }
 
-/** 关闭右键菜单面板 */
+/** 鍏抽棴鍙抽敭鑿滃崟闈㈡澘 */
 function closeMenu() {
   visible.value = false
 }
@@ -160,7 +165,7 @@ watch(visible, (value) => {
 
 initTags()
 
-// 监听路由变化
+// 鐩戝惉璺敱鍙樺寲
 listenerRouteChange((route) => {
   addTags(route)
 }, true)
@@ -187,16 +192,16 @@ listenerRouteChange((route) => {
     </ScrollPane>
     <ul v-show="visible" class="contextmenu" :style="{ left: `${left}px`, top: `${top}px` }">
       <li @click="refreshSelectedTag(selectedTag)">
-        刷新
+        鍒锋柊
       </li>
       <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)">
-        关闭
+        鍏抽棴
       </li>
       <li @click="closeOthersTags">
-        关闭其它
+        鍏抽棴鍏跺畠
       </li>
       <li @click="closeAllTags(selectedTag)">
-        关闭所有
+        鍏抽棴鎵€鏈?
       </li>
     </ul>
   </div>
@@ -269,3 +274,4 @@ listenerRouteChange((route) => {
   }
 }
 </style>
+

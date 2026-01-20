@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import { useSettingsStore } from "@/pinia/stores/settings"
 import { AppMain, Logo, NavigationBar, TagsView } from "../components"
@@ -9,7 +14,7 @@ const { showTagsView, showLogo } = storeToRefs(settingsStore)
 
 <template>
   <div class="app-wrapper">
-    <!-- 头部导航栏和标签栏 -->
+    <!-- 澶撮儴瀵艰埅鏍忓拰鏍囩鏍?-->
     <div class="fixed-header layout-header">
       <div class="content">
         <Logo v-if="showLogo" :collapse="false" class="logo" />
@@ -17,9 +22,9 @@ const { showTagsView, showLogo } = storeToRefs(settingsStore)
       </div>
       <TagsView v-show="showTagsView" />
     </div>
-    <!-- 主容器 -->
+    <!-- 涓诲鍣?-->
     <div :class="{ hasTagsView: showTagsView }" class="main-container">
-      <!-- 页面主体内容 -->
+      <!-- 椤甸潰涓讳綋鍐呭 -->
       <AppMain class="app-main" />
     </div>
   </div>
@@ -73,3 +78,4 @@ $transition-time: 0.35s;
   }
 }
 </style>
+

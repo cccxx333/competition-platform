@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import type { RouterLink } from "vue-router"
 import Screenfull from "@@/components/Screenfull/index.vue"
@@ -17,24 +22,24 @@ const settingsStore = useSettingsStore()
 
 const { listenerRouteChange } = useRouteListener()
 
-/** 滚动条组件元素的引用 */
+/** 婊氬姩鏉＄粍浠跺厓绱犵殑寮曠敤 */
 const scrollbarRef = useTemplateRef("scrollbarRef")
 
-/** 滚动条内容元素的引用 */
+/** 婊氬姩鏉″唴瀹瑰厓绱犵殑寮曠敤 */
 const scrollbarContentRef = useTemplateRef("scrollbarContentRef")
 
-/** 当前滚动条距离左边的距离 */
+/** 褰撳墠婊氬姩鏉¤窛绂诲乏杈圭殑璺濈 */
 let currentScrollLeft = 0
 
-/** 每次滚动距离 */
+/** 姣忔婊氬姩璺濈 */
 const translateDistance = 200
 
-/** 滚动时触发 */
+/** 婊氬姩鏃惰Е鍙?*/
 function scroll({ scrollLeft }: { scrollLeft: number }) {
   currentScrollLeft = scrollLeft
 }
 
-/** 鼠标滚轮滚动时触发 */
+/** 榧犳爣婊氳疆婊氬姩鏃惰Е鍙?*/
 function wheelScroll({ deltaY }: WheelEvent) {
   if (deltaY.toString().startsWith("-")) {
     scrollTo("left")
@@ -43,23 +48,23 @@ function wheelScroll({ deltaY }: WheelEvent) {
   }
 }
 
-/** 获取可能需要的宽度 */
+/** 鑾峰彇鍙兘闇€瑕佺殑瀹藉害 */
 function getWidth() {
-  // 可滚动内容的长度
+  // 鍙粴鍔ㄥ唴瀹圭殑闀垮害
   const scrollbarContentRefWidth = scrollbarContentRef.value!.clientWidth
-  // 滚动可视区宽度
+  // 婊氬姩鍙鍖哄搴?
   const scrollbarRefWidth = scrollbarRef.value!.wrapRef!.clientWidth
-  // 最后剩余可滚动的宽度
+  // 鏈€鍚庡墿浣欏彲婊氬姩鐨勫搴?
   const lastDistance = scrollbarContentRefWidth - scrollbarRefWidth - currentScrollLeft
 
   return { scrollbarContentRefWidth, scrollbarRefWidth, lastDistance }
 }
 
-/** 左右滚动 */
+/** 宸﹀彸婊氬姩 */
 function scrollTo(direction: "left" | "right", distance: number = translateDistance) {
   let scrollLeft = 0
   const { scrollbarContentRefWidth, scrollbarRefWidth, lastDistance } = getWidth()
-  // 没有横向滚动条，直接结束
+  // 娌℃湁妯悜婊氬姩鏉★紝鐩存帴缁撴潫
   if (scrollbarRefWidth > scrollbarContentRefWidth) return
   if (direction === "left") {
     scrollLeft = Math.max(0, currentScrollLeft - distance)
@@ -69,7 +74,7 @@ function scrollTo(direction: "left" | "right", distance: number = translateDista
   scrollbarRef.value!.setScrollLeft(scrollLeft)
 }
 
-/** 移动到目标位置 */
+/** 绉诲姩鍒扮洰鏍囦綅缃?*/
 function moveTo() {
   const tagRefs = props.tagRefs!
   for (let i = 0; i < tagRefs.length; i++) {
@@ -80,13 +85,13 @@ function moveTo() {
       const offsetWidth = el.offsetWidth
       const offsetLeft = el.offsetLeft
       const { scrollbarRefWidth } = getWidth()
-      // 当前 tag 在可视区域左边时
+      // 褰撳墠 tag 鍦ㄥ彲瑙嗗尯鍩熷乏杈规椂
       if (offsetLeft < currentScrollLeft) {
         const distance = currentScrollLeft - offsetLeft
         scrollTo("left", distance)
         return
       }
-      // 当前 tag 在可视区域右边时
+      // 褰撳墠 tag 鍦ㄥ彲瑙嗗尯鍩熷彸杈规椂
       const width = scrollbarRefWidth + currentScrollLeft - offsetWidth
       if (offsetLeft > width) {
         const distance = offsetLeft - width
@@ -97,7 +102,7 @@ function moveTo() {
   }
 }
 
-// 监听路由变化，移动到目标位置
+// 鐩戝惉璺敱鍙樺寲锛岀Щ鍔ㄥ埌鐩爣浣嶇疆
 listenerRouteChange(() => {
   nextTick(moveTo)
 })
@@ -105,7 +110,7 @@ listenerRouteChange(() => {
 
 <template>
   <div class="scroll-container">
-    <el-tooltip content="向左滚动标签（超出最大宽度可点击）">
+    <el-tooltip content="Scroll left">
       <el-icon class="arrow left" @click="scrollTo('left')">
         <ArrowLeft />
       </el-icon>
@@ -115,7 +120,7 @@ listenerRouteChange(() => {
         <slot />
       </div>
     </el-scrollbar>
-    <el-tooltip content="向右滚动标签（超出最大宽度可点击）">
+    <el-tooltip content="Scroll right">
       <el-icon class="arrow right" @click="scrollTo('right')">
         <ArrowRight />
       </el-icon>
@@ -144,7 +149,7 @@ listenerRouteChange(() => {
   }
   .el-scrollbar {
     flex: 1;
-    // 防止换行（超出宽度时，显示滚动条）
+    // 闃叉鎹㈣锛堣秴鍑哄搴︽椂锛屾樉绀烘粴鍔ㄦ潯锛?
     white-space: nowrap;
     .scrollbar-content {
       display: inline-block;
@@ -159,3 +164,4 @@ listenerRouteChange(() => {
   }
 }
 </style>
+

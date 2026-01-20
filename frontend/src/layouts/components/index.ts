@@ -1,3 +1,8 @@
+﻿/*
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+*/
 export { default as AppMain } from "./AppMain/index.vue"
 export { default as Breadcrumb } from "./Breadcrumb/index.vue"
 export { default as Footer } from "./Footer/index.vue"
@@ -8,3 +13,4 @@ export { default as RightPanel } from "./RightPanel/index.vue"
 export { default as Settings } from "./Settings/index.vue"
 export { default as Sidebar } from "./Sidebar/index.vue"
 export { default as TagsView } from "./TagsView/index.vue"
+

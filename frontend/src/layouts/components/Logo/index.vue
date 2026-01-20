@@ -1,3 +1,8 @@
+﻿<!--
+@deprecated This file is not used by router/layout anymore.
+Active layout/sidebar is frontend/src/layouts/BasicLayout.vue
+Do not edit. Kept for historical reference.
+-->
 <script lang="ts" setup>
 import logoText1 from "@@/assets/images/layouts/logo-text-1.png?url"
 import logoText2 from "@@/assets/images/layouts/logo-text-2.png?url"
@@ -60,3 +65,4 @@ const { isLeft, isTop } = useLayoutMode()
   }
 }
 </style>
+
