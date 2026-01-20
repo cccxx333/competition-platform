@@ -80,7 +80,7 @@
 | Route Name         | Path                                         | requireAuth | Roles   | Phase | 页面/用�?       | 备注                                      |
 | ------------------ | -------------------------------------------- | ----------: | ------- | ----- | ---------------- | ----------------------------------------- |
 | TeacherApplyList   | `/teacher/applications`                      |        true | teacher | F4    | �ҵĽ�ʦ�����б� | չʾ����״̬��PENDING/APPROVED/REJECTED������������ҳ֧���ύ���� | | Sidebar entry available via active layout sidebar (teacher only).
-| TeacherApplyCreate | `/competitions/:competitionId/teacher-apply` |        true | teacher | F4    | 提交教师申请     | 从竞赛详情进入更自然                      |
+| TeacherApplyCreate | `/competitions/:competitionId/teacher-apply` |        true | teacher | F4    | �ύ��ʦ����     | ������Ծ������飻ǰ����ʾ��������ԭ�򣻺��ǿ��У�� |
 
 ### 4.2 管理员端：审核教师申请（F4�?
 | Route Name               | Path                          | requireAuth | Roles | Phase | 页面/用�?   | 备注                 |
@@ -163,4 +163,5 @@
 - 竞赛列表 `/competitions`
 - 教师申请审核 `/admin/teacher-applications`
 - （可选）技能库管理 `/admin/skills`
+
 

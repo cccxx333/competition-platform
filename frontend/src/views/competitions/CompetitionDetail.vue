@@ -18,6 +18,32 @@ const detail = ref<CompetitionDetail | null>(null)
 
 const competitionId = computed(() => Number(route.params.id))
 const isTeacher = computed(() => String(authStore.user?.role ?? "").toUpperCase() === "TEACHER")
+const registrationDeadlineDate = computed(() => {
+  const deadline = detail.value?.registrationDeadline
+  if (!deadline) return null
+  const raw = deadline.includes("T") ? deadline.split("T")[0] : deadline
+  const date = new Date(raw)
+  if (Number.isNaN(date.getTime())) return null
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+})
+const todayDate = computed(() => {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+})
+const canApplyTeacher = computed(() => {
+  if (!isTeacher.value) return false
+  if (!detail.value) return false
+  if (detail.value.status !== "UPCOMING") return false
+  if (!registrationDeadlineDate.value) return false
+  return todayDate.value < registrationDeadlineDate.value
+})
+const applyDisabledReason = computed(() => {
+  if (!isTeacher.value || !detail.value) return ""
+  if (detail.value.status !== "UPCOMING") return "Only UPCOMING competitions can be applied."
+  if (!registrationDeadlineDate.value) return "Registration deadline unavailable."
+  if (!(todayDate.value < registrationDeadlineDate.value)) return "Registration deadline has passed."
+  return ""
+})
 
 const formatDate = (value?: string | null) => {
   if (!value) return ""
@@ -122,6 +148,11 @@ const handleBack = () => {
 
 const openSubmitDialog = () => {
   submitError.value = ""
+  if (!canApplyTeacher.value) {
+    submitError.value = applyDisabledReason.value || "Application is not available."
+    submitDialogVisible.value = true
+    return
+  }
   submitDialogVisible.value = true
 }
 
@@ -135,6 +166,10 @@ const handleApply = async () => {
   if (submitting.value) return
   if (!Number.isFinite(competitionId.value) || competitionId.value <= 0) {
     ElMessage.error("Invalid competition")
+    return
+  }
+  if (!canApplyTeacher.value) {
+    submitError.value = applyDisabledReason.value || "Application is not available."
     return
   }
   submitting.value = true
@@ -166,17 +201,21 @@ watch(() => route.params.id, loadDetail)
     <div class="page-header">
       <h2>Competition Detail</h2>
       <div class="header-actions">
-        <el-button
-          v-if="isTeacher"
-          size="small"
-          type="primary"
-          :loading="submitting"
-          :disabled="loading || submitting"
-          @click="openSubmitDialog"
-        >
-          Submit Teacher Application
-        </el-button>
-        <el-button size="small" @click="handleBack">Back</el-button>
+        <div v-if="isTeacher" class="apply-action">
+          <el-button
+            size="small"
+            type="primary"
+            :loading="submitting"
+            :disabled="loading || submitting || !canApplyTeacher"
+            @click="openSubmitDialog"
+          >
+            Submit Teacher Application
+          </el-button>
+          <div v-if="!canApplyTeacher && applyDisabledReason" class="apply-hint">
+            {{ applyDisabledReason }}
+          </div>
+        </div>
+        <el-button class="back-btn" size="small" @click="handleBack">Back</el-button>
       </div>
     </div>
 
@@ -282,8 +321,25 @@ watch(() => route.params.id, loadDetail)
 
 .header-actions {
   display: flex;
-  gap: 8px;
-  align-items: center;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.apply-action {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.apply-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  line-height: 1.4;
+}
+
+.back-btn {
+  margin-top: 0;
 }
 
 .section {

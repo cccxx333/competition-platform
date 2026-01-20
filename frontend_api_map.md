@@ -86,7 +86,7 @@
 ### 4.1 鏁欏笀绔細鎻愪氦/鏌ョ湅鐢宠
 | Page/Module                   | API  | Method | Purpose                  | Params (source)                  | Auth | Exists | Notes                                      |
 | ----------------------------- | ---- | ------ | ------------------------ | -------------------------------- | ---- | ------ | ------------------------------------------ |
-| TeacherApplyCreate            | /api/teacher-applications | POST   | 提交教师申请（对某竞赛） | Body: { competitionId, teamName?, description?, skills? } | Yes  | YES    | competitionId in body                       |
+| TeacherApplyCreate            | /api/teacher-applications | POST   | 提交教师申请（对某竞赛） | Body: { competitionId, teamName?, description?, skills? } | Yes  | YES    | Rules: UPCOMING + before registrationDeadline; PENDING/APPROVED -> 409; REJECTED resets to PENDING |
 | TeacherApplyList              | /api/teacher-applications | GET    | 我的教师申请列表         | Query: status?, page?, size?     | Yes  | YES    |                                            |
 | TeacherApplyDetail (optional) | TBD  | GET    | 鍗曟潯鐢宠璇︽儏             | Route: applicationId             | Yes  | 鉂?     | 鍙笉鍋?                                    |
 
@@ -181,6 +181,7 @@
 - Post/DiscussionController: TBD
 - Submission/FileController: TBD
 - RecommendationController: TBD
+
 
 
 

@@ -26,6 +26,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,10 +56,34 @@ public class TeacherApplicationService {
         Competition competition = competitionRepository.findById(request.getCompetitionId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "competition not found"));
 
-        boolean exists = teacherApplicationRepository
-                .existsByCompetitionIdAndTeacherId(competition.getId(), teacher.getId());
-        if (exists) {
-            throw new ApiException(HttpStatus.CONFLICT, "application already exists");
+        if (competition.getStatus() != Competition.CompetitionStatus.UPCOMING) {
+            throw new ApiException(HttpStatus.CONFLICT, "competition status must be UPCOMING");
+        }
+        if (competition.getRegistrationDeadline() == null) {
+            throw new ApiException(HttpStatus.CONFLICT, "registration deadline unavailable");
+        }
+        if (!LocalDate.now().isBefore(competition.getRegistrationDeadline())) {
+            throw new ApiException(HttpStatus.CONFLICT, "registration deadline passed");
+        }
+
+        TeacherApplication existing = teacherApplicationRepository
+                .findByCompetitionIdAndTeacherId(competition.getId(), teacher.getId())
+                .orElse(null);
+        if (existing != null) {
+            if (existing.getStatus() == TeacherApplication.Status.PENDING
+                    || existing.getStatus() == TeacherApplication.Status.APPROVED) {
+                throw new ApiException(HttpStatus.CONFLICT, "application already exists");
+            }
+            if (existing.getStatus() == TeacherApplication.Status.REJECTED) {
+                existing.setStatus(TeacherApplication.Status.PENDING);
+                existing.setAppliedAt(LocalDateTime.now());
+                existing.setReviewedAt(null);
+                existing.setReviewedBy(null);
+                existing.setReviewComment(null);
+                existing.setGeneratedTeam(null);
+                TeacherApplication saved = teacherApplicationRepository.save(existing);
+                return toResponse(saved);
+            }
         }
 
         TeacherApplication application = new TeacherApplication();
