@@ -3,18 +3,21 @@ package com.competition.service;
 import com.competition.dto.CompetitionDTO;
 import com.competition.dto.TeamAwardSummaryResponse;
 import com.competition.dto.TeamDTO;
+import com.competition.dto.TeamSkillDTO;
 import com.competition.dto.UserDTO;
 import com.competition.dto.TeamMemberViewResponse;
 import com.competition.entity.Competition;
 import com.competition.entity.Application;
 import com.competition.entity.Team;
 import com.competition.entity.TeamMember;
+import com.competition.entity.TeamSkill;
 import com.competition.entity.User;
 import com.competition.repository.ApplicationRepository;
 import com.competition.exception.ApiException;
 import com.competition.repository.TeamAwardRepository;
 import com.competition.repository.TeamMemberRepository;
 import com.competition.repository.TeamRepository;
+import com.competition.repository.TeamSkillRepository;
 import com.competition.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -38,6 +41,7 @@ public class TeamService {
     private final UserRepository userRepository;
     private final ApplicationRepository applicationRepository;
     private final TeamAwardRepository teamAwardRepository;
+    private final TeamSkillRepository teamSkillRepository;
 
     @Transactional(readOnly = true)
     public Page<TeamDTO> getTeams(Pageable pageable) {
@@ -384,6 +388,22 @@ public class TeamService {
 
         if (team.getCompetition() != null) {
             dto.setCompetition(convertCompetitionToDTO(team.getCompetition()));
+        }
+
+        List<TeamSkill> skills = teamSkillRepository.findByTeam_Id(team.getId());
+        if (skills != null && !skills.isEmpty()) {
+            List<TeamSkillDTO> skillDtos = skills.stream()
+                    .map(skill -> {
+                        TeamSkillDTO skillDto = new TeamSkillDTO();
+                        if (skill.getSkill() != null) {
+                            skillDto.setSkillId(skill.getSkill().getId());
+                            skillDto.setSkillName(skill.getSkill().getName());
+                        }
+                        skillDto.setWeight(skill.getWeight());
+                        return skillDto;
+                    })
+                    .collect(Collectors.toList());
+            dto.setTeamSkills(skillDtos);
         }
 
         return dto;

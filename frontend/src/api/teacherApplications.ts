@@ -45,6 +45,9 @@ export type TeacherApplicationListItem = {
   createdAt?: string
   updatedAt?: string
   reviewComment?: string
+  description?: string
+  teamDescription?: string
+  skills?: TeacherApplicationSkill[]
 }
 
 export type AdminTeacherApplicationListItem = {

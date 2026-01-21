@@ -9,6 +9,7 @@ import com.competition.dto.TeacherApplicationSkillDTO;
 import com.competition.entity.Competition;
 import com.competition.entity.Skill;
 import com.competition.entity.Team;
+import com.competition.entity.TeamSkill;
 import com.competition.entity.TeacherApplication;
 import com.competition.entity.TeacherApplicationSkill;
 import com.competition.entity.User;
@@ -16,12 +17,15 @@ import com.competition.exception.ApiException;
 import com.competition.repository.CompetitionRepository;
 import com.competition.repository.SkillRepository;
 import com.competition.repository.TeamRepository;
+import com.competition.repository.TeamSkillRepository;
 import com.competition.repository.TeacherApplicationRepository;
+import com.competition.repository.TeacherApplicationSkillRepository;
 import com.competition.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +33,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +50,9 @@ public class TeacherApplicationService {
     private final CompetitionRepository competitionRepository;
     private final SkillRepository skillRepository;
     private final TeamRepository teamRepository;
+    private final TeamSkillRepository teamSkillRepository;
     private final UserRepository userRepository;
+    private final TeacherApplicationSkillRepository teacherApplicationSkillRepository;
 
     public TeacherApplicationResponse createApplication(Long userId, TeacherApplicationCreateRequest request) {
         if (request == null || request.getCompetitionId() == null) {
@@ -81,6 +93,7 @@ public class TeacherApplicationService {
                 existing.setReviewedBy(null);
                 existing.setReviewComment(null);
                 existing.setGeneratedTeam(null);
+                applyApplicationSkills(existing, request.getSkills(), true);
                 TeacherApplication saved = teacherApplicationRepository.save(existing);
                 return toResponse(saved);
             }
@@ -92,24 +105,8 @@ public class TeacherApplicationService {
         application.setStatus(TeacherApplication.Status.PENDING);
         application.setAppliedAt(LocalDateTime.now());
 
-        List<TeacherApplicationSkillDTO> requestSkills = request.getSkills();
-        if (requestSkills != null && !requestSkills.isEmpty()) {
-            for (TeacherApplicationSkillDTO skillDTO : requestSkills) {
-                if (skillDTO == null || skillDTO.getSkillId() == null) {
-                    throw new ApiException(HttpStatus.BAD_REQUEST, "skillId is required");
-                }
-                Skill skill = skillRepository.findById(skillDTO.getSkillId())
-                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "skill not found: " + skillDTO.getSkillId()));
-
-                TeacherApplicationSkill applicationSkill = new TeacherApplicationSkill();
-                applicationSkill.setTeacherApplication(application);
-                applicationSkill.setSkill(skill);
-                applicationSkill.setWeight(skillDTO.getWeight() != null ? skillDTO.getWeight() : 1);
-                application.getApplicationSkills().add(applicationSkill);
-            }
-        }
-
         TeacherApplication saved = teacherApplicationRepository.save(application);
+        applyApplicationSkills(saved, request.getSkills(), false);
         return toResponse(saved);
     }
 
@@ -126,7 +123,43 @@ public class TeacherApplicationService {
         Page<TeacherApplication> page = (status == null)
                 ? teacherApplicationRepository.findByTeacher_Id(teacher.getId(), pageable)
                 : teacherApplicationRepository.findByTeacher_IdAndStatus(teacher.getId(), status, pageable);
-        return page.map(this::toTeacherListItem);
+
+        List<TeacherApplication> applications = page.getContent();
+        Map<Long, List<TeacherApplicationSkillDTO>> skillsMap = new HashMap<>();
+        if (!applications.isEmpty()) {
+            List<Long> ids = applications.stream()
+                    .map(TeacherApplication::getId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            if (!ids.isEmpty()) {
+                List<TeacherApplicationSkill> skills = teacherApplicationSkillRepository
+                        .findByTeacherApplication_IdIn(ids);
+                for (TeacherApplicationSkill skill : skills) {
+                    if (skill == null || skill.getTeacherApplication() == null) {
+                        continue;
+                    }
+                    Long applicationId = skill.getTeacherApplication().getId();
+                    if (applicationId == null) {
+                        continue;
+                    }
+                    TeacherApplicationSkillDTO dto = new TeacherApplicationSkillDTO();
+                    dto.setSkillId(skill.getSkill() != null ? skill.getSkill().getId() : null);
+                    dto.setWeight(skill.getWeight());
+                    skillsMap.computeIfAbsent(applicationId, key -> new ArrayList<>()).add(dto);
+                }
+            }
+        }
+
+        List<TeacherApplicationListItemDTO> items = applications.stream()
+                .map(application -> {
+                    TeacherApplicationListItemDTO dto = toTeacherListItem(application);
+                    List<TeacherApplicationSkillDTO> skills = skillsMap.get(application.getId());
+                    dto.setSkills(skills != null ? skills : new ArrayList<>());
+                    dto.setDescription(dto.getTeamDescription());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+        return new PageImpl<>(items, page.getPageable(), page.getTotalElements());
     }
 
     @Transactional(readOnly = true)
@@ -164,6 +197,7 @@ public class TeacherApplicationService {
 
         if (request.getApproved()) {
             Team team = ensureTeamForApplication(application);
+            syncTeamSkillsFromApplication(application, team);
             application.setGeneratedTeam(team);
             application.setStatus(TeacherApplication.Status.APPROVED);
         } else {
@@ -214,6 +248,44 @@ public class TeacherApplicationService {
         }
     }
 
+    private void syncTeamSkillsFromApplication(TeacherApplication application, Team team) {
+        if (team == null || team.getId() == null || application == null || application.getId() == null) {
+            return;
+        }
+        if (teamSkillRepository.existsByTeam_Id(team.getId())) {
+            return;
+        }
+
+        List<TeacherApplicationSkill> applicationSkills = new ArrayList<>();
+        Set<TeacherApplicationSkill> attachedSkills = application.getApplicationSkills();
+        if (attachedSkills != null && !attachedSkills.isEmpty()) {
+            applicationSkills.addAll(attachedSkills);
+        } else {
+            applicationSkills = teacherApplicationSkillRepository
+                    .findByTeacherApplication_Id(application.getId());
+        }
+
+        if (applicationSkills == null || applicationSkills.isEmpty()) {
+            return;
+        }
+
+        List<TeamSkill> teamSkills = new ArrayList<>();
+        for (TeacherApplicationSkill applicationSkill : applicationSkills) {
+            if (applicationSkill == null || applicationSkill.getSkill() == null) {
+                continue;
+            }
+            TeamSkill teamSkill = new TeamSkill();
+            teamSkill.setTeam(team);
+            teamSkill.setSkill(applicationSkill.getSkill());
+            teamSkill.setWeight(applicationSkill.getWeight() != null ? applicationSkill.getWeight() : 1);
+            teamSkills.add(teamSkill);
+        }
+
+        if (!teamSkills.isEmpty()) {
+            teamSkillRepository.saveAll(teamSkills);
+        }
+    }
+
     private TeacherApplicationResponse toResponse(TeacherApplication application) {
         TeacherApplicationResponse response = new TeacherApplicationResponse();
         response.setId(application.getId());
@@ -251,6 +323,19 @@ public class TeacherApplicationService {
         dto.setCreatedAt(application.getAppliedAt());
         dto.setUpdatedAt(application.getReviewedAt());
         dto.setReviewComment(application.getReviewComment());
+        dto.setTeamDescription(application.getGeneratedTeam() != null ? application.getGeneratedTeam().getDescription() : null);
+        dto.setDescription(dto.getTeamDescription());
+
+        if (application.getApplicationSkills() != null && !application.getApplicationSkills().isEmpty()) {
+            List<TeacherApplicationSkillDTO> skills = new ArrayList<>();
+            for (TeacherApplicationSkill applicationSkill : application.getApplicationSkills()) {
+                TeacherApplicationSkillDTO skillDto = new TeacherApplicationSkillDTO();
+                skillDto.setSkillId(applicationSkill.getSkill() != null ? applicationSkill.getSkill().getId() : null);
+                skillDto.setWeight(applicationSkill.getWeight());
+                skills.add(skillDto);
+            }
+            dto.setSkills(skills);
+        }
         return dto;
     }
 
@@ -281,5 +366,54 @@ public class TeacherApplicationService {
             return teacher.getUsername();
         }
         return teacher.getAccountNo();
+    }
+
+    private void applyApplicationSkills(TeacherApplication application,
+                                        List<TeacherApplicationSkillDTO> requestSkills,
+                                        boolean clearExisting) {
+        if (application == null) {
+            return;
+        }
+        if (clearExisting && application.getId() != null) {
+            teacherApplicationSkillRepository.deleteByTeacherApplication_Id(application.getId());
+            if (application.getApplicationSkills() != null) {
+                application.getApplicationSkills().clear();
+            }
+        }
+        if (requestSkills == null || requestSkills.isEmpty()) {
+            return;
+        }
+
+        Map<Long, Skill> uniqueSkills = new LinkedHashMap<>();
+        Map<Long, Integer> uniqueWeights = new LinkedHashMap<>();
+        for (TeacherApplicationSkillDTO skillDTO : requestSkills) {
+            if (skillDTO == null || skillDTO.getSkillId() == null) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "skillId is required");
+            }
+            if (uniqueSkills.containsKey(skillDTO.getSkillId())) {
+                continue;
+            }
+            Skill skill = skillRepository.findById(skillDTO.getSkillId())
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "skill not found: " + skillDTO.getSkillId()));
+            uniqueSkills.put(skillDTO.getSkillId(), skill);
+            uniqueWeights.put(skillDTO.getSkillId(), skillDTO.getWeight() != null ? skillDTO.getWeight() : 1);
+        }
+
+        if (uniqueSkills.isEmpty()) {
+            return;
+        }
+
+        List<TeacherApplicationSkill> skillRows = new ArrayList<>();
+        for (Map.Entry<Long, Skill> entry : uniqueSkills.entrySet()) {
+            TeacherApplicationSkill applicationSkill = new TeacherApplicationSkill();
+            applicationSkill.setTeacherApplication(application);
+            applicationSkill.setSkill(entry.getValue());
+            applicationSkill.setWeight(uniqueWeights.get(entry.getKey()));
+            skillRows.add(applicationSkill);
+        }
+        List<TeacherApplicationSkill> savedSkills = teacherApplicationSkillRepository.saveAll(skillRows);
+        if (application.getApplicationSkills() != null) {
+            application.getApplicationSkills().addAll(savedSkills);
+        }
     }
 }

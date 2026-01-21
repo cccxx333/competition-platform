@@ -18,4 +18,5 @@ public class TeamDTO {
     private Team.TeamStatus status;
     private LocalDateTime createdAt;
     private List<TeamMember> teamMembers;
+    private List<TeamSkillDTO> teamSkills;
 }

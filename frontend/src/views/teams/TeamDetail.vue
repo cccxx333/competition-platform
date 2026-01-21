@@ -207,6 +207,14 @@ onMounted(loadTeam)
       <el-descriptions-item label="指导教师">
         {{ team.leader?.realName || team.leader?.username || "-" }}
       </el-descriptions-item>
+      <el-descriptions-item label="队伍所需技能">
+        <span v-if="team.teamSkills && team.teamSkills.length">
+          <el-tag v-for="skill in team.teamSkills" :key="skill.skillId" style="margin-right: 6px;">
+            {{ skill.skillName || "-" }}
+          </el-tag>
+        </span>
+        <span v-else>暂无</span>
+      </el-descriptions-item>
       <el-descriptions-item label="获奖情况">
         <span v-if="awardLoading">加载中...</span>
         <span v-else-if="awardError">{{ awardError }}</span>
@@ -217,7 +225,7 @@ onMounted(loadTeam)
         <span v-else>暂无奖项</span>
       </el-descriptions-item>
       <el-descriptions-item label="创建时间">{{ team.createdAt ?? "-" }}</el-descriptions-item>
-      <el-descriptions-item v-if="team.description" label="说明">{{ team.description }}</el-descriptions-item>
+      <el-descriptions-item label="队伍说明">{{ team.description || "无" }}</el-descriptions-item>
     </el-descriptions>
 
     <div v-if="team" class="action-panel">

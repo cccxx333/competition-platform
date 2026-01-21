@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { getCompetitionDetail, type CompetitionDetail } from "@/api/competitions"
+import { listSkills, type Skill } from "@/api/skills"
 import { createTeacherApplication } from "@/api/teacherApplications"
 import { useAuthStore } from "@/stores/auth"
 import StatusPill from "@@/components/StatusPill/index.vue"
@@ -15,6 +16,12 @@ const submitDialogVisible = ref(false)
 const submitError = ref("")
 const errorMessage = ref("")
 const detail = ref<CompetitionDetail | null>(null)
+const allSkills = ref<Skill[]>([])
+const skillsLoading = ref(false)
+const favoredSkillRows = ref<Array<{ skillId: number | null; weight: number }>>(
+  Array.from({ length: 5 }, () => ({ skillId: null, weight: 1 }))
+)
+const applyRemark = ref("")
 
 const competitionId = computed(() => Number(route.params.id))
 const isTeacher = computed(() => String(authStore.user?.role ?? "").toUpperCase() === "TEACHER")
@@ -44,6 +51,11 @@ const applyDisabledReason = computed(() => {
   if (!(todayDate.value < registrationDeadlineDate.value)) return "报名截止时间已过"
   return ""
 })
+const selectedCount = computed(() => favoredSkillRows.value.filter(row => row.skillId != null).length)
+const selectedSkillIds = computed(() => new Set(favoredSkillRows.value
+  .map(row => row.skillId)
+  .filter((id): id is number => id != null)))
+
 
 const formatDate = (value?: string | null) => {
   if (!value) return ""
@@ -101,6 +113,18 @@ const loadDetail = async () => {
   } finally {
     loading.value = false
   }
+  }
+
+const loadSkills = async () => {
+  if (skillsLoading.value || allSkills.value.length) return
+  skillsLoading.value = true
+  try {
+    allSkills.value = await listSkills()
+  } catch (error: any) {
+    ElMessage.error("技能列表加载失败")
+  } finally {
+    skillsLoading.value = false
+  }
 }
 
 const basicFields = computed(() => {
@@ -145,9 +169,10 @@ const metaFields = computed(() => {
 const handleBack = () => {
   router.push("/competitions")
 }
-
 const openSubmitDialog = () => {
   submitError.value = ""
+  favoredSkillRows.value = Array.from({ length: 5 }, () => ({ skillId: null, weight: 1 }))
+  applyRemark.value = ""
   if (!canApplyTeacher.value) {
     submitError.value = applyDisabledReason.value || "当前不可申请"
     submitDialogVisible.value = true
@@ -155,7 +180,6 @@ const openSubmitDialog = () => {
   }
   submitDialogVisible.value = true
 }
-
 const closeSubmitDialog = (force = false) => {
   if (submitting.value && !force) return
   submitDialogVisible.value = false
@@ -165,7 +189,7 @@ const closeSubmitDialog = (force = false) => {
 const handleApply = async () => {
   if (submitting.value) return
   if (!Number.isFinite(competitionId.value) || competitionId.value <= 0) {
-    ElMessage.error("竞赛不存在")
+    ElMessage.error("申请已提交")
     return
   }
   if (!canApplyTeacher.value) {
@@ -174,7 +198,16 @@ const handleApply = async () => {
   }
   submitting.value = true
   try {
-    await createTeacherApplication(competitionId.value, {})
+    const skillsPayload = favoredSkillRows.value
+      .filter(row => row.skillId != null)
+      .map(row => ({
+        skillId: row.skillId as number,
+        weight: row.weight ?? 1
+      }))
+    await createTeacherApplication(competitionId.value, {
+      description: applyRemark.value?.trim() || undefined,
+      skills: skillsPayload.length ? skillsPayload : []
+    })
     ElMessage.success("申请已提交")
     closeSubmitDialog(true)
     router.push("/teacher/applications")
@@ -191,9 +224,13 @@ const handleApply = async () => {
     submitting.value = false
   }
 }
-
 onMounted(loadDetail)
 watch(() => route.params.id, loadDetail)
+watch(submitDialogVisible, (visible) => {
+  if (visible) {
+    loadSkills()
+  }
+})
 </script>
 
 <template>
@@ -293,6 +330,50 @@ watch(() => route.params.id, loadDetail)
     >
       <div>确认提交该竞赛的教师申请？</div>
       <div style="margin-top: 8px; color: #909399;">提交后请等待管理员审核。</div>
+      <div style="margin-top: 12px;">
+        <div style="margin-bottom: 6px;">青睐技能（可选，最多 5 个）</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div v-for="(row, idx) in favoredSkillRows" :key="idx" style="display: flex; align-items: center; gap: 12px;">
+            <el-select
+              v-model="row.skillId"
+              placeholder="技能"
+              clearable
+              filterable
+              style="flex: 0 0 72%;"
+              :loading="skillsLoading"
+              :disabled="skillsLoading"
+            >
+              <el-option
+                v-for="s in allSkills"
+                :key="s.id"
+                :label="s.name"
+                :value="s.id"
+                :disabled="typeof s.id === 'number' && row.skillId !== s.id && selectedSkillIds.has(s.id)"
+              />
+            </el-select>
+            <el-input-number
+              v-model="row.weight"
+              :min="1"
+              :step="1"
+              controls-position="right"
+              placeholder="权重"
+              style="width: 120px;"
+            />
+          </div>
+        </div>
+        <div style="margin-top: 6px; color: #909399;">已选 {{ selectedCount }}/5</div>
+      </div>
+      <div style="margin-top: 12px;">
+        <div style="margin-bottom: 6px;">备注（可选）</div>
+        <el-input
+          v-model="applyRemark"
+          type="textarea"
+          :rows="3"
+          placeholder="可填写对队伍的说明或期望"
+          maxlength="200"
+          show-word-limit
+        />
+      </div>
       <el-alert
         v-if="submitError"
         :title="submitError"

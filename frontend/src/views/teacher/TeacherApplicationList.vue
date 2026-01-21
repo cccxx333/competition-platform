@@ -1,10 +1,16 @@
 <script lang="ts" setup>
-import { listMyTeacherApplicationPage, type TeacherApplicationListItem } from "@/api/teacherApplications"
+import { listMyTeacherApplicationPage, type TeacherApplicationListItem, type TeacherApplicationSkill } from "@/api/teacherApplications"
+import { listSkills, type Skill } from "@/api/skills"
 import StatusPill from "@@/components/StatusPill/index.vue"
 
 const loading = ref(false)
 const items = ref<TeacherApplicationListItem[]>([])
 const total = ref(0)
+const detailDialogVisible = ref(false)
+const selectedApplication = ref<TeacherApplicationListItem | null>(null)
+const skillNameById = ref<Record<number, string>>({})
+const skillsLoaded = ref(false)
+const skillsLoading = ref(false)
 
 const pagination = reactive({
   page: 0,
@@ -60,6 +66,47 @@ const handleSizeChange = (size: number) => {
   fetchList()
 }
 
+const openDetailDialog = (row: TeacherApplicationListItem) => {
+  selectedApplication.value = row
+  detailDialogVisible.value = true
+  loadSkillDict()
+}
+
+const closeDetailDialog = () => {
+  detailDialogVisible.value = false
+  selectedApplication.value = null
+}
+
+const loadSkillDict = async () => {
+  if (skillsLoaded.value || skillsLoading.value) return
+  skillsLoading.value = true
+  try {
+    const data = await listSkills()
+    const map: Record<number, string> = {}
+    data.forEach((skill: Skill) => {
+      if (typeof skill.id === "number" && skill.name) {
+        map[skill.id] = skill.name
+      }
+    })
+    skillNameById.value = map
+    skillsLoaded.value = true
+  } catch (error) {
+    skillsLoaded.value = true
+  } finally {
+    skillsLoading.value = false
+  }
+}
+
+const formatSkills = (skills?: TeacherApplicationSkill[]) => {
+  if (!skills || !skills.length) return "无"
+  return skills.map(skill => {
+    const id = skill.skillId
+    const weight = skill.weight ?? 1
+    const name = typeof id === "number" ? (skillNameById.value[id] || `技能ID:${id}`) : "技能ID:-"
+    return `${name}（权重：${weight}）`
+  }).join("、")
+}
+
 onMounted(fetchList)
 </script>
 
@@ -94,6 +141,11 @@ onMounted(fetchList)
           <span v-else>-</span>
         </template>
       </el-table-column>
+      <el-table-column label="详情" width="100">
+        <template #default="{ row }">
+          <el-button size="small" @click="openDetailDialog(row)">查看</el-button>
+        </template>
+      </el-table-column>
     </el-table>
 
     <div class="pagination">
@@ -107,6 +159,20 @@ onMounted(fetchList)
       />
     </div>
   </el-card>
+
+  <el-dialog v-model="detailDialogVisible" title="申请详情" width="520px" @close="closeDetailDialog">
+    <div class="detail-row">
+      <div class="detail-label">队伍所需技能</div>
+      <div class="detail-value">{{ formatSkills(selectedApplication?.skills) }}</div>
+    </div>
+    <div class="detail-row">
+      <div class="detail-label">队伍说明</div>
+      <div class="detail-value">{{ selectedApplication?.teamDescription || "无" }}</div>
+    </div>
+    <template #footer>
+      <el-button type="primary" @click="closeDetailDialog">关闭</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped>
@@ -130,5 +196,21 @@ onMounted(fetchList)
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: bottom;
+}
+
+.detail-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.detail-label {
+  width: 120px;
+  color: var(--el-text-color-secondary);
+}
+
+.detail-value {
+  flex: 1;
+  word-break: break-word;
 }
 </style>

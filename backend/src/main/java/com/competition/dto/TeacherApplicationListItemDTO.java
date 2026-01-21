@@ -4,6 +4,7 @@ import com.competition.entity.TeacherApplication;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class TeacherApplicationListItemDTO {
@@ -14,4 +15,7 @@ public class TeacherApplicationListItemDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String reviewComment;
+    private String description;
+    private String teamDescription;
+    private List<TeacherApplicationSkillDTO> skills;
 }

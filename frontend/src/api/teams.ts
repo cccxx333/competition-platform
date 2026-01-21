@@ -19,6 +19,13 @@ export type TeamCompetition = {
   [key: string]: unknown
 }
 
+export type TeamSkill = {
+  skillId?: number
+  skillName?: string
+  weight?: number
+  [key: string]: unknown
+}
+
 export type TeamDto = {
   id?: number
   name?: string
@@ -29,6 +36,7 @@ export type TeamDto = {
   currentMembers?: number
   leader?: TeamLeader | null
   competition?: TeamCompetition | null
+  teamSkills?: TeamSkill[]
   [key: string]: unknown
 }
 
