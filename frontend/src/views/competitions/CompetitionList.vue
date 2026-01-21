@@ -6,7 +6,19 @@ import StatusPill from "@@/components/StatusPill/index.vue"
 const route = useRoute()
 const router = useRouter()
 
-const items = ref<CompetitionListItem[]>([])
+type RecommendationRow = {
+  id?: number
+  name?: string
+  status?: CompetitionListItem["status"] | string
+  startDate?: string
+  endDate?: string
+  organizer?: string
+  score?: number
+  reason?: string
+  source: "list" | "algorithm"
+}
+
+const rows = ref<RecommendationRow[]>([])
 const loading = ref(false)
 const errorMessage = ref("")
 const total = ref<number | null>(null)
@@ -18,7 +30,7 @@ const filters = reactive({
   status: "" as CompetitionListItem["status"] | ""
 })
 
-const recommendMode = ref(false)
+const sourceMode = ref<"list" | "algorithm">("list")
 const topK = ref(10)
 
 const pagination = reactive({
@@ -60,14 +72,16 @@ const buildQuery = () => {
     page: String(pagination.page),
     size: String(pagination.size)
   }
-  if (filters.keyword) {
+  if (sourceMode.value === "list" && filters.keyword) {
     query.keyword = filters.keyword
   }
-  if (filters.status) {
+  if (sourceMode.value === "list" && filters.status) {
     query.status = filters.status
   }
-  if (recommendMode.value) {
-    query.recommend = "true"
+  if (sourceMode.value) {
+    query.source = sourceMode.value
+  }
+  if (sourceMode.value === "algorithm") {
     query.topK = String(topK.value)
   }
   return query
@@ -81,35 +95,72 @@ const syncUrl = () => {
     String(current.size ?? "") === String(next.size ?? "") &&
     String(current.keyword ?? "") === String(next.keyword ?? "") &&
     String(current.status ?? "") === String(next.status ?? "") &&
-    String(current.recommend ?? "") === String(next.recommend ?? "") &&
+    String(current.source ?? "") === String(next.source ?? "") &&
     String(current.topK ?? "") === String(next.topK ?? "")
   if (!same) {
     router.replace({ query: next })
   }
 }
 
+const sortRows = (data: RecommendationRow[]) => {
+  return data.slice().sort((a, b) => {
+    const scoreA = typeof a.score === "number" ? a.score : -1
+    const scoreB = typeof b.score === "number" ? b.score : -1
+    return scoreB - scoreA
+  })
+}
+
 const fetchList = async () => {
   loading.value = true
   errorMessage.value = ""
   try {
-    const { items: data, total: totalElements, page, size } = await listCompetitions({
-      keyword: filters.keyword || undefined,
-      status: (filters.status as CompetitionListItem["status"]) || undefined,
-      page: pagination.page,
-      size: pagination.size,
-      recommend: recommendMode.value || undefined,
-      topK: recommendMode.value ? topK.value : undefined
-    })
-    items.value = data
-    total.value = typeof totalElements === "number" ? totalElements : null
-    if (typeof page === "number" && page !== pagination.page) {
-      pagination.page = page
-    }
-    if (typeof size === "number" && size !== pagination.size) {
-      pagination.size = size
+    if (sourceMode.value === "algorithm") {
+      const { items: data } = await listCompetitions({
+        recommend: true,
+        topK: topK.value,
+        page: 0,
+        size: topK.value
+      })
+      rows.value = sortRows(
+        data.map((item) => ({
+          id: item.id,
+          name: item.name,
+          status: item.status,
+          startDate: item.startDate,
+          endDate: item.endDate,
+          organizer: item.organizer,
+          score: item.matchScore,
+          reason: item.recommendReason,
+          source: "algorithm"
+        }))
+      )
+      total.value = null
+    } else {
+      const { items: data, total: totalElements, page, size } = await listCompetitions({
+        keyword: filters.keyword || undefined,
+        status: (filters.status as CompetitionListItem["status"]) || undefined,
+        page: pagination.page,
+        size: pagination.size
+      })
+      rows.value = data.map((item) => ({
+        id: item.id,
+        name: item.name,
+        status: item.status,
+        startDate: item.startDate,
+        endDate: item.endDate,
+        organizer: item.organizer,
+        source: "list"
+      }))
+      total.value = typeof totalElements === "number" ? totalElements : null
+      if (typeof page === "number" && page !== pagination.page) {
+        pagination.page = page
+      }
+      if (typeof size === "number" && size !== pagination.size) {
+        pagination.size = size
+      }
     }
   } catch (error: any) {
-    items.value = []
+    rows.value = []
     total.value = null
     errorMessage.value = showRequestError(error, "Failed to load competitions")
   } finally {
@@ -140,12 +191,15 @@ const handleSizeChange = (size: number) => {
   pagination.page = 0
 }
 
-const goDetail = (row: CompetitionListItem) => {
-  if (!row?.id) return
+const goDetail = (row: RecommendationRow) => {
+  if (!row?.id) {
+    router.push("/competitions")
+    return
+  }
   router.push(`/competitions/${row.id}`)
 }
 
-const formatDateRange = (row: CompetitionListItem) => {
+const formatDateRange = (row: RecommendationRow) => {
   const start = formatDate(row.startDate)
   const end = formatDate(row.endDate)
   if (!start && !end) return ""
@@ -167,10 +221,6 @@ const parseNumber = (value: unknown, fallback: number) => {
   return parsed
 }
 
-const parseBoolean = (value: unknown) => {
-  return value === true || value === "true" || value === "1"
-}
-
 const clampTopK = (value: number) => {
   if (!Number.isFinite(value)) return 10
   if (value < 1) return 1
@@ -181,14 +231,17 @@ const clampTopK = (value: number) => {
 const readQuery = () => {
   const keyword = typeof route.query.keyword === "string" ? route.query.keyword : ""
   const status = typeof route.query.status === "string" ? route.query.status : ""
-  const recommend = parseBoolean(route.query.recommend)
+  const source =
+    route.query.source === "algorithm" || route.query.source === "list"
+      ? (route.query.source as "list" | "algorithm")
+      : "list"
   const topKValue = clampTopK(parseNumber(route.query.topK, 10))
   const page = parseNumber(route.query.page, 0)
   const size = parseNumber(route.query.size, 10)
   return {
     keyword,
     status: status as CompetitionListItem["status"],
-    recommend,
+    source,
     topK: topKValue,
     page,
     size: size > 0 ? size : 10
@@ -200,7 +253,7 @@ const applyQueryFromRoute = () => {
   const same =
     filters.keyword === next.keyword &&
     filters.status === next.status &&
-    recommendMode.value === next.recommend &&
+    sourceMode.value === next.source &&
     topK.value === next.topK &&
     pagination.page === next.page &&
     pagination.size === next.size
@@ -208,7 +261,7 @@ const applyQueryFromRoute = () => {
   isApplying.value = true
   filters.keyword = next.keyword
   filters.status = next.status
-  recommendMode.value = next.recommend
+  sourceMode.value = next.source
   topK.value = next.topK
   pagination.page = next.page
   pagination.size = next.size
@@ -241,9 +294,10 @@ watch(
 )
 
 watch(
-  () => recommendMode.value,
+  () => topK.value,
   () => {
     if (!initialized.value || isApplying.value) return
+    if (sourceMode.value !== "algorithm") return
     pagination.page = 0
     syncUrl()
     fetchList()
@@ -251,10 +305,11 @@ watch(
 )
 
 watch(
-  () => topK.value,
+  () => sourceMode.value,
   () => {
     if (!initialized.value || isApplying.value) return
-    if (!recommendMode.value) return
+    rows.value = []
+    total.value = null
     pagination.page = 0
     syncUrl()
     fetchList()
@@ -265,6 +320,7 @@ watch(
   () => [pagination.page, pagination.size],
   () => {
     if (!initialized.value || isApplying.value) return
+    if (sourceMode.value === "algorithm") return
     syncUrl()
     fetchList()
   }
@@ -309,28 +365,37 @@ onBeforeUnmount(() => {
       <h2>Competitions</h2>
     </div>
 
-    <el-form class="filter-bar" label-position="top" label-width="80px">
+    <el-form class="filter-bar" label-position="top" label-width="120px">
       <el-row :gutter="12" align="bottom">
-        <el-col :span="8">
+        <el-col :span="6">
+          <el-form-item label="Source">
+            <el-radio-group v-model="sourceMode">
+              <el-radio-button label="list">List</el-radio-button>
+              <el-radio-button label="algorithm">Algorithm</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
+        <el-col :span="6">
           <el-form-item label="Keyword">
-            <el-input v-model="filters.keyword" clearable placeholder="keyword" />
+            <el-input v-model="filters.keyword" clearable placeholder="keyword" :disabled="sourceMode === 'algorithm'" />
           </el-form-item>
         </el-col>
         <el-col :span="5">
           <el-form-item label="Status">
-            <el-select v-model="filters.status" clearable placeholder="status" style="min-width: 160px">
+            <el-select
+              v-model="filters.status"
+              clearable
+              placeholder="status"
+              style="min-width: 160px"
+              :disabled="sourceMode === 'algorithm'"
+            >
               <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
             </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="4">
-          <el-form-item label="Recommend">
-            <el-switch v-model="recommendMode" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="4">
           <el-form-item label="TopK">
-            <el-input-number v-model="topK" :min="1" :max="50" :disabled="!recommendMode" />
+            <el-input-number v-model="topK" :min="1" :max="50" :disabled="sourceMode !== 'algorithm'" />
           </el-form-item>
         </el-col>
         <el-col :span="3">
@@ -342,10 +407,10 @@ onBeforeUnmount(() => {
     </el-form>
 
     <el-alert
-      v-if="recommendMode"
+      v-if="sourceMode === 'algorithm'"
       type="info"
       :closable="false"
-      title="Recommendation mode uses keyword and status as filters."
+      title="Algorithm mode uses TopK only. Keyword and status are disabled."
       style="margin-bottom: 12px"
     />
 
@@ -358,7 +423,7 @@ onBeforeUnmount(() => {
     />
 
     <el-table
-      :data="items"
+      :data="rows"
       style="width: 100%"
       @row-click="goDetail"
       v-loading="loading"
@@ -376,16 +441,23 @@ onBeforeUnmount(() => {
         </template>
       </el-table-column>
       <el-table-column prop="organizer" label="Organizer" min-width="180" />
-      <el-table-column label="Action" width="120">
+      <el-table-column label="Recommendation" min-width="220">
         <template #default="{ row }">
-          <el-button size="small" @click.stop="goDetail(row)">Detail</el-button>
+          <div v-if="row.score !== undefined || row.reason">
+            <div v-if="row.score !== undefined">Score: {{ row.score.toFixed(3) }}</div>
+            <div v-if="row.reason">Reason: {{ row.reason }}</div>
+          </div>
+          <span v-else>-</span>
         </template>
       </el-table-column>
     </el-table>
 
-    <div v-if="!loading && !errorMessage && items.length === 0" class="empty-state">暂无竞赛</div>
+    <div v-if="!loading && !errorMessage && rows.length === 0" class="empty-state">
+      <span v-if="sourceMode === 'algorithm'">No recommendations yet. Please complete Skills.</span>
+      <span v-else>暂无竞赛</span>
+    </div>
 
-    <div v-if="total !== null" class="pagination">
+    <div v-if="total !== null && sourceMode === 'list'" class="pagination">
       <el-pagination
         :current-page="pagination.page + 1"
         :page-size="pagination.size"

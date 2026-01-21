@@ -100,7 +100,9 @@
 
 > 风格规则：推荐页可以作为“亮点页”，但只能使用已统一的组件体系，不新增另一套风格。
 
-?????step0 - ????? /api/competitions(recommend/topK)????????????? topK ???
+Progress note: step0 - recommendations via /api/competitions (recommend/topK), list page adds recommend mode + topK control.
+
+Progress note: step1 - recommendations page supports list vs algorithm sources (/api/recommendations/competitions).
 
 ### F10：奖项发布与个人荣誉查询（对齐后端 M9）
 

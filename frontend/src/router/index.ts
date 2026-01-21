@@ -62,12 +62,6 @@ export const constantRoutes: RouteRecordRaw[] = [
         meta: { title: "Competitions" }
       },
       {
-        path: "recommendations/competitions",
-        name: "CompetitionRecommendations",
-        component: () => import("@/views/recommendations/CompetitionRecommendations.vue"),
-        meta: { title: "Competition Recommendations" }
-      },
-      {
         path: "competitions/:id",
         name: "CompetitionDetail",
         component: () => import("@/views/competitions/CompetitionDetail.vue"),
