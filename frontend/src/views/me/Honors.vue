@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { getMyHonors, type AwardDetail, type UserHonorsResponse } from "@/api/honors"
+import { toYmd } from "@/common/utils/datetime"
 import { getApiErrorMessage } from "@/utils/errorMessage"
 
 const loading = ref(false)
@@ -11,15 +12,6 @@ const showCounts = computed(() => {
   const data = honors.value
   return data?.participationCount != null || data?.awardCount != null
 })
-
-const formatDateTime = (value?: string | null) => {
-  if (!value) return ""
-  if (value.includes("T")) {
-    const [date, time] = value.split("T")
-    return `${date} ${time.slice(0, 5)}`
-  }
-  return value
-}
 
 const getFallbackMessage = (status?: number) => {
   if (status === 400) return "Invalid request"
@@ -76,7 +68,7 @@ onMounted(loadHonors)
         <el-table-column prop="teamId" label="Team ID" width="120" />
         <el-table-column label="Published At" width="180">
           <template #default="{ row }">
-            {{ formatDateTime(row.publishedAt) || "-" }}
+            {{ row.publishedAt ? toYmd(row.publishedAt) : "-" }}
           </template>
         </el-table-column>
       </el-table>

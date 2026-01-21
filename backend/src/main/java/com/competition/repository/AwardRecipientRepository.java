@@ -11,6 +11,7 @@ import java.util.List;
 public interface AwardRecipientRepository extends JpaRepository<AwardRecipient, Long> {
     List<AwardRecipient> findByUserId(Long userId);
     List<AwardRecipient> findByTeamAwardId(Long teamAwardId);
+    long countByTeamAwardId(Long teamAwardId);
 
     @Query(
     "select ar, ta " +

@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { ElMessage } from "element-plus"
-import { publishAward, type AwardPublishResponse } from "@/api/awards"
+import { listAwardRecords, publishAward, type AwardPublishResponse, type AwardRecordItem } from "@/api/awards"
 import { useAuthStore } from "@/stores/auth"
+import { toYmd } from "@/common/utils/datetime"
 import { getApiErrorMessage } from "@/utils/errorMessage"
 
 const authStore = useAuthStore()
@@ -9,6 +10,7 @@ const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase(
 const isAdmin = computed(() => roleUpper.value === "ADMIN")
 
 const submitting = ref(false)
+const loadingRecords = ref(false)
 const form = reactive({
   competitionId: "",
   teamId: "",
@@ -16,6 +18,7 @@ const form = reactive({
 })
 
 const lastResult = ref<AwardPublishResponse | null>(null)
+const records = ref<AwardRecordItem[]>([])
 const errorDialogVisible = ref(false)
 const errorDialogMessage = ref("")
 
@@ -76,6 +79,38 @@ const handleSubmit = async () => {
     submitting.value = false
   }
 }
+
+const parseOptionalId = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  const parsed = Number(trimmed)
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined
+  return parsed
+}
+
+const loadRecords = async (useFilters = false) => {
+  loadingRecords.value = true
+  try {
+    const params = useFilters
+      ? {
+          competitionId: parseOptionalId(form.competitionId),
+          teamId: parseOptionalId(form.teamId)
+        }
+      : {}
+    records.value = await listAwardRecords(params)
+  } catch (error: any) {
+    const status = error?.status ?? error?.response?.status
+    const fallback = getFallbackMessage(status)
+    const message = getApiErrorMessage(error, fallback)
+    showError(message)
+  } finally {
+    loadingRecords.value = false
+  }
+}
+
+onMounted(() => {
+  loadRecords(false)
+})
 </script>
 
 <template>
@@ -144,6 +179,31 @@ const handleSubmit = async () => {
         You can log in as a recipient to verify the honors page.
       </div>
     </el-card>
+
+    <el-card shadow="never" class="records-card">
+      <div class="records-header">
+        <h3>Award Records</h3>
+        <div class="records-actions">
+          <el-button size="small" :loading="loadingRecords" @click="loadRecords(false)">Refresh</el-button>
+          <el-button size="small" :loading="loadingRecords" @click="loadRecords(true)">
+            Refresh With Filters
+          </el-button>
+        </div>
+      </div>
+      <el-table v-if="records.length" :data="records" v-loading="loadingRecords" style="width: 100%">
+        <el-table-column prop="awardId" label="Award ID" width="120" />
+        <el-table-column prop="competitionId" label="Competition ID" width="140" />
+        <el-table-column prop="teamId" label="Team ID" width="120" />
+        <el-table-column prop="awardName" label="Award Name" min-width="160" />
+        <el-table-column prop="recipientCount" label="Recipients" width="120" />
+        <el-table-column label="Published At" width="180">
+          <template #default="{ row }">
+            {{ row.publishedAt ? toYmd(row.publishedAt) : "-" }}
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-else-if="!loadingRecords" description="No award records" />
+    </el-card>
   </el-card>
 
   <el-dialog v-model="errorDialogVisible" title="Publish Failed" width="420px">
@@ -169,6 +229,22 @@ const handleSubmit = async () => {
 
 .result-card {
   margin-top: 16px;
+}
+
+.records-card {
+  margin-top: 16px;
+}
+
+.records-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.records-actions {
+  display: inline-flex;
+  gap: 8px;
 }
 
 .result-hint {

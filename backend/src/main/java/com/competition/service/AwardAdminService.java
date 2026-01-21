@@ -2,6 +2,7 @@ package com.competition.service;
 
 import com.competition.dto.AwardPublishRequest;
 import com.competition.dto.AwardPublishResponse;
+import com.competition.dto.AwardRecordItem;
 import com.competition.entity.AwardRecipient;
 import com.competition.entity.Competition;
 import com.competition.entity.Team;
@@ -17,6 +18,8 @@ import com.competition.repository.TeamRepository;
 import com.competition.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -162,5 +165,44 @@ public class AwardAdminService {
         response.setRecipientCount(recipientUserIds.size());
         response.setRecipientUserIds(new ArrayList<>(recipientUserIds));
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AwardRecordItem> listAwardRecords(Long adminUserId, Long competitionId, Long teamId, int size) {
+        User admin = userRepository.findById(adminUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        if (admin.getRole() != User.Role.ADMIN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN can view award records");
+        }
+
+        int safeSize = size > 0 ? Math.min(size, 200) : 50;
+        PageRequest pageRequest = PageRequest.of(0, safeSize);
+        Page<TeamAward> awardsPage;
+        if (competitionId != null && teamId != null) {
+            awardsPage = teamAwardRepository.findByCompetitionIdAndTeamIdOrderByPublishedAtDesc(
+                    competitionId,
+                    teamId,
+                    pageRequest
+            );
+        } else if (competitionId != null) {
+            awardsPage = teamAwardRepository.findByCompetitionIdOrderByPublishedAtDesc(competitionId, pageRequest);
+        } else if (teamId != null) {
+            awardsPage = teamAwardRepository.findByTeamIdOrderByPublishedAtDesc(teamId, pageRequest);
+        } else {
+            awardsPage = teamAwardRepository.findAllByOrderByPublishedAtDesc(pageRequest);
+        }
+
+        List<AwardRecordItem> records = new ArrayList<>();
+        for (TeamAward award : awardsPage.getContent()) {
+            AwardRecordItem item = new AwardRecordItem();
+            item.setAwardId(award.getId());
+            item.setCompetitionId(award.getCompetitionId());
+            item.setTeamId(award.getTeamId());
+            item.setAwardName(award.getAwardName());
+            item.setPublishedAt(award.getPublishedAt());
+            item.setRecipientCount((int) awardRecipientRepository.countByTeamAwardId(award.getId()));
+            records.add(item);
+        }
+        return records;
     }
 }

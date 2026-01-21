@@ -2,17 +2,21 @@ package com.competition.controller;
 
 import com.competition.dto.AwardPublishRequest;
 import com.competition.dto.AwardPublishResponse;
+import com.competition.dto.AwardRecordItem;
 import com.competition.service.AwardAdminService;
 import com.competition.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/awards")
@@ -30,6 +34,17 @@ public class AdminAwardController {
         Long userId = getUserIdFromToken(request);
         AwardPublishResponse response = awardAdminService.publishAward(userId, publishRequest);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/records")
+    public ResponseEntity<List<AwardRecordItem>> listAwardRecords(
+            HttpServletRequest request,
+            @RequestParam(required = false) Long competitionId,
+            @RequestParam(required = false) Long teamId,
+            @RequestParam(defaultValue = "50") int size) {
+        Long userId = getUserIdFromToken(request);
+        List<AwardRecordItem> records = awardAdminService.listAwardRecords(userId, competitionId, teamId, size);
+        return ResponseEntity.ok(records);
     }
 
     private Long getUserIdFromToken(HttpServletRequest request) {

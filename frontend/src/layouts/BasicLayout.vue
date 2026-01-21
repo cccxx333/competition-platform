@@ -29,13 +29,13 @@ const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase(
             Team Lookup
           </el-menu-item>
           <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teams/review">Review</el-menu-item>
+          <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/awards/publish">Award Publish</el-menu-item>
         </el-sub-menu>
         <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teacher/applications">我的教师申请</el-menu-item>
         <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/teacher-applications">教师申请审核</el-menu-item>
-        <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/awards/publish">Award Publish</el-menu-item>
         <el-menu-item index="/me/profile">Profile</el-menu-item>
         <el-menu-item index="/me/skills">Skills</el-menu-item>
-        <el-menu-item index="/me/honors">Honors</el-menu-item>
+        <el-menu-item v-if="roleUpper === 'STUDENT'" index="/me/honors">Honors</el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

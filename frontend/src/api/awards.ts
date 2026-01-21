@@ -16,6 +16,22 @@ export type AwardPublishResponse = {
   [key: string]: unknown
 }
 
+export type AwardRecordItem = {
+  awardId?: number
+  competitionId?: number
+  teamId?: number
+  awardName?: string
+  recipientCount?: number
+  publishedAt?: string
+  [key: string]: unknown
+}
+
+export type AwardRecordParams = {
+  competitionId?: number
+  teamId?: number
+  size?: number
+}
+
 const unwrapData = <T>(payload: any): T => {
   return (payload?.data ?? payload) as T
 }
@@ -36,5 +52,14 @@ export async function publishAward(payload: AwardPublishRequest): Promise<AwardP
     return unwrapData<AwardPublishResponse>(response?.data)
   } catch (error: any) {
     throw toError(error, "Failed to publish award")
+  }
+}
+
+export async function listAwardRecords(params: AwardRecordParams = {}): Promise<AwardRecordItem[]> {
+  try {
+    const response = await client.get("/admin/awards/records", { params })
+    return unwrapData<AwardRecordItem[]>(response?.data) ?? []
+  } catch (error: any) {
+    throw toError(error, "Failed to load award records")
   }
 }

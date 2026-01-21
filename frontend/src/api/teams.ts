@@ -41,6 +41,16 @@ export type TeamMemberView = {
   [key: string]: unknown
 }
 
+export type TeamAwardSummary = {
+  hasAward?: boolean
+  awardId?: number
+  competitionId?: number
+  teamId?: number
+  awardName?: string
+  publishedAt?: string
+  [key: string]: unknown
+}
+
 export type TeamListResult = {
   items: TeamDto[]
   total?: number
@@ -75,6 +85,15 @@ export async function getTeamDetail(teamId: number): Promise<TeamDto> {
     return unwrapData<TeamDto>(response?.data)
   } catch (error: any) {
     throw toError(error, "Failed to load team detail")
+  }
+}
+
+export async function getTeamAwardSummary(teamId: number): Promise<TeamAwardSummary> {
+  try {
+    const response = await client.get(`/teams/${teamId}/award`)
+    return unwrapData<TeamAwardSummary>(response?.data)
+  } catch (error: any) {
+    throw toError(error, "Failed to load team award")
   }
 }
 

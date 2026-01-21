@@ -2,6 +2,7 @@ package com.competition.controller;
 
 import com.competition.dto.TeamDTO;
 import com.competition.dto.TeamMemberViewResponse;
+import com.competition.dto.TeamAwardSummaryResponse;
 import com.competition.service.TeamService;
 import com.competition.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,12 @@ public class TeamController {
     public ResponseEntity<TeamDTO> getTeamById(@PathVariable Long id) {
         TeamDTO team = teamService.getTeamDTOById(id);
         return ResponseEntity.ok(team);
+    }
+
+    @GetMapping("/{teamId:\\d+}/award")
+    public ResponseEntity<TeamAwardSummaryResponse> getTeamAwardSummary(@PathVariable Long teamId) {
+        TeamAwardSummaryResponse response = teamService.getTeamAwardSummary(teamId);
+        return ResponseEntity.ok(response);
     }
 
     /**

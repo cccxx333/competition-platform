@@ -1,6 +1,7 @@
 package com.competition.service;
 
 import com.competition.dto.CompetitionDTO;
+import com.competition.dto.TeamAwardSummaryResponse;
 import com.competition.dto.TeamDTO;
 import com.competition.dto.UserDTO;
 import com.competition.dto.TeamMemberViewResponse;
@@ -11,6 +12,7 @@ import com.competition.entity.TeamMember;
 import com.competition.entity.User;
 import com.competition.repository.ApplicationRepository;
 import com.competition.exception.ApiException;
+import com.competition.repository.TeamAwardRepository;
 import com.competition.repository.TeamMemberRepository;
 import com.competition.repository.TeamRepository;
 import com.competition.repository.UserRepository;
@@ -35,6 +37,7 @@ public class TeamService {
     private final TeamMemberRepository teamMemberRepository;
     private final UserRepository userRepository;
     private final ApplicationRepository applicationRepository;
+    private final TeamAwardRepository teamAwardRepository;
 
     @Transactional(readOnly = true)
     public Page<TeamDTO> getTeams(Pageable pageable) {
@@ -52,6 +55,25 @@ public class TeamService {
     public TeamDTO getTeamDTOById(Long id) {
         Team team = getTeamById(id);
         return convertToDTO(team);
+    }
+
+    @Transactional(readOnly = true)
+    public TeamAwardSummaryResponse getTeamAwardSummary(Long teamId) {
+        Team team = getTeamById(teamId);
+        TeamAwardSummaryResponse response = new TeamAwardSummaryResponse();
+        response.setTeamId(team.getId());
+        response.setCompetitionId(team.getCompetition() != null ? team.getCompetition().getId() : null);
+        response.setHasAward(false);
+
+        teamAwardRepository.findFirstByTeamIdAndIsActiveOrderByPublishedAtDesc(teamId, (byte) 1)
+                .ifPresent(award -> {
+                    response.setHasAward(true);
+                    response.setAwardId(award.getId());
+                    response.setAwardName(award.getAwardName());
+                    response.setPublishedAt(award.getPublishedAt());
+                });
+
+        return response;
     }
 
     public TeamDTO createTeam(Long userId, TeamDTO teamDTO) {

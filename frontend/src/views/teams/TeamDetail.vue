@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ElMessage } from "element-plus"
-import { closeTeam, getTeamDetail, listTeamMembers, type TeamDto, type TeamMemberView } from "@/api/teams"
+import { closeTeam, getTeamAwardSummary, getTeamDetail, listTeamMembers, type TeamAwardSummary, type TeamDto, type TeamMemberView } from "@/api/teams"
 import { useAuthStore } from "@/stores/auth"
 import { canCloseRecruiting, getTeamWriteBlockReason, isDisbanded } from "@/utils/teamGuards"
 import { getApiErrorMessage } from "@/utils/errorMessage"
@@ -12,6 +12,9 @@ const authStore = useAuthStore()
 const team = ref<TeamDto | null>(null)
 const members = ref<TeamMemberView[]>([])
 const membersLoaded = ref(false)
+const awardSummary = ref<TeamAwardSummary | null>(null)
+const awardLoading = ref(false)
+const awardError = ref("")
 const loading = ref(false)
 const actionLoading = ref(false)
 const closeDialogVisible = ref(false)
@@ -74,6 +77,37 @@ const showRequestError = (error: any, fallback: string) => {
   return message
 }
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) return ""
+  if (value.includes("T")) {
+    const [date, time] = value.split("T")
+    return `${date} ${time.slice(0, 5)}`
+  }
+  return value
+}
+
+const toYmd = (value?: string | null) => {
+  if (!value) return ""
+  const text = String(value)
+  return text.length >= 10 ? text.slice(0, 10) : text
+}
+
+const loadAward = async () => {
+  if (!teamId.value) return
+  awardLoading.value = true
+  awardError.value = ""
+  try {
+    awardSummary.value = await getTeamAwardSummary(teamId.value)
+  } catch (error: any) {
+    const status = error?.status ?? error?.response?.status
+    const fallbackMessage = status ? getFallbackMessage(status) : "Failed to load team award"
+    awardError.value = getApiErrorMessage(error, fallbackMessage)
+    awardSummary.value = null
+  } finally {
+    awardLoading.value = false
+  }
+}
+
 const loadTeam = async () => {
   if (!teamId.value) {
     errorDialogMessage.value = "缺少 teamId"
@@ -83,6 +117,7 @@ const loadTeam = async () => {
   loading.value = true
   try {
     team.value = await getTeamDetail(teamId.value)
+    await loadAward()
     membersLoaded.value = false
     try {
       members.value = await listTeamMembers(teamId.value)
@@ -95,6 +130,7 @@ const loadTeam = async () => {
     }
   } catch (error: any) {
     team.value = null
+    awardSummary.value = null
     showRequestError(error, "Failed to load team detail")
   } finally {
     loading.value = false
@@ -170,6 +206,15 @@ onMounted(loadTeam)
       <el-descriptions-item label="当前人数">{{ currentCount }}</el-descriptions-item>
       <el-descriptions-item label="队长">
         {{ team.leader?.realName || team.leader?.username || "-" }}
+      </el-descriptions-item>
+      <el-descriptions-item label="获奖情况">
+        <span v-if="awardLoading">加载中...</span>
+        <span v-else-if="awardError">{{ awardError }}</span>
+        <span v-else-if="awardSummary?.hasAward">
+          {{ awardSummary.awardName || "-" }}
+          <span v-if="awardSummary.publishedAt"> ({{ toYmd(awardSummary.publishedAt) }})</span>
+        </span>
+        <span v-else>暂无奖项</span>
       </el-descriptions-item>
       <el-descriptions-item label="创建时间">{{ team.createdAt ?? "-" }}</el-descriptions-item>
       <el-descriptions-item v-if="team.description" label="说明">{{ team.description }}</el-descriptions-item>
