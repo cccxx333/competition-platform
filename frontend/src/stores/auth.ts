@@ -52,5 +52,10 @@ export const useAuthStore = defineStore("auth", () => {
     return inFlight
   }
 
-  return { token, isAuthed, user, isMeLoaded, setToken, setUser, clearUser, loadMe, clearToken }
+  const logout = () => {
+    clearToken()
+    clearUser()
+  }
+
+  return { token, isAuthed, user, isMeLoaded, setToken, setUser, clearUser, loadMe, clearToken, logout }
 })

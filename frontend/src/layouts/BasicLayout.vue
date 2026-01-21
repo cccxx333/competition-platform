@@ -1,7 +1,9 @@
 ﻿<script lang="ts" setup>
+import { ElMessage } from "element-plus"
 import { useAuthStore } from "@/stores/auth"
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 
 const userLabel = computed(() => {
@@ -11,6 +13,12 @@ const userLabel = computed(() => {
 })
 
 const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
+
+const handleLogout = () => {
+  authStore.logout()
+  router.replace("/login")
+  ElMessage.success("已退出登录")
+}
 </script>
 
 <template>
@@ -34,14 +42,17 @@ const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase(
         <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teacher/applications">我的教师申请</el-menu-item>
         <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/teacher-applications">教师申请审核</el-menu-item>
         <el-menu-item index="/me/profile">个人信息</el-menu-item>
-        <el-menu-item index="/me/skills">技能</el-menu-item>
+        <el-menu-item v-if="roleUpper !== 'TEACHER'" index="/me/skills">技能</el-menu-item>
         <el-menu-item v-if="roleUpper === 'STUDENT'" index="/me/honors">荣誉</el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
       <el-header class="basic-layout__header">
         <div class="basic-layout__title">竞赛平台</div>
-        <div class="basic-layout__user">{{ userLabel }}</div>
+        <div class="basic-layout__user">
+          <span>{{ userLabel }}</span>
+          <el-button type="default" link @click="handleLogout">退出登录</el-button>
+        </div>
       </el-header>
       <el-main class="basic-layout__main">
         <router-view />
@@ -70,6 +81,12 @@ const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase(
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.basic-layout__user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .basic-layout__main {

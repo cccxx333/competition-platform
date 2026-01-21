@@ -1,10 +1,15 @@
 <script lang="ts" setup>
 import { ElMessage } from "element-plus"
-import { listCompetitions, type CompetitionListItem } from "@/api/competitions"
+import { listCompetitions, type CompetitionListItem, type CompetitionListParams } from "@/api/competitions"
 import StatusPill from "@@/components/StatusPill/index.vue"
+import { useAuthStore } from "@/stores/auth"
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
+const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
+const isTeacher = computed(() => roleUpper.value === "TEACHER")
+const isAdmin = computed(() => roleUpper.value === "ADMIN")
 
 type RecommendationRow = {
   id?: number
@@ -25,9 +30,11 @@ const total = ref<number | null>(null)
 const initialized = ref(false)
 const isApplying = ref(false)
 
+type StatusFilterValue = "" | "UPCOMING" | "ONGOING" | "FINISHED"
+
 const filters = reactive({
   keyword: "",
-  status: "" as CompetitionListItem["status"] | ""
+  status: "" as StatusFilterValue
 })
 
 const sourceMode = ref<"list" | "algorithm">("list")
@@ -38,7 +45,8 @@ const pagination = reactive({
   size: 10
 })
 
-const statusOptions: Array<{ label: string; value: CompetitionListItem["status"] }> = [
+const statusOptions: Array<{ label: string; value: StatusFilterValue }> = [
+  { label: "全部", value: "" },
   { label: "未开始", value: "UPCOMING" },
   { label: "进行中", value: "ONGOING" },
   { label: "已结束", value: "FINISHED" }
@@ -136,12 +144,15 @@ const fetchList = async () => {
       )
       total.value = null
     } else {
-      const { items: data, total: totalElements, page, size } = await listCompetitions({
+      const params: CompetitionListParams = {
         keyword: filters.keyword || undefined,
-        status: (filters.status as CompetitionListItem["status"]) || undefined,
         page: pagination.page,
         size: pagination.size
-      })
+      }
+      if (filters.status) {
+        params.status = filters.status
+      }
+      const { items: data, total: totalElements, page, size } = await listCompetitions(params)
       rows.value = data.map((item) => ({
         id: item.id,
         name: item.name,
@@ -240,7 +251,7 @@ const readQuery = () => {
   const size = parseNumber(route.query.size, 10)
   return {
     keyword,
-    status: status as CompetitionListItem["status"],
+    status: status as StatusFilterValue,
     source,
     topK: topKValue,
     page,
@@ -263,6 +274,9 @@ const applyQueryFromRoute = () => {
   filters.status = next.status
   sourceMode.value = next.source
   topK.value = next.topK
+  if (isTeacher.value && sourceMode.value === "algorithm") {
+    sourceMode.value = "list"
+  }
   pagination.page = next.page
   pagination.size = next.size
   return true
@@ -329,6 +343,9 @@ watch(
 onMounted(() => {
   const applied = applyQueryFromRoute()
   initialized.value = true
+  if (isTeacher.value && sourceMode.value === "algorithm") {
+    sourceMode.value = "list"
+  }
   fetchList()
   if (applied) {
     window.setTimeout(() => {
@@ -366,42 +383,51 @@ onBeforeUnmount(() => {
     </div>
 
     <el-form class="filter-bar" label-position="top" label-width="120px">
-      <el-row :gutter="12" align="bottom">
-        <el-col :span="6">
-          <el-form-item label="来源">
-            <el-radio-group v-model="sourceMode">
-              <el-radio-button label="list">列表</el-radio-button>
-              <el-radio-button label="algorithm">算法</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
+      <el-row :gutter="12">
+        <el-col :span="isTeacher ? 24 : 16">
+          <div class="competition-filter-group">
+            <el-form-item label="关键词">
+              <el-input
+                v-model="filters.keyword"
+                class="competition-search-input"
+                clearable
+                placeholder="关键词"
+                :disabled="sourceMode === 'algorithm'"
+              />
+            </el-form-item>
+            <el-form-item label="状态">
+              <el-select
+                v-model="filters.status"
+                class="competition-status-select"
+                clearable
+                placeholder="状态"
+                :disabled="sourceMode === 'algorithm'"
+              >
+                <el-option
+                  v-for="item in statusOptions"
+                  :key="`status-${item.value}`"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label=" " label-width="80px">
+              <el-button type="primary" @click="resetFilters">重置</el-button>
+            </el-form-item>
+          </div>
         </el-col>
-        <el-col :span="6">
-          <el-form-item label="关键词">
-            <el-input v-model="filters.keyword" clearable placeholder="关键词" :disabled="sourceMode === 'algorithm'" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="5">
-          <el-form-item label="状态">
-            <el-select
-              v-model="filters.status"
-              clearable
-              placeholder="状态"
-              style="min-width: 160px"
-              :disabled="sourceMode === 'algorithm'"
-            >
-              <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="4">
-          <el-form-item label="推荐数量">
-            <el-input-number v-model="topK" :min="1" :max="50" :disabled="sourceMode !== 'algorithm'" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="3">
-          <el-form-item label=" " label-width="80px">
-            <el-button type="primary" @click="resetFilters">重置</el-button>
-          </el-form-item>
+        <el-col v-if="!isTeacher && !isAdmin" :span="8" class="filter-right">
+          <div class="filter-right__inner">
+            <el-form-item v-if="sourceMode === 'algorithm'" label="推荐数量">
+              <el-input-number v-model="topK" :min="1" :max="50" :disabled="sourceMode !== 'algorithm'" />
+            </el-form-item>
+            <el-form-item label="来源">
+              <el-radio-group v-model="sourceMode">
+                <el-radio-button label="list">列表</el-radio-button>
+                <el-radio-button label="algorithm">算法</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+          </div>
         </el-col>
       </el-row>
     </el-form>
@@ -480,6 +506,36 @@ onBeforeUnmount(() => {
 
 .filter-bar {
   margin-bottom: 8px;
+}
+
+.competition-filter-group {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-right {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.filter-right__inner {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.competition-search-input {
+  width: 100%;
+  max-width: 200px;
+  flex-shrink: 0;
+}
+
+.competition-status-select {
+  width: 180px;
+  min-width: 180px;
+  flex: 0 0 auto;
 }
 
 .empty-state {
