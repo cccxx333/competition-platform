@@ -56,6 +56,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         meta: { title: "Skills" }
       },
       {
+        path: "me/honors",
+        name: "MyHonors",
+        component: () => import("@/views/me/Honors.vue"),
+        meta: { title: "Honors" }
+      },
+      {
         path: "competitions",
         name: "CompetitionList",
         component: () => import("@/views/competitions/CompetitionList.vue"),
@@ -78,6 +84,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         name: "AdminTeacherApplicationReviewList",
         component: () => import("@/views/admin/AdminTeacherApplicationReviewList.vue"),
         meta: { title: "Teacher Applications Review", hidden: true }
+      },
+      {
+        path: "admin/awards/publish",
+        name: "AdminAwardPublish",
+        component: () => import("@/views/admin/AwardPublish.vue"),
+        meta: { title: "Publish Awards" }
       },
       {
         path: "teams/join",

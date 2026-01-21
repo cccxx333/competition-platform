@@ -16,6 +16,7 @@ import com.competition.repository.TeamMemberRepository;
 import com.competition.repository.TeamRepository;
 import com.competition.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class AwardAdminService {
 
@@ -41,51 +43,80 @@ public class AwardAdminService {
 
     @Transactional
     public AwardPublishResponse publishAward(Long adminUserId, AwardPublishRequest request) {
+        log.info("publishAward request: adminUserId={}, competitionId={}, teamId={}, awardName={}",
+                adminUserId,
+                request == null ? null : request.getCompetitionId(),
+                request == null ? null : request.getTeamId(),
+                request == null ? null : request.getAwardName());
         if (request == null
                 || request.getCompetitionId() == null
                 || request.getTeamId() == null
                 || request.getAwardName() == null) {
+            log.warn("THROW_BAD_REQUEST: competitionId/teamId/awardName required");
             throw new ApiException(HttpStatus.BAD_REQUEST, "competitionId, teamId and awardName are required");
         }
 
         String awardName = request.getAwardName().trim();
         if (awardName.isEmpty()) {
+            log.warn("THROW_BAD_REQUEST: awardName is required");
             throw new ApiException(HttpStatus.BAD_REQUEST, "awardName is required");
         }
         if (awardName.length() > 64) {
+            log.warn("THROW_BAD_REQUEST: awardName too long");
             throw new ApiException(HttpStatus.BAD_REQUEST, "awardName too long");
         }
 
         User admin = userRepository.findById(adminUserId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        log.info("publishAward admin loaded: userId={}, role={}", admin.getId(), admin.getRole());
         if (admin.getRole() != User.Role.ADMIN) {
+            log.warn("THROW_FORBIDDEN: only ADMIN can publish awards");
             throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN can publish awards");
         }
 
         Competition competition = competitionRepository.findById(request.getCompetitionId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "competition not found"));
-        if (competition.getStatus() != Competition.CompetitionStatus.FINISHED) {
-            throw new ApiException(HttpStatus.CONFLICT, "competition is not finished");
-        }
+        log.info("publishAward competition loaded: id={}, status={}", competition.getId(), competition.getStatus());
 
         Team team = teamRepository.findById(request.getTeamId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "team not found"));
+        log.info("publishAward team loaded: id={}, status={}, competitionId={}",
+                team.getId(),
+                team.getStatus(),
+                team.getCompetition() == null ? null : team.getCompetition().getId());
         if (team.getCompetition() == null || !competition.getId().equals(team.getCompetition().getId())) {
+            log.warn("THROW_BAD_REQUEST: team does not belong to competition, competitionId={}, teamId={}",
+                    competition.getId(),
+                    team.getId());
             throw new ApiException(HttpStatus.BAD_REQUEST, "team does not belong to competition");
         }
-        if (team.getStatus() != Team.TeamStatus.CLOSED) {
-            throw new ApiException(HttpStatus.CONFLICT, "team is not closed");
+
+        boolean duplicateAward = teamAwardRepository
+                .existsByCompetitionIdAndTeamId(
+                        competition.getId(),
+                        team.getId()
+                );
+        log.info("publishAward duplicate check: method=existsByCompetitionIdAndTeamId, competitionId={}, teamId={}, result={}",
+                competition.getId(),
+                team.getId(),
+                duplicateAward);
+        if (duplicateAward) {
+            log.warn("THROW_CONFLICT: award already published for this team, competitionId={}, teamId={}",
+                    competition.getId(),
+                    team.getId());
+            throw new ApiException(HttpStatus.CONFLICT, "award already published for this team");
         }
 
-        boolean exists = teamAwardRepository
-                .existsByCompetitionIdAndTeamIdAndAwardNameAndIsActive(
-                        competition.getId(),
-                        team.getId(),
-                        awardName,
-                        ACTIVE_FLAG
-                );
-        if (exists) {
-            throw new ApiException(HttpStatus.CONFLICT, "award already published");
+        if (competition.getStatus() != Competition.CompetitionStatus.FINISHED) {
+            log.warn("THROW_CONFLICT: competition is not finished, competitionId={}, status={}",
+                    competition.getId(),
+                    competition.getStatus());
+            throw new ApiException(HttpStatus.CONFLICT, "competition is not finished");
+        }
+
+        if (team.getStatus() != Team.TeamStatus.CLOSED) {
+            log.warn("THROW_CONFLICT: team is not closed, teamId={}, status={}", team.getId(), team.getStatus());
+            throw new ApiException(HttpStatus.CONFLICT, "team is not closed");
         }
 
         List<TeamMember> members = teamMemberRepository.findByTeamIdAndLeftAtIsNull(team.getId());
@@ -95,7 +126,9 @@ public class AwardAdminService {
                 recipientUserIds.add(member.getUser().getId());
             }
         }
+        log.info("publishAward recipients resolved: teamId={}, recipients={}", team.getId(), recipientUserIds.size());
         if (recipientUserIds.isEmpty()) {
+            log.warn("THROW_CONFLICT: no active members, teamId={}", team.getId());
             throw new ApiException(HttpStatus.CONFLICT, "no active members");
         }
 

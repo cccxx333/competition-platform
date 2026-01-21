@@ -122,3 +122,5 @@ Progress note: step1 - recommendations page supports list vs algorithm sources (
 
 > 风格规则：沿用 F6 统一组件体系，不新增另一套视觉风格。
 
+Progress note: step0 - add honors page + admin award publish page (manual input, API-aligned).
+
