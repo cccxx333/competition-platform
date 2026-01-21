@@ -1,6 +1,6 @@
 <template>
   <el-card shadow="never" class="cp-card">
-    <h2>Teacher Dashboard</h2>
-    <p>Placeholder</p>
+    <h2>教师看板</h2>
+    <p>占位内容</p>
   </el-card>
 </template>

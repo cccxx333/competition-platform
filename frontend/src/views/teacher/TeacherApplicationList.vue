@@ -66,27 +66,27 @@ onMounted(fetchList)
 <template>
   <el-card shadow="never" v-loading="loading">
     <div class="page-header">
-      <h2>My Teacher Applications</h2>
+      <h2>我的教师申请</h2>
     </div>
 
     <el-table :data="items" style="width: 100%">
-      <el-table-column prop="competitionName" label="Competition" min-width="200" />
-      <el-table-column label="Status" width="140">
+      <el-table-column prop="competitionName" label="竞赛" min-width="200" />
+      <el-table-column label="状态" width="140">
         <template #default="{ row }">
           <StatusPill :value="row.status" kind="teacherApplication" />
         </template>
       </el-table-column>
-      <el-table-column label="Applied At" width="180">
+      <el-table-column label="申请时间" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.createdAt) || "-" }}
         </template>
       </el-table-column>
-      <el-table-column label="Reviewed At" width="180">
+      <el-table-column label="审核时间" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.updatedAt) || "-" }}
         </template>
       </el-table-column>
-      <el-table-column label="Reason" min-width="200">
+      <el-table-column label="原因" min-width="200">
         <template #default="{ row }">
           <el-tooltip v-if="getReason(row) !== '-'" :content="getReason(row)" placement="top">
             <span class="truncate">{{ getReason(row) }}</span>

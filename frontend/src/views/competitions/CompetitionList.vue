@@ -39,9 +39,9 @@ const pagination = reactive({
 })
 
 const statusOptions: Array<{ label: string; value: CompetitionListItem["status"] }> = [
-  { label: "UPCOMING", value: "UPCOMING" },
-  { label: "ONGOING", value: "ONGOING" },
-  { label: "FINISHED", value: "FINISHED" }
+  { label: "未开始", value: "UPCOMING" },
+  { label: "进行中", value: "ONGOING" },
+  { label: "已结束", value: "FINISHED" }
 ]
 
 const showRequestError = (error: any, fallback: string) => {
@@ -162,7 +162,7 @@ const fetchList = async () => {
   } catch (error: any) {
     rows.value = []
     total.value = null
-    errorMessage.value = showRequestError(error, "Failed to load competitions")
+    errorMessage.value = showRequestError(error, "加载竞赛失败")
   } finally {
     loading.value = false
   }
@@ -362,30 +362,30 @@ onBeforeUnmount(() => {
 <template>
   <el-card shadow="never" v-loading="loading">
     <div class="page-header">
-      <h2>Competitions</h2>
+      <h2>竞赛列表</h2>
     </div>
 
     <el-form class="filter-bar" label-position="top" label-width="120px">
       <el-row :gutter="12" align="bottom">
         <el-col :span="6">
-          <el-form-item label="Source">
+          <el-form-item label="来源">
             <el-radio-group v-model="sourceMode">
-              <el-radio-button label="list">List</el-radio-button>
-              <el-radio-button label="algorithm">Algorithm</el-radio-button>
+              <el-radio-button label="list">列表</el-radio-button>
+              <el-radio-button label="algorithm">算法</el-radio-button>
             </el-radio-group>
           </el-form-item>
         </el-col>
         <el-col :span="6">
-          <el-form-item label="Keyword">
-            <el-input v-model="filters.keyword" clearable placeholder="keyword" :disabled="sourceMode === 'algorithm'" />
+          <el-form-item label="关键词">
+            <el-input v-model="filters.keyword" clearable placeholder="关键词" :disabled="sourceMode === 'algorithm'" />
           </el-form-item>
         </el-col>
         <el-col :span="5">
-          <el-form-item label="Status">
+          <el-form-item label="状态">
             <el-select
               v-model="filters.status"
               clearable
-              placeholder="status"
+              placeholder="状态"
               style="min-width: 160px"
               :disabled="sourceMode === 'algorithm'"
             >
@@ -394,13 +394,13 @@ onBeforeUnmount(() => {
           </el-form-item>
         </el-col>
         <el-col :span="4">
-          <el-form-item label="TopK">
+          <el-form-item label="推荐数量">
             <el-input-number v-model="topK" :min="1" :max="50" :disabled="sourceMode !== 'algorithm'" />
           </el-form-item>
         </el-col>
         <el-col :span="3">
           <el-form-item label=" " label-width="80px">
-            <el-button type="primary" @click="resetFilters">Reset</el-button>
+            <el-button type="primary" @click="resetFilters">重置</el-button>
           </el-form-item>
         </el-col>
       </el-row>
@@ -410,7 +410,7 @@ onBeforeUnmount(() => {
       v-if="sourceMode === 'algorithm'"
       type="info"
       :closable="false"
-      title="Algorithm mode uses TopK only. Keyword and status are disabled."
+      title="算法模式仅使用推荐数量，关键词和状态不可用。"
       style="margin-bottom: 12px"
     />
 
@@ -429,23 +429,23 @@ onBeforeUnmount(() => {
       v-loading="loading"
       highlight-current-row
     >
-      <el-table-column prop="name" label="Name" min-width="180" />
-      <el-table-column label="Status" width="140">
+      <el-table-column prop="name" label="名称" min-width="180" />
+      <el-table-column label="状态" width="140">
         <template #default="{ row }">
           <StatusPill :value="row.status" kind="competition" />
         </template>
       </el-table-column>
-      <el-table-column label="Date Range" min-width="200">
+      <el-table-column label="日期范围" min-width="200">
         <template #default="{ row }">
           {{ formatDateRange(row) }}
         </template>
       </el-table-column>
-      <el-table-column prop="organizer" label="Organizer" min-width="180" />
-      <el-table-column label="Recommendation" min-width="220">
+      <el-table-column prop="organizer" label="主办方" min-width="180" />
+      <el-table-column label="推荐信息" min-width="220">
         <template #default="{ row }">
           <div v-if="row.score !== undefined || row.reason">
-            <div v-if="row.score !== undefined">Score: {{ row.score.toFixed(3) }}</div>
-            <div v-if="row.reason">Reason: {{ row.reason }}</div>
+            <div v-if="row.score !== undefined">匹配分：{{ row.score.toFixed(3) }}</div>
+            <div v-if="row.reason">原因：{{ row.reason }}</div>
           </div>
           <span v-else>-</span>
         </template>
@@ -453,7 +453,7 @@ onBeforeUnmount(() => {
     </el-table>
 
     <div v-if="!loading && !errorMessage && rows.length === 0" class="empty-state">
-      <span v-if="sourceMode === 'algorithm'">No recommendations yet. Please complete Skills.</span>
+      <span v-if="sourceMode === 'algorithm'">暂无推荐，请完善技能。</span>
       <span v-else>暂无竞赛</span>
     </div>
 

@@ -33,23 +33,23 @@ const showRequestError = (error: any, fallback: string) => {
     return message
   }
   if (status === 400) {
-    ElMessage.error("Invalid request")
-    return "Invalid request"
+    ElMessage.error("请求无效")
+    return "请求无效"
   }
   if (status === 403) {
-    ElMessage.error("No permission")
-    return "No permission"
+    ElMessage.error("无权限")
+    return "无权限"
   }
   if (status === 404) {
-    ElMessage.error("Application not found")
-    return "Application not found"
+    ElMessage.error("申请不存在")
+    return "申请不存在"
   }
   if (status === 409) {
-    ElMessage.error("Application already reviewed")
-    return "Application already reviewed"
+    ElMessage.error("申请已审核")
+    return "申请已审核"
   }
-  ElMessage.error("Request failed, please try again")
-  return "Request failed, please try again"
+  ElMessage.error("请求失败，请稍后重试")
+  return "请求失败，请稍后重试"
 }
 
 const fetchList = async () => {
@@ -129,13 +129,13 @@ const submitReview = async () => {
       approved: reviewAction.value === "approve",
       reviewComment
     })
-    ElMessage.success(reviewAction.value === "approve" ? "Approved" : "Rejected")
+    ElMessage.success(reviewAction.value === "approve" ? "已通过" : "已拒绝")
     closeReviewDialog(true)
     await fetchList()
   } catch (error: any) {
-    showRequestError(error, "Failed to review application")
+    showRequestError(error, "审核失败")
     submitError.value =
-      error?.response?.data?.message ?? error?.message ?? "Failed to review application"
+      error?.response?.data?.message ?? error?.message ?? "审核失败"
   } finally {
     reviewSubmitting.value = false
   }
@@ -147,23 +147,23 @@ onMounted(fetchList)
 <template>
   <el-card shadow="never" v-loading="loading">
     <div class="page-header">
-      <h2>Teacher Applications Review</h2>
+      <h2>教师申请审核</h2>
     </div>
 
     <el-table :data="items" style="width: 100%">
-      <el-table-column prop="teacherName" label="Teacher" min-width="160" />
-      <el-table-column prop="competitionName" label="Competition" min-width="200" />
-      <el-table-column label="Status" width="140">
+      <el-table-column prop="teacherName" label="教师" min-width="160" />
+      <el-table-column prop="competitionName" label="竞赛" min-width="200" />
+      <el-table-column label="状态" width="140">
         <template #default="{ row }">
           <StatusPill :value="row.status" kind="teacherApplication" />
         </template>
       </el-table-column>
-      <el-table-column label="Created At" width="180">
+      <el-table-column label="创建时间" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.createdAt) || "-" }}
         </template>
       </el-table-column>
-      <el-table-column label="Actions" width="200">
+      <el-table-column label="操作" width="200">
         <template #default="{ row }">
           <el-button
             size="small"
@@ -171,7 +171,7 @@ onMounted(fetchList)
             :disabled="row.status !== 'PENDING'"
             @click="openApproveDialog(row)"
           >
-            Approve
+            通过
           </el-button>
           <el-button
             size="small"
@@ -179,7 +179,7 @@ onMounted(fetchList)
             :disabled="row.status !== 'PENDING'"
             @click="openRejectDialog(row)"
           >
-            Reject
+            拒绝
           </el-button>
         </template>
       </el-table-column>
@@ -198,14 +198,14 @@ onMounted(fetchList)
 
     <el-dialog
       v-model="reviewDialogVisible"
-      :title="reviewAction === 'approve' ? 'Approve' : 'Reject'"
+      :title="reviewAction === 'approve' ? '通过' : '拒绝'"
       width="480px"
       center
       :close-on-click-modal="true"
       :close-on-press-escape="true"
       :before-close="closeReviewDialog"
     >
-      <div class="review-note">Reason (optional)</div>
+      <div class="review-note">原因（可选）</div>
       <el-alert
         v-if="submitError"
         :title="submitError"
@@ -218,17 +218,17 @@ onMounted(fetchList)
         v-model="reviewReason"
         type="textarea"
         :rows="4"
-        placeholder="Provide a reason (optional)"
+        placeholder="请填写原因（可选）"
       />
       <template #footer>
-        <el-button :disabled="reviewSubmitting" @click="closeReviewDialog">Cancel</el-button>
+        <el-button :disabled="reviewSubmitting" @click="closeReviewDialog">取消</el-button>
         <el-button
           v-if="reviewAction === 'approve'"
           type="primary"
           :loading="reviewSubmitting"
           @click="submitReview"
         >
-          Approve
+          通过
         </el-button>
         <el-button
           v-else
@@ -236,7 +236,7 @@ onMounted(fetchList)
           :loading="reviewSubmitting"
           @click="submitReview"
         >
-          Reject
+          拒绝
         </el-button>
       </template>
     </el-dialog>

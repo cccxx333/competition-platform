@@ -17,7 +17,7 @@ const isReadableMessage = (value: unknown): value is string => {
   if (typeof value !== "string") return false
   const trimmed = value.trim()
   if (!trimmed) return false
-  if (trimmed.includes("�")) return false
+  if (trimmed.includes("\uFFFD")) return false
   if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(trimmed)) return false
   return true
 }

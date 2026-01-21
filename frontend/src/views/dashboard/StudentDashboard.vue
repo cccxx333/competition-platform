@@ -1,8 +1,8 @@
 】<template>
   <div class="cp-page">
     <el-card shadow="never" class="cp-card">
-      <h2>Student Dashboard</h2>
-      <p>Placeholder</p>
+      <h2>学生看板</h2>
+      <p>占位内容</p>
     </el-card>
 
     <div class="cp-grid">

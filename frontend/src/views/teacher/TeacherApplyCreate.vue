@@ -22,25 +22,25 @@ const showRequestError = (error: any, fallback: string) => {
     return message
   }
   if (status === 403) {
-    ElMessage.error("No permission")
-    return "No permission"
+    ElMessage.error("无权限")
+    return "无权限"
   }
   if (status === 404) {
-    ElMessage.error("Competition not found")
-    return "Competition not found"
+    ElMessage.error("竞赛不存在")
+    return "竞赛不存在"
   }
   if (status === 409) {
-    ElMessage.error("Application already exists")
-    return "Application already exists"
+    ElMessage.error("申请已存在")
+    return "申请已存在"
   }
-  ElMessage.error("Request failed, please try again")
-  return "Request failed, please try again"
+  ElMessage.error("请求失败，请稍后重试")
+  return "请求失败，请稍后重试"
 }
 
 const handleSubmit = async () => {
   errorMessage.value = ""
   if (!Number.isFinite(competitionId.value) || competitionId.value <= 0) {
-    errorMessage.value = "Invalid competition"
+    errorMessage.value = "竞赛不存在"
     return
   }
   loading.value = true
@@ -53,10 +53,10 @@ const handleSubmit = async () => {
       payload.description = form.description.trim()
     }
     await createTeacherApplication(competitionId.value, payload)
-    ElMessage.success("Application submitted")
+    ElMessage.success("申请已提交")
     router.push("/teacher/applications")
   } catch (error: any) {
-    errorMessage.value = showRequestError(error, "Failed to submit teacher application")
+    errorMessage.value = showRequestError(error, "提交教师申请失败")
   } finally {
     loading.value = false
   }
@@ -70,7 +70,7 @@ const handleCancel = () => {
 <template>
   <el-card shadow="never" v-loading="loading">
     <div class="page-header">
-      <h2>Apply as Teacher</h2>
+      <h2>申请成为教师</h2>
     </div>
 
     <el-alert
@@ -82,22 +82,22 @@ const handleCancel = () => {
     />
 
     <el-form label-width="120px">
-      <el-form-item label="Team Name">
-        <el-input v-model="form.teamName" placeholder="Optional team name" />
+      <el-form-item label="队伍名称">
+        <el-input v-model="form.teamName" placeholder="可选队伍名称" />
       </el-form-item>
-      <el-form-item label="Description">
+      <el-form-item label="说明">
         <el-input
           v-model="form.description"
           type="textarea"
           :rows="4"
-          placeholder="Optional description"
+          placeholder="可选说明"
         />
       </el-form-item>
     </el-form>
 
     <div class="page-actions">
-      <el-button :loading="loading" type="primary" @click="handleSubmit">Submit</el-button>
-      <el-button :disabled="loading" @click="handleCancel">Cancel</el-button>
+      <el-button :loading="loading" type="primary" @click="handleSubmit">提交</el-button>
+      <el-button :disabled="loading" @click="handleCancel">取消</el-button>
     </div>
   </el-card>
 </template>

@@ -34,11 +34,11 @@ const showRequestError = (error: any, fallback: string) => {
     return message
   }
   if (status === 403) {
-    ElMessage.error("No permission")
-    return "No permission"
+    ElMessage.error("无权限")
+    return "无权限"
   }
-  ElMessage.error("Request failed, please try again")
-  return "Request failed, please try again"
+  ElMessage.error("请求失败，请稍后重试")
+  return "请求失败，请稍后重试"
 }
 
 const loadApplications = async () => {
@@ -50,7 +50,7 @@ const loadApplications = async () => {
     items.value = await listMyTeacherApplications(params)
   } catch (error: any) {
     items.value = []
-    errorMessage.value = showRequestError(error, "Failed to load teacher applications")
+    errorMessage.value = showRequestError(error, "加载教师申请失败")
   } finally {
     loading.value = false
   }
@@ -63,14 +63,14 @@ watch(statusFilter, loadApplications)
 <template>
   <el-card shadow="never" v-loading="loading">
     <div class="page-header">
-      <h2>My Teacher Applications</h2>
+      <h2>我的教师申请</h2>
       <div class="page-header__filters">
-        <el-select v-model="statusFilter" clearable placeholder="Status" style="width: 160px">
-          <el-option label="PENDING" value="PENDING" />
-          <el-option label="APPROVED" value="APPROVED" />
-          <el-option label="REJECTED" value="REJECTED" />
+        <el-select v-model="statusFilter" clearable placeholder="状态" style="width: 160px">
+          <el-option label="待处理" value="PENDING" />
+          <el-option label="已通过" value="APPROVED" />
+          <el-option label="已拒绝" value="REJECTED" />
         </el-select>
-        <el-button :loading="loading" @click="loadApplications">Refresh</el-button>
+        <el-button :loading="loading" @click="loadApplications">刷新</el-button>
       </div>
     </div>
 
@@ -84,25 +84,25 @@ watch(statusFilter, loadApplications)
 
     <el-table v-if="items.length" :data="items" style="width: 100%">
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="competitionId" label="Competition ID" width="150" />
-      <el-table-column label="Status" width="140">
+      <el-table-column prop="competitionId" label="竞赛 ID" width="150" />
+      <el-table-column label="状态" width="140">
         <template #default="{ row }">
           <el-tag :type="statusTagType(row.status)">{{ row.status ?? "-" }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="Applied At" width="180">
+      <el-table-column label="申请时间" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.appliedAt) || "-" }}
         </template>
       </el-table-column>
-      <el-table-column label="Review Comment">
+      <el-table-column label="审核意见">
         <template #default="{ row }">
           {{ row.reviewComment || "-" }}
         </template>
       </el-table-column>
     </el-table>
 
-    <el-empty v-else-if="!errorMessage && !loading" description="No applications yet" />
+    <el-empty v-else-if="!errorMessage && !loading" description="暂无申请" />
   </el-card>
 </template>
 

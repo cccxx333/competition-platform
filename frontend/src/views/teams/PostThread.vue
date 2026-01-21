@@ -101,7 +101,7 @@ const loadPosts = async () => {
     if (status === 409 && (error?.isDisbanded || message.includes("disbanded"))) {
       handleDisbandedRedirect()
     } else {
-      showRequestError(error, "Failed to load post thread")
+      showRequestError(error, "加载帖子失败")
     }
   } finally {
     loading.value = false
@@ -131,7 +131,7 @@ const submitReply = async () => {
     if (status === 409 && (error?.isDisbanded || message.includes("disbanded"))) {
       handleDisbandedRedirect()
     } else {
-      showRequestError(error, "Failed to reply post")
+      showRequestError(error, "回复失败")
     }
   } finally {
     submitLoading.value = false
@@ -156,7 +156,7 @@ const confirmDelete = async () => {
   deleteLoadingId.value = pendingDeleteId.value
   try {
     await deleteTeamPost(teamId.value, pendingDeleteId.value)
-    ElMessage.success("???")
+    ElMessage.success("删除成功")
     deleteDialogVisible.value = false
     pendingDeleteId.value = null
     pendingDeleteType.value = null
@@ -170,7 +170,7 @@ const confirmDelete = async () => {
       pendingDeleteType.value = null
       handleDisbandedRedirect()
     } else {
-      showRequestError(error, "Failed to delete post")
+      showRequestError(error, "删除失败")
     }
   } finally {
     pendingDeleteLoading.value = false
@@ -191,7 +191,7 @@ onMounted(loadPosts)
     <div class="page-header">
       <div>
         <h2>帖子线程</h2>
-        <div class="page-subtitle">Post ID: {{ postId ?? "-" }}</div>
+        <div class="page-subtitle">帖子 ID：{{ postId ?? "-" }}</div>
       </div>
       <div class="page-actions">
         <el-button @click="router.push(returnPath)">返回帖子列表</el-button>

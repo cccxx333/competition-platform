@@ -41,7 +41,7 @@ const showRequestError = (error: any, fallback: string) => {
 
 const submit = async () => {
   if (!form.competitionId || !form.teamId) {
-    errorDialogMessage.value = "请填写 competitionId 与 teamId"
+    errorDialogMessage.value = "请填写竞赛 ID 与队伍 ID"
     errorDialogVisible.value = true
     return
   }
@@ -56,7 +56,7 @@ const submit = async () => {
         return
       }
     } catch (error: any) {
-      showRequestError(error, "Failed to load team detail")
+      showRequestError(error, "加载队伍信息失败")
       return
     }
     await createApplication({
@@ -73,7 +73,7 @@ const submit = async () => {
       redirectAfterError.value = "/teams/my"
       errorDialogVisible.value = true
     } else {
-      showRequestError(error, "Request failed")
+      showRequestError(error, "请求失败")
     }
   } finally {
     loading.value = false
@@ -89,21 +89,21 @@ const onCloseErrorDialog = () => {
 <template>
   <el-card shadow="never" v-loading="loading">
     <div class="page-header">
-      <h2>Join Team</h2>
+      <h2>加入队伍</h2>
     </div>
 
     <el-form label-width="140px" class="join-form">
-      <el-form-item label="Competition ID">
+      <el-form-item label="竞赛 ID">
         <el-input-number v-model="form.competitionId" :min="1" :controls="false" style="width: 240px" />
       </el-form-item>
-      <el-form-item label="Team ID">
+      <el-form-item label="队伍 ID">
         <el-input-number v-model="form.teamId" :min="1" :controls="false" style="width: 240px" />
       </el-form-item>
       <el-form-item v-if="teamInfo?.status">
         <el-tag :type="isTeamDisbanded ? 'danger' : 'info'">队伍状态：{{ teamInfo.status }}</el-tag>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" :loading="loading" :disabled="isTeamDisbanded" @click="submit">Submit</el-button>
+        <el-button type="primary" :loading="loading" :disabled="isTeamDisbanded" @click="submit">提交</el-button>
       </el-form-item>
     </el-form>
   </el-card>

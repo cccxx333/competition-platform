@@ -28,7 +28,7 @@ const props = defineProps<Props>()
       </div>
     </template>
     <div class="card-body">
-      {{ item.description ?? "No Data" }}
+      {{ item.description ?? "暂无数据" }}
     </div>
   </el-card>
 </template>

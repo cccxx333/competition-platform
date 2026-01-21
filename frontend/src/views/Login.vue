@@ -15,8 +15,8 @@ const form = reactive({
 })
 
 const rules: FormRules = {
-  username: [{ required: true, message: "Username is required", trigger: "blur" }],
-  password: [{ required: true, message: "Password is required", trigger: "blur" }]
+  username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
+  password: [{ required: true, message: "请输入密码", trigger: "blur" }]
 }
 
 const handleLogin = async () => {
@@ -32,7 +32,7 @@ const handleLogin = async () => {
     }
     router.replace("/dashboard")
   } catch (error: any) {
-    ElMessage.error(error?.message ?? "Login failed")
+    ElMessage.error(error?.message ?? "登录失败")
   } finally {
     loading.value = false
   }
@@ -41,15 +41,15 @@ const handleLogin = async () => {
 
 <template>
   <el-card shadow="never" class="login-card">
-    <h2>Login</h2>
+    <h2>登录</h2>
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-      <el-form-item label="Username" prop="username">
+      <el-form-item label="用户名" prop="username">
         <el-input v-model="form.username" autocomplete="username" />
       </el-form-item>
-      <el-form-item label="Password" prop="password">
+      <el-form-item label="密码" prop="password">
         <el-input v-model="form.password" type="password" autocomplete="current-password" show-password />
       </el-form-item>
-      <el-button type="primary" :loading="loading" @click="handleLogin">Login</el-button>
+      <el-button type="primary" :loading="loading" @click="handleLogin">登录</el-button>
     </el-form>
   </el-card>
 </template>

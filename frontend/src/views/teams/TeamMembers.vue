@@ -39,7 +39,7 @@ const getFallbackMessage = (status?: number) => {
   if (status === 400) return "参数错误"
   if (status === 401) return "登录已过期，请重新登录"
   if (status === 403) {
-    return roleUpper.value === "TEACHER" ? "仅队长可查看/管理队伍成员" : "无权访问"
+    return roleUpper.value === "TEACHER" ? "仅指导教师可查看/管理队伍成员" : "无权访问"
   }
   if (status === 404) return "队伍不存在或已删除"
   if (status === 409) return "操作冲突，请稍后重试"
@@ -80,7 +80,7 @@ const loadMembers = async () => {
     members.value = await listTeamMembers(teamId.value)
   } catch (error: any) {
     members.value = []
-    showRequestError(error, "Failed to load team members")
+    showRequestError(error, "加载队伍成员失败")
   } finally {
     loading.value = false
   }
@@ -108,7 +108,7 @@ const canRemove = (member: TeamMemberView) => {
 const removeDisabledReason = (member: TeamMemberView) => {
   if (isTeamDisbanded.value) return "队伍已解散"
   if (isSelf(member)) return "不可移除自己"
-  if (roleUpper.value === "TEACHER" && !isLeader.value) return "仅队长可移除"
+  if (roleUpper.value === "TEACHER" && !isLeader.value) return "仅指导教师可移除"
   if (team.value?.status === "CLOSED" && roleUpper.value === "TEACHER") return "关闭后仅管理员可移除"
   return "无权限"
 }
@@ -144,7 +144,7 @@ const submitRemove = async () => {
     if (status === 409 && message.includes("disbanded")) {
       handleDisbandedRedirect()
     } else {
-      showRequestError(error, "Failed to remove member")
+      showRequestError(error, "移除成员失败")
     }
   } finally {
     dialogLoading.value = false
@@ -159,7 +159,7 @@ onMounted(loadMembers)
     <div class="page-header">
       <div>
         <h2>成员列表</h2>
-        <div class="page-subtitle">Team ID: {{ teamId ?? "-" }}</div>
+        <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
       </div>
       <div class="page-actions">
         <el-button @click="router.push(returnPath)">{{ returnLabel }}</el-button>
@@ -175,16 +175,16 @@ onMounted(loadMembers)
     />
 
     <el-table v-if="members.length" :data="members" style="width: 100%">
-      <el-table-column prop="userId" label="User ID" width="120" />
-      <el-table-column prop="username" label="Username" width="160" />
-      <el-table-column prop="realName" label="Real Name" width="160" />
-      <el-table-column prop="role" label="Role" width="120" />
-      <el-table-column label="Joined At" width="180">
+      <el-table-column prop="userId" label="用户 ID" width="120" />
+      <el-table-column prop="username" label="用户名" width="160" />
+      <el-table-column prop="realName" label="姓名" width="160" />
+      <el-table-column prop="role" label="角色" width="120" />
+      <el-table-column label="加入时间" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.joinedAt) }}
         </template>
       </el-table-column>
-      <el-table-column v-if="canShowRemove" label="Actions" width="180">
+      <el-table-column v-if="canShowRemove" label="操作" width="180">
         <template #default="{ row }">
           <el-button
             size="small"

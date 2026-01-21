@@ -47,7 +47,7 @@ const loadTeam = async () => {
     team.value = await getMyTeam()
   } catch (error: any) {
     team.value = null
-    showRequestError(error, "Failed to load team")
+    showRequestError(error, "加载队伍失败")
   } finally {
     loading.value = false
   }
@@ -67,20 +67,20 @@ onMounted(loadTeam)
       v-if="!isStudent"
       type="warning"
       show-icon
-      title="此页面仅学生可用，请使用 Teams -> Team Lookup"
+      title="此页面仅学生可用，请使用“队伍 → 队伍查询”"
       class="role-alert"
     />
 
     <el-empty v-if="isStudent && !team && !loading" description="暂无队伍（可能尚未通过审核或未加入任何队伍）" />
 
     <el-descriptions v-else-if="isStudent && team" border :column="1">
-      <el-descriptions-item label="Team ID">{{ team.id ?? "-" }}</el-descriptions-item>
-      <el-descriptions-item label="Name">{{ team.name ?? "-" }}</el-descriptions-item>
-      <el-descriptions-item label="Status">{{ team.status ?? "-" }}</el-descriptions-item>
-      <el-descriptions-item label="Members">
+      <el-descriptions-item label="队伍 ID">{{ team.id ?? "-" }}</el-descriptions-item>
+      <el-descriptions-item label="名称">{{ team.name ?? "-" }}</el-descriptions-item>
+      <el-descriptions-item label="状态">{{ team.status ?? "-" }}</el-descriptions-item>
+      <el-descriptions-item label="成员">
         {{ team.currentMembers ?? "-" }} / {{ team.maxMembers ?? "-" }}
       </el-descriptions-item>
-      <el-descriptions-item v-if="team.description" label="Description">
+      <el-descriptions-item v-if="team.description" label="说明">
         {{ team.description }}
       </el-descriptions-item>
     </el-descriptions>

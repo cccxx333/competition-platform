@@ -49,7 +49,7 @@ onMounted(() => {
 
 <template>
   <el-card shadow="never">
-    <h2>My Skills</h2>
+    <h2>我的技能</h2>
     <el-alert
       class="skills-hint"
       type="info"
@@ -58,11 +58,11 @@ onMounted(() => {
       style="margin-bottom: 12px"
     />
     <el-table :data="skills" v-loading="loadingList" style="width: 100%">
-      <el-table-column prop="skillId" label="Skill ID" width="120" />
-      <el-table-column prop="skillName" label="Name" />
-      <el-table-column prop="skillCategory" label="Category" />
-      <el-table-column prop="proficiency" label="Proficiency" width="140" />
-      <el-table-column label="Action" width="140">
+      <el-table-column prop="skillId" label="技能 ID" width="120" />
+      <el-table-column prop="skillName" label="名称" />
+      <el-table-column prop="skillCategory" label="分类" />
+      <el-table-column prop="proficiency" label="熟练度" width="140" />
+      <el-table-column label="操作" width="140">
         <template #default="scope">
           <el-button
             size="small"
@@ -70,7 +70,7 @@ onMounted(() => {
             :disabled="loadingList"
             @click="handleUnbind(scope.row.skillId)"
           >
-            Unbind
+            解绑
           </el-button>
         </template>
       </el-table-column>
@@ -79,12 +79,12 @@ onMounted(() => {
   </el-card>
 
   <el-card shadow="never" style="margin-top: 16px">
-    <h2>Bind Skill</h2>
+    <h2>绑定技能</h2>
     <el-form label-position="top">
-      <el-form-item label="Select Skill">
+      <el-form-item label="选择技能">
         <el-select
           v-model="selectedSkillId"
-          placeholder="Select a skill"
+          placeholder="请选择技能"
           :loading="loadingOptions"
           clearable
           style="width: 100%"
@@ -104,17 +104,17 @@ onMounted(() => {
         :disabled="selectedSkillId == null || boundSkillIds.has(selectedSkillId)"
         @click="handleBindSelected"
       >
-        Bind
+        绑定
       </el-button>
     </el-form>
 
     <el-collapse style="margin-top: 16px">
-      <el-collapse-item title="Manual skillId" name="manual">
+      <el-collapse-item title="手动填写技能 ID" name="manual">
         <el-form label-position="top">
-          <el-form-item label="Skill ID">
-            <el-input v-model="skillIdInput" placeholder="Enter skillId" />
+          <el-form-item label="技能 ID">
+            <el-input v-model="skillIdInput" placeholder="请输入技能 ID" />
           </el-form-item>
-          <el-button type="primary" :loading="actionLoading" @click="handleBindManual">Bind</el-button>
+          <el-button type="primary" :loading="actionLoading" @click="handleBindManual">绑定</el-button>
         </el-form>
       </el-collapse-item>
     </el-collapse>

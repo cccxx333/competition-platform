@@ -86,7 +86,7 @@ const loadSubmissions = async () => {
     if (status === 409 && (error?.isDisbanded || message.includes("disbanded"))) {
       handleDisbandedRedirect()
     } else {
-      showRequestError(error, "Failed to load submissions")
+      showRequestError(error, "加载提交记录失败")
     }
   } finally {
     loading.value = false
@@ -174,7 +174,7 @@ const submitUpload = async () => {
     if (status === 409 && (error?.isDisbanded || message.includes("disbanded"))) {
       handleDisbandedRedirect()
     } else {
-      showRequestError(error, "Failed to upload submission")
+      showRequestError(error, "上传文件失败")
     }
   } finally {
     uploadLoading.value = false
@@ -194,7 +194,7 @@ onMounted(loadSubmissions)
     <div class="page-header">
       <div>
         <h2>文件提交</h2>
-        <div class="page-subtitle">Team ID: {{ teamId ?? "-" }}</div>
+        <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
       </div>
       <div class="page-actions">
         <el-button @click="router.push(returnPath)">返回队伍详情</el-button>
@@ -236,10 +236,10 @@ onMounted(loadSubmissions)
 
     <div class="history-title">历史记录</div>
     <el-table v-if="submissions.length" :data="submissions" style="width: 100%">
-      <el-table-column label="Current" width="110">
+      <el-table-column label="当前版本" width="110">
         <template #default="{ row }">
           <el-tag v-if="row.id && row.id === currentSubmissionId" type="success">
-            {{ hasCurrentMarker ? "Current" : "Latest" }}
+            {{ hasCurrentMarker ? "当前" : "最新" }}
           </el-tag>
           <span v-else>-</span>
         </template>

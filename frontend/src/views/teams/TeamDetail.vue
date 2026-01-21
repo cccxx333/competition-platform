@@ -50,7 +50,7 @@ const closeDisabledReason = computed(() => {
   if (!team.value) return "队伍不存在"
   if (isTeamDisbanded.value) return "队伍已解散"
   if (team.value.status !== "RECRUITING") return "仅招募中可关闭"
-  if (roleUpper.value === "TEACHER" && !isLeader.value) return "仅队长可关闭"
+  if (roleUpper.value === "TEACHER" && !isLeader.value) return "仅指导教师可关闭"
   if (roleUpper.value !== "ADMIN" && roleUpper.value !== "TEACHER") return "无权限"
   return ""
 })
@@ -100,7 +100,7 @@ const loadAward = async () => {
     awardSummary.value = await getTeamAwardSummary(teamId.value)
   } catch (error: any) {
     const status = error?.status ?? error?.response?.status
-    const fallbackMessage = status ? getFallbackMessage(status) : "Failed to load team award"
+    const fallbackMessage = status ? getFallbackMessage(status) : "加载队伍奖项失败"
     awardError.value = getApiErrorMessage(error, fallbackMessage)
     awardSummary.value = null
   } finally {
@@ -125,13 +125,13 @@ const loadTeam = async () => {
     } catch (error: any) {
       const status = error?.status ?? error?.response?.status
       if (status !== 403) {
-        showRequestError(error, "Failed to load team members")
+        showRequestError(error, "加载队伍成员失败")
       }
     }
   } catch (error: any) {
     team.value = null
     awardSummary.value = null
-    showRequestError(error, "Failed to load team detail")
+    showRequestError(error, "加载队伍详情失败")
   } finally {
     loading.value = false
   }
@@ -162,7 +162,7 @@ const submitCloseTeam = async () => {
     if (status === 409 && message.includes("disbanded")) {
       handleDisbandedRedirect()
     } else {
-      showRequestError(error, "Failed to close team")
+      showRequestError(error, "停止招募失败")
     }
   } finally {
     actionLoading.value = false
@@ -177,7 +177,7 @@ onMounted(loadTeam)
     <div class="page-header">
       <div>
         <h2>队伍详情</h2>
-        <div class="page-subtitle">Team ID: {{ teamId ?? "-" }}</div>
+        <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
       </div>
       <div class="page-actions">
         <el-button @click="router.push(returnPath)">{{ returnLabel }}</el-button>
@@ -204,7 +204,7 @@ onMounted(loadTeam)
       <el-descriptions-item label="状态">{{ team.status ?? "-" }}</el-descriptions-item>
       <el-descriptions-item label="最大人数">{{ team.maxMembers ?? "-" }}</el-descriptions-item>
       <el-descriptions-item label="当前人数">{{ currentCount }}</el-descriptions-item>
-      <el-descriptions-item label="队长">
+      <el-descriptions-item label="指导教师">
         {{ team.leader?.realName || team.leader?.username || "-" }}
       </el-descriptions-item>
       <el-descriptions-item label="获奖情况">

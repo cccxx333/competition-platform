@@ -63,7 +63,7 @@ const loadApplications = async () => {
     items.value = await listMyApplications()
   } catch (error: any) {
     items.value = []
-    showRequestError(error, "Failed to load applications")
+    showRequestError(error, "加载申请失败")
   } finally {
     loading.value = false
   }
@@ -86,8 +86,8 @@ onMounted(loadApplications)
 
     <el-table v-if="items.length" :data="items" style="width: 100%">
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="competitionId" label="Competition ID" width="150" />
-      <el-table-column prop="teamId" label="Team ID" width="120" />
+      <el-table-column prop="competitionId" label="竞赛 ID" width="150" />
+      <el-table-column prop="teamId" label="队伍 ID" width="120" />
       <el-table-column label="状态" width="160">
         <template #default="{ row }">
           <el-tag :type="statusTagType(row.status)">
@@ -104,7 +104,7 @@ onMounted(loadApplications)
           <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column v-if="items.some((item) => item.appliedAt)" label="Applied At" width="180">
+      <el-table-column v-if="items.some((item) => item.appliedAt)" label="申请时间" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.appliedAt) || "-" }}
         </template>

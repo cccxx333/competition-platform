@@ -65,7 +65,7 @@ onMounted(loadTeams)
 <template>
   <el-card shadow="never" v-loading="loading">
     <div class="page-header">
-      <h2>Team Lookup</h2>
+      <h2>队伍查询</h2>
     </div>
 
     <el-alert
@@ -83,7 +83,7 @@ onMounted(loadTeams)
         <div class="lookup-row">
           <el-input
             v-model="keyword"
-            placeholder="输入TeamID/名称/竞赛名称"
+            placeholder="输入队伍 ID/名称/竞赛名称"
             style="max-width: 420px"
             @keyup.enter="loadTeams"
           />
@@ -96,20 +96,20 @@ onMounted(loadTeams)
     </el-form>
 
     <el-table v-if="teams.length && !isStudent" :data="teams" style="width: 100%" @row-click="handleRowClick">
-      <el-table-column prop="id" label="Team ID" width="120" />
-      <el-table-column prop="name" label="Name" min-width="160" />
-      <el-table-column prop="status" label="Status" width="140" />
-      <el-table-column label="Leader" min-width="160">
+      <el-table-column prop="id" label="队伍 ID" width="120" />
+      <el-table-column prop="name" label="名称" min-width="160" />
+      <el-table-column prop="status" label="状态" width="140" />
+      <el-table-column label="指导教师" min-width="160">
         <template #default="{ row }">
           {{ row.leader?.realName || row.leader?.username || "-" }}
         </template>
       </el-table-column>
-      <el-table-column label="Competition" min-width="180">
+      <el-table-column label="竞赛" min-width="180">
         <template #default="{ row }">
           {{ row.competition?.name || "-" }}
         </template>
       </el-table-column>
-      <el-table-column prop="createdAt" label="Created At" width="180" />
+      <el-table-column prop="createdAt" label="创建时间" width="180" />
     </el-table>
 
     <el-empty v-else-if="!loading && !isStudent" description="暂无符合条件的队伍" />

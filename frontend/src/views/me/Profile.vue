@@ -35,13 +35,13 @@ const fields = computed(() => {
   const data = profile.value
   if (!data) return []
   return [
-    { label: "Username", value: data.username },
-    { label: "Real Name", value: data.realName },
-    { label: "Email", value: data.email },
-    { label: "School", value: data.school },
-    { label: "Major", value: data.major },
-    { label: "Grade", value: data.grade },
-    { label: "Role", value: data.role }
+    { label: "用户名", value: data.username },
+    { label: "姓名", value: data.realName },
+    { label: "邮箱", value: data.email },
+    { label: "学校", value: data.school },
+    { label: "专业", value: data.major },
+    { label: "年级", value: data.grade },
+    { label: "角色", value: data.role }
   ].filter(item => Boolean(item.value))
 })
 
@@ -50,7 +50,7 @@ const reload = async () => {
   try {
     profile.value = await getMyProfile()
   } catch (error: any) {
-    showRequestError(error, "Failed to load profile")
+    showRequestError(error, "加载个人信息失败")
   } finally {
     loading.value = false
   }
@@ -61,13 +61,13 @@ onMounted(reload)
 
 <template>
   <el-card shadow="never" v-loading="loading">
-    <h2>Profile</h2>
-    <el-button size="small" :loading="loading" @click="reload">Refresh</el-button>
+    <h2>个人信息</h2>
+    <el-button size="small" :loading="loading" @click="reload">刷新</el-button>
     <el-descriptions v-if="fields.length" :column="1">
       <el-descriptions-item v-for="item in fields" :key="item.label" :label="item.label">
         {{ item.value }}
       </el-descriptions-item>
     </el-descriptions>
-    <div v-else>Empty</div>
+    <div v-else>暂无信息</div>
   </el-card>
 </template>

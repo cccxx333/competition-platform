@@ -79,7 +79,7 @@ const loadPosts = async () => {
     if (status === 409 && (error?.isDisbanded || message.includes("disbanded"))) {
       handleDisbandedRedirect()
     } else {
-      showRequestError(error, "Failed to load posts")
+      showRequestError(error, "加载帖子失败")
     }
   } finally {
     loading.value = false
@@ -114,7 +114,7 @@ const submitPost = async () => {
     if (status === 409 && (error?.isDisbanded || message.includes("disbanded"))) {
       handleDisbandedRedirect()
     } else {
-      showRequestError(error, "Failed to create post")
+      showRequestError(error, "发布失败")
     }
   } finally {
     submitLoading.value = false
@@ -134,7 +134,7 @@ onMounted(loadPosts)
     <div class="page-header">
       <div>
         <h2>队伍讨论区</h2>
-        <div class="page-subtitle">Team ID: {{ teamId ?? "-" }}</div>
+        <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
       </div>
       <div class="page-actions">
         <el-button @click="router.push(returnPath)">返回队伍详情</el-button>

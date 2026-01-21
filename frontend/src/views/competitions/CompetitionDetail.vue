@@ -39,9 +39,9 @@ const canApplyTeacher = computed(() => {
 })
 const applyDisabledReason = computed(() => {
   if (!isTeacher.value || !detail.value) return ""
-  if (detail.value.status !== "UPCOMING") return "Only UPCOMING competitions can be applied."
-  if (!registrationDeadlineDate.value) return "Registration deadline unavailable."
-  if (!(todayDate.value < registrationDeadlineDate.value)) return "Registration deadline has passed."
+  if (detail.value.status !== "UPCOMING") return "仅未开始的竞赛可申请"
+  if (!registrationDeadlineDate.value) return "报名截止时间不可用"
+  if (!(todayDate.value < registrationDeadlineDate.value)) return "报名截止时间已过"
   return ""
 })
 
@@ -97,7 +97,7 @@ const loadDetail = async () => {
     detail.value = await getCompetitionDetail(competitionId.value)
   } catch (error: any) {
     detail.value = null
-    errorMessage.value = showRequestError(error, "Failed to load competition detail")
+    errorMessage.value = showRequestError(error, "加载竞赛详情失败")
   } finally {
     loading.value = false
   }
@@ -107,10 +107,10 @@ const basicFields = computed(() => {
   const data = detail.value
   if (!data) return []
   return [
-    { label: "Name", value: data.name },
-    { label: "Organizer", value: data.organizer },
-    { label: "Category", value: data.category },
-    { label: "Level", value: data.level }
+    { label: "名称", value: data.name },
+    { label: "主办方", value: data.organizer },
+    { label: "类别", value: data.category },
+    { label: "级别", value: data.level }
   ].filter(item => Boolean(item.value))
 })
 
@@ -118,9 +118,9 @@ const timeFields = computed(() => {
   const data = detail.value
   if (!data) return []
   return [
-    { label: "Start Date", value: formatDate(data.startDate) },
-    { label: "End Date", value: formatDate(data.endDate) },
-    { label: "Registration Deadline", value: formatDate(data.registrationDeadline) }
+    { label: "开始日期", value: formatDate(data.startDate) },
+    { label: "结束日期", value: formatDate(data.endDate) },
+    { label: "报名截止", value: formatDate(data.registrationDeadline) }
   ].filter(item => Boolean(item.value))
 })
 
@@ -128,8 +128,8 @@ const ruleFields = computed(() => {
   const data = detail.value
   if (!data) return []
   return [
-    { label: "Min Team Size", value: data.minTeamSize },
-    { label: "Max Team Size", value: data.maxTeamSize }
+    { label: "最小队伍人数", value: data.minTeamSize },
+    { label: "最大队伍人数", value: data.maxTeamSize }
   ].filter(item => item.value !== undefined && item.value !== null)
 })
 
@@ -137,8 +137,8 @@ const metaFields = computed(() => {
   const data = detail.value
   if (!data) return []
   return [
-    { label: "Created At", value: formatDateTime(data.createdAt) },
-    { label: "Updated At", value: formatDateTime(data.updatedAt) }
+    { label: "创建时间", value: formatDateTime(data.createdAt) },
+    { label: "更新时间", value: formatDateTime(data.updatedAt) }
   ].filter(item => Boolean(item.value))
 })
 
@@ -149,7 +149,7 @@ const handleBack = () => {
 const openSubmitDialog = () => {
   submitError.value = ""
   if (!canApplyTeacher.value) {
-    submitError.value = applyDisabledReason.value || "Application is not available."
+    submitError.value = applyDisabledReason.value || "当前不可申请"
     submitDialogVisible.value = true
     return
   }
@@ -165,17 +165,17 @@ const closeSubmitDialog = (force = false) => {
 const handleApply = async () => {
   if (submitting.value) return
   if (!Number.isFinite(competitionId.value) || competitionId.value <= 0) {
-    ElMessage.error("Invalid competition")
+    ElMessage.error("竞赛不存在")
     return
   }
   if (!canApplyTeacher.value) {
-    submitError.value = applyDisabledReason.value || "Application is not available."
+    submitError.value = applyDisabledReason.value || "当前不可申请"
     return
   }
   submitting.value = true
   try {
     await createTeacherApplication(competitionId.value, {})
-    ElMessage.success("Application submitted")
+    ElMessage.success("申请已提交")
     closeSubmitDialog(true)
     router.push("/teacher/applications")
   } catch (error: any) {
@@ -183,10 +183,10 @@ const handleApply = async () => {
     const message = error?.message ?? error?.response?.data?.message
     const code = error?.response?.data?.code
     if (status === 409 || code === "BUSINESS_ERROR" || (typeof message === "string" && message.includes("already exists"))) {
-      submitError.value = message || "Application already exists"
+      submitError.value = message || "申请已存在"
       return
     }
-    submitError.value = message || "Failed to submit teacher application"
+    submitError.value = message || "提交教师申请失败"
   } finally {
     submitting.value = false
   }
@@ -199,7 +199,7 @@ watch(() => route.params.id, loadDetail)
 <template>
   <el-card shadow="never" v-loading="loading">
     <div class="page-header">
-      <h2>Competition Detail</h2>
+      <h2>竞赛详情</h2>
       <div class="header-actions">
         <div v-if="isTeacher" class="apply-action">
           <el-button
@@ -209,13 +209,13 @@ watch(() => route.params.id, loadDetail)
             :disabled="loading || submitting || !canApplyTeacher"
             @click="openSubmitDialog"
           >
-            Submit Teacher Application
+            提交教师申请
           </el-button>
           <div v-if="!canApplyTeacher && applyDisabledReason" class="apply-hint">
             {{ applyDisabledReason }}
           </div>
         </div>
-        <el-button class="back-btn" size="small" @click="handleBack">Back</el-button>
+        <el-button class="back-btn" size="small" @click="handleBack">返回</el-button>
       </div>
     </div>
 
@@ -231,51 +231,51 @@ watch(() => route.params.id, loadDetail)
 
     <div v-else-if="!errorMessage && detail">
       <el-card shadow="never" class="section">
-        <h3>Basic Info</h3>
+        <h3>基本信息</h3>
         <el-descriptions v-if="basicFields.length || detail.status" :column="1">
           <el-descriptions-item v-for="item in basicFields" :key="item.label" :label="item.label">
             {{ item.value }}
           </el-descriptions-item>
-          <el-descriptions-item v-if="detail.status" label="Status">
+          <el-descriptions-item v-if="detail.status" label="状态">
             <StatusPill :value="detail.status" kind="competition" />
           </el-descriptions-item>
         </el-descriptions>
-        <div v-else>Empty</div>
+        <div v-else>暂无信息</div>
       </el-card>
 
       <el-card shadow="never" class="section">
-        <h3>Time Info</h3>
+        <h3>时间信息</h3>
         <el-descriptions v-if="timeFields.length" :column="1">
           <el-descriptions-item v-for="item in timeFields" :key="item.label" :label="item.label">
             {{ item.value }}
           </el-descriptions-item>
         </el-descriptions>
-        <div v-else>Empty</div>
+        <div v-else>暂无信息</div>
       </el-card>
 
       <el-card shadow="never" class="section">
-        <h3>Rules</h3>
+        <h3>规则</h3>
         <el-descriptions v-if="ruleFields.length" :column="1">
           <el-descriptions-item v-for="item in ruleFields" :key="item.label" :label="item.label">
             {{ item.value }}
           </el-descriptions-item>
         </el-descriptions>
-        <div v-else>Empty</div>
+        <div v-else>暂无信息</div>
       </el-card>
 
       <el-card shadow="never" class="section">
-        <h3>Meta</h3>
+        <h3>元信息</h3>
         <el-descriptions v-if="metaFields.length" :column="1">
           <el-descriptions-item v-for="item in metaFields" :key="item.label" :label="item.label">
             {{ item.value }}
           </el-descriptions-item>
         </el-descriptions>
-        <div v-else>Empty</div>
+        <div v-else>暂无信息</div>
       </el-card>
 
       <el-card v-if="detail.description" shadow="never" class="section">
         <el-collapse>
-          <el-collapse-item title="Description" name="description">
+          <el-collapse-item title="描述" name="description">
             <pre>{{ detail.description }}</pre>
           </el-collapse-item>
         </el-collapse>
@@ -284,15 +284,15 @@ watch(() => route.params.id, loadDetail)
 
     <el-dialog
       v-model="submitDialogVisible"
-      title="Confirm"
+      title="确认"
       width="480px"
       center
       :close-on-click-modal="true"
       :close-on-press-escape="true"
       :before-close="closeSubmitDialog"
     >
-      <div>Submit teacher application for this competition?</div>
-      <div style="margin-top: 8px; color: #909399;">After submission, wait for admin review.</div>
+      <div>确认提交该竞赛的教师申请？</div>
+      <div style="margin-top: 8px; color: #909399;">提交后请等待管理员审核。</div>
       <el-alert
         v-if="submitError"
         :title="submitError"
@@ -302,9 +302,9 @@ watch(() => route.params.id, loadDetail)
         style="margin-top: 12px"
       />
       <template #footer>
-        <el-button :disabled="submitting" @click="closeSubmitDialog">Cancel</el-button>
+        <el-button :disabled="submitting" @click="closeSubmitDialog">取消</el-button>
         <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleApply">
-          Submit
+          提交
         </el-button>
       </template>
     </el-dialog>

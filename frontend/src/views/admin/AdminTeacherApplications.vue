@@ -37,19 +37,19 @@ const showRequestError = (error: any, fallback: string) => {
     return message
   }
   if (status === 403) {
-    ElMessage.error("No permission")
-    return "No permission"
+    ElMessage.error("无权限")
+    return "无权限"
   }
   if (status === 404) {
-    ElMessage.error("Application not found")
-    return "Application not found"
+    ElMessage.error("申请不存在")
+    return "申请不存在"
   }
   if (status === 409) {
-    ElMessage.error("Application already reviewed")
-    return "Application already reviewed"
+    ElMessage.error("申请已审核")
+    return "申请已审核"
   }
-  ElMessage.error("Request failed, please try again")
-  return "Request failed, please try again"
+  ElMessage.error("请求失败，请稍后重试")
+  return "请求失败，请稍后重试"
 }
 
 const buildParams = () => {
@@ -69,7 +69,7 @@ const loadApplications = async () => {
     items.value = await adminListTeacherApplications(buildParams())
   } catch (error: any) {
     items.value = []
-    errorMessage.value = showRequestError(error, "Failed to load admin applications")
+    errorMessage.value = showRequestError(error, "加载教师申请失败")
   } finally {
     loading.value = false
   }
@@ -83,24 +83,24 @@ const handleReview = async (row: TeacherApplicationItem, approved: boolean, revi
       approved,
       reviewComment: reviewComment ? reviewComment : null
     })
-    ElMessage.success(approved ? "Approved" : "Rejected")
+    ElMessage.success(approved ? "已通过" : "已拒绝")
     await loadApplications()
   } catch (error: any) {
-    showRequestError(error, "Failed to review application")
+    showRequestError(error, "审核失败")
   } finally {
     reviewingId.value = null
   }
 }
 
 const promptReview = async (row: TeacherApplicationItem, approved: boolean) => {
-  const title = approved ? "Approve Application" : "Reject Application"
-  const confirmButtonText = approved ? "Approve" : "Reject"
+  const title = approved ? "通过申请" : "拒绝申请"
+  const confirmButtonText = approved ? "通过" : "拒绝"
   try {
-    const result = await ElMessageBox.prompt("Enter review comment (optional)", title, {
+    const result = await ElMessageBox.prompt("请输入审核意见（可选）", title, {
       confirmButtonText,
-      cancelButtonText: "Cancel",
+      cancelButtonText: "取消",
       inputType: "textarea",
-      inputPlaceholder: "Optional"
+      inputPlaceholder: "可选"
     })
     const comment = result.value?.trim()
     await handleReview(row, approved, comment ? comment : null)
@@ -115,15 +115,15 @@ onMounted(loadApplications)
 <template>
   <el-card shadow="never" v-loading="loading">
     <div class="page-header">
-      <h2>Teacher Applications Review</h2>
+      <h2>教师申请审核</h2>
       <div class="page-header__filters">
-        <el-input v-model="competitionIdFilter" placeholder="Competition ID" style="width: 160px" />
-        <el-select v-model="statusFilter" clearable placeholder="Status" style="width: 160px">
-          <el-option label="PENDING" value="PENDING" />
-          <el-option label="APPROVED" value="APPROVED" />
-          <el-option label="REJECTED" value="REJECTED" />
+        <el-input v-model="competitionIdFilter" placeholder="竞赛 ID" style="width: 160px" />
+        <el-select v-model="statusFilter" clearable placeholder="状态" style="width: 160px">
+          <el-option label="待处理" value="PENDING" />
+          <el-option label="已通过" value="APPROVED" />
+          <el-option label="已拒绝" value="REJECTED" />
         </el-select>
-        <el-button :loading="loading" @click="loadApplications">Refresh</el-button>
+        <el-button :loading="loading" @click="loadApplications">刷新</el-button>
       </div>
     </div>
 
@@ -137,24 +137,24 @@ onMounted(loadApplications)
 
     <el-table v-if="items.length" :data="items" style="width: 100%">
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="competitionId" label="Competition ID" width="150" />
-      <el-table-column prop="teacherId" label="Teacher ID" width="120" />
-      <el-table-column label="Status" width="140">
+      <el-table-column prop="competitionId" label="竞赛 ID" width="150" />
+      <el-table-column prop="teacherId" label="教师 ID" width="120" />
+      <el-table-column label="状态" width="140">
         <template #default="{ row }">
           <el-tag :type="statusTagType(row.status)">{{ row.status ?? "-" }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="Applied At" width="180">
+      <el-table-column label="申请时间" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.appliedAt) || "-" }}
         </template>
       </el-table-column>
-      <el-table-column label="Review Comment">
+      <el-table-column label="审核意见">
         <template #default="{ row }">
           {{ row.reviewComment || "-" }}
         </template>
       </el-table-column>
-      <el-table-column label="Actions" width="220">
+      <el-table-column label="操作" width="220">
         <template #default="{ row }">
           <el-button
             size="small"
@@ -163,7 +163,7 @@ onMounted(loadApplications)
             :disabled="row.status !== 'PENDING' || reviewingId === row.id"
             @click="promptReview(row, true)"
           >
-            Approve
+            通过
           </el-button>
           <el-button
             size="small"
@@ -172,13 +172,13 @@ onMounted(loadApplications)
             :disabled="row.status !== 'PENDING' || reviewingId === row.id"
             @click="promptReview(row, false)"
           >
-            Reject
+            拒绝
           </el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <el-empty v-else-if="!errorMessage && !loading" description="No applications yet" />
+    <el-empty v-else-if="!errorMessage && !loading" description="暂无申请" />
   </el-card>
 </template>
 

@@ -48,7 +48,7 @@ const loadApplications = async () => {
     })
   } catch (error: any) {
     items.value = []
-    showRequestError(error, "Failed to load applications")
+    showRequestError(error, "加载申请失败")
   } finally {
     loading.value = false
   }
@@ -83,7 +83,7 @@ const submitReview = async () => {
       ElMessage.error("队伍已解散，操作已禁止")
       router.push("/teams/lookup")
     } else {
-      showRequestError(error, "Failed to review application")
+      showRequestError(error, "审核失败")
     }
   } finally {
     dialogLoading.value = false
@@ -98,25 +98,25 @@ onMounted(loadApplications)
     <div class="page-header">
       <h2>教师审核</h2>
       <div class="page-header__filters">
-        <el-input-number v-model="teamIdFilter" :min="1" :controls="false" placeholder="Team ID" />
+        <el-input-number v-model="teamIdFilter" :min="1" :controls="false" placeholder="队伍 ID" />
         <el-button :loading="loading" @click="loadApplications">刷新</el-button>
       </div>
     </div>
 
     <el-table v-if="items.length" :data="items" style="width: 100%">
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="studentId" label="Student ID" width="120" />
-      <el-table-column prop="competitionId" label="Competition ID" width="150" />
-      <el-table-column prop="teamId" label="Team ID" width="120" />
-      <el-table-column label="Applied At" width="180">
+      <el-table-column prop="studentId" label="学生 ID" width="120" />
+      <el-table-column prop="competitionId" label="竞赛 ID" width="150" />
+      <el-table-column prop="teamId" label="队伍 ID" width="120" />
+      <el-table-column label="申请时间" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.appliedAt) || "-" }}
         </template>
       </el-table-column>
-      <el-table-column label="Actions" width="180">
+      <el-table-column label="操作" width="180">
         <template #default="{ row }">
-          <el-button size="small" type="success" @click="openDialog(row, 'approve')">Approve</el-button>
-          <el-button size="small" type="danger" @click="openDialog(row, 'reject')">Reject</el-button>
+          <el-button size="small" type="success" @click="openDialog(row, 'approve')">通过</el-button>
+          <el-button size="small" type="danger" @click="openDialog(row, 'reject')">拒绝</el-button>
         </template>
       </el-table-column>
     </el-table>
