@@ -212,6 +212,18 @@ public class TeamService {
         return convertToDTO(saved);
     }
 
+    public TeamDTO disbandTeamByAdmin(Long teamId) {
+        Team team = teamRepository.findById(teamId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "队伍不存在"));
+        if (team.getStatus() == Team.TeamStatus.DISBANDED) {
+            throw new ApiException(HttpStatus.CONFLICT, "队伍已解散");
+        }
+        team.setStatus(Team.TeamStatus.DISBANDED);
+        team.setUpdatedAt(LocalDateTime.now());
+        Team saved = teamRepository.save(team);
+        return convertToDTO(saved);
+    }
+
     public void removeMember(Long currentUserId, Long teamId, Long userId, String reason) {
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));

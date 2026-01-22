@@ -2,11 +2,14 @@ package com.competition.service;
 
 import com.competition.dto.SkillCreateRequest;
 import com.competition.dto.SkillDTO;
+import com.competition.dto.SkillUpdateRequest;
 import com.competition.entity.Skill;
+import com.competition.exception.ApiException;
 import com.competition.repository.SkillRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,11 +89,11 @@ public class SkillService {
     @Transactional
     public SkillDTO createSkill(SkillCreateRequest request) {
         if (request == null || request.getName() == null || request.getName().trim().isEmpty()) {
-            throw new RuntimeException("Skill name is required");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "技能名称不能为空");
         }
         String name = request.getName().trim();
         if (skillRepository.existsByNameIgnoreCase(name)) {
-            throw new RuntimeException("Skill name already exists");
+            throw new ApiException(HttpStatus.CONFLICT, "技能名称已存在");
         }
         Skill skill = new Skill();
         skill.setName(name);
@@ -98,6 +101,34 @@ public class SkillService {
         skill.setDescription(request.getDescription());
         if (request.getIsActive() != null) {
             skill.setIsActive(request.getIsActive());
+        }
+        Skill saved = skillRepository.save(skill);
+        return convertToDTO(saved);
+    }
+
+    @Transactional
+    public SkillDTO updateSkill(Long id, SkillUpdateRequest request) {
+        if (request == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "请求不能为空");
+        }
+        Skill skill = skillRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "技能不存在"));
+        String currentName = skill.getName();
+        String nextName = request.getName() != null ? request.getName().trim() : null;
+        if (nextName != null) {
+            if (nextName.isEmpty()) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "技能名称不能为空");
+            }
+            if (!nextName.equalsIgnoreCase(currentName) && skillRepository.existsByNameIgnoreCase(nextName)) {
+                throw new ApiException(HttpStatus.CONFLICT, "技能名称已存在");
+            }
+            skill.setName(nextName);
+        }
+        if (request.getCategory() != null) {
+            skill.setCategory(request.getCategory());
+        }
+        if (request.getDescription() != null) {
+            skill.setDescription(request.getDescription());
         }
         Skill saved = skillRepository.save(skill);
         return convertToDTO(saved);

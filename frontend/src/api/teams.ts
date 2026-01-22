@@ -152,6 +152,15 @@ export async function listTeams(params: { keyword?: string; page?: number; size?
   }
 }
 
+export async function disbandTeam(teamId: number): Promise<TeamDto> {
+  try {
+    const response = await client.put(`/teams/${teamId}/disband`)
+    return unwrapData<TeamDto>(response?.data)
+  } catch (error: any) {
+    throw toError(error, "解散队伍失败")
+  }
+}
+
 export async function listMyTeams(params: { keyword?: string } = {}): Promise<TeamDto[]> {
   try {
     const response = await client.get("/teams/mine", {

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ElMessage } from "element-plus"
-import { closeTeam, getTeamAwardSummary, getTeamDetail, listTeamMembers, type TeamAwardSummary, type TeamDto, type TeamMemberView } from "@/api/teams"
+import { closeTeam, disbandTeam, getTeamAwardSummary, getTeamDetail, listTeamMembers, type TeamAwardSummary, type TeamDto, type TeamMemberView } from "@/api/teams"
 import { useAuthStore } from "@/stores/auth"
 import { canCloseRecruiting, getTeamWriteBlockReason, isDisbanded } from "@/utils/teamGuards"
 import { getApiErrorMessage } from "@/utils/errorMessage"
@@ -18,6 +18,8 @@ const awardError = ref("")
 const loading = ref(false)
 const actionLoading = ref(false)
 const closeDialogVisible = ref(false)
+const disbandDialogVisible = ref(false)
+const disbandLoading = ref(false)
 const errorDialogVisible = ref(false)
 const errorDialogMessage = ref("")
 const redirectAfterError = ref<string | null>(null)
@@ -28,6 +30,7 @@ const teamId = computed(() => {
 })
 
 const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
+const isAdmin = computed(() => roleUpper.value === "ADMIN")
 const isLeader = computed(() => {
   const leaderId = team.value?.leader?.id
   const currentUserId = authStore.user?.id
@@ -169,6 +172,27 @@ const submitCloseTeam = async () => {
   }
 }
 
+const submitDisbandTeam = async () => {
+  if (!teamId.value) return
+  disbandLoading.value = true
+  try {
+    await disbandTeam(teamId.value)
+    ElMessage.success("队伍已解散")
+    disbandDialogVisible.value = false
+    await loadTeam()
+  } catch (error: any) {
+    const status = error?.status ?? error?.response?.status
+    const message = error?.message ?? ""
+    if (status === 409 && message.includes("disbanded")) {
+      handleDisbandedRedirect()
+    } else {
+      showRequestError(error, "解散队伍失败")
+    }
+  } finally {
+    disbandLoading.value = false
+  }
+}
+
 onMounted(loadTeam)
 </script>
 
@@ -234,7 +258,16 @@ onMounted(loadTeam)
         <el-button v-if="canShowClose" type="warning" :disabled="!canClose" @click="closeDialogVisible = true">
           停止招人
         </el-button>
+        <el-button
+          v-if="isAdmin"
+          type="danger"
+          :disabled="isTeamDisbanded"
+          @click="disbandDialogVisible = true"
+        >
+          解散队伍
+        </el-button>
         <span v-if="canShowClose && !canClose" class="action-hint">{{ closeDisabledReason }}</span>
+        <span v-if="isAdmin && isTeamDisbanded" class="action-hint">队伍已解散</span>
       </div>
     </div>
   </el-card>
@@ -244,6 +277,21 @@ onMounted(loadTeam)
     <template #footer>
       <el-button @click="closeDialogVisible = false">取消</el-button>
       <el-button type="primary" :loading="actionLoading" @click="submitCloseTeam">确认</el-button>
+    </template>
+  </el-dialog>
+
+  <el-dialog
+    v-model="disbandDialogVisible"
+    title="解散队伍"
+    width="420px"
+    append-to-body
+    top="12vh"
+    :close-on-click-modal="false"
+  >
+    <div>确认解散该队伍吗？解散后不可报名、审核、提交与讨论。</div>
+    <template #footer>
+      <el-button :disabled="disbandLoading" @click="disbandDialogVisible = false">取消</el-button>
+      <el-button type="danger" :loading="disbandLoading" @click="submitDisbandTeam">确认</el-button>
     </template>
   </el-dialog>
 

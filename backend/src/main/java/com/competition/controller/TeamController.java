@@ -3,15 +3,19 @@ package com.competition.controller;
 import com.competition.dto.TeamDTO;
 import com.competition.dto.TeamMemberViewResponse;
 import com.competition.dto.TeamAwardSummaryResponse;
+import com.competition.entity.User;
+import com.competition.exception.ApiException;
+import com.competition.repository.UserRepository;
 import com.competition.service.TeamService;
 import com.competition.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +27,7 @@ public class TeamController {
 
     private final TeamService teamService;
     private final JwtUtils jwtUtils;
+    private final UserRepository userRepository;
 
     /**
      * 获取队伍列表（分页）
@@ -127,6 +132,18 @@ public class TeamController {
     }
 
     /**
+     * 管理员解散队伍
+     */
+    @PutMapping("/{teamId:\\d+}/disband")
+    public ResponseEntity<TeamDTO> disbandTeam(
+            HttpServletRequest request,
+            @PathVariable Long teamId) {
+        requireAdmin(request);
+        TeamDTO disbanded = teamService.disbandTeamByAdmin(teamId);
+        return ResponseEntity.ok(disbanded);
+    }
+
+    /**
      * 搜索队伍
      */
     @GetMapping("/search")
@@ -153,6 +170,15 @@ public class TeamController {
             token = token.substring(7);
             return jwtUtils.getUserIdFromToken(token);
         }
-        throw new RuntimeException("无效的token");
+        throw new ApiException(HttpStatus.UNAUTHORIZED, "无效的token");
+    }
+
+    private void requireAdmin(HttpServletRequest request) {
+        Long userId = getUserIdFromToken(request);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "用户不存在"));
+        if (user.getRole() != User.Role.ADMIN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "无权限：仅管理员可操作队伍");
+        }
     }
 }

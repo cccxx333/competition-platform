@@ -42,10 +42,10 @@ public class AdminCompetitionService {
                 : competition.getRegistrationDeadline();
 
         if (nextStartDate != null && nextEndDate != null && nextStartDate.isAfter(nextEndDate)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "startDate must be before or equal to endDate");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "开始日期不能晚于结束日期");
         }
         if (nextDeadline != null && nextStartDate != null && nextDeadline.isAfter(nextStartDate)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "registrationDeadline must be before or equal to startDate");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "报名截止日期不能晚于开始日期");
         }
 
         if (request.getStartDate() != null) {
@@ -59,6 +59,9 @@ public class AdminCompetitionService {
         }
         if (request.getStatus() != null) {
             competition.setStatus(request.getStatus());
+        }
+        if (request.getDescription() != null) {
+            competition.setDescription(request.getDescription());
         }
 
         return competitionRepository.save(competition);

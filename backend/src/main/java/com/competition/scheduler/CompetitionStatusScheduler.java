@@ -34,14 +34,20 @@ public class CompetitionStatusScheduler {
         List<Competition> changed = new ArrayList<>();
 
         for (Competition competition : competitions) {
-            Competition.CompetitionStatus expected = deriveStatus(
+            Competition.CompetitionStatus current = competition.getStatus();
+            if (current == Competition.CompetitionStatus.FINISHED) {
+                continue;
+            }
+            Competition.CompetitionStatus dateStatus = deriveStatus(
                     today,
                     competition.getStartDate(),
-                    competition.getEndDate(),
-                    competition.getStatus()
+                    competition.getEndDate()
             );
-            if (expected != competition.getStatus()) {
-                competition.setStatus(expected);
+            if (dateStatus == null) {
+                continue;
+            }
+            if (shouldAdvance(current, dateStatus)) {
+                competition.setStatus(dateStatus);
                 changed.add(competition);
             }
         }
@@ -55,10 +61,9 @@ public class CompetitionStatusScheduler {
     private Competition.CompetitionStatus deriveStatus(
             LocalDate today,
             LocalDate startDate,
-            LocalDate endDate,
-            Competition.CompetitionStatus fallback) {
+            LocalDate endDate) {
         if (startDate == null || endDate == null) {
-            return fallback;
+            return null;
         }
         if (today.isBefore(startDate)) {
             return Competition.CompetitionStatus.UPCOMING;
@@ -67,5 +72,26 @@ public class CompetitionStatusScheduler {
             return Competition.CompetitionStatus.FINISHED;
         }
         return Competition.CompetitionStatus.ONGOING;
+    }
+
+    private boolean shouldAdvance(Competition.CompetitionStatus current,
+                                  Competition.CompetitionStatus target) {
+        if (current == null || target == null) {
+            return false;
+        }
+        return statusRank(target) > statusRank(current);
+    }
+
+    private int statusRank(Competition.CompetitionStatus status) {
+        if (status == Competition.CompetitionStatus.UPCOMING) {
+            return 1;
+        }
+        if (status == Competition.CompetitionStatus.ONGOING) {
+            return 2;
+        }
+        if (status == Competition.CompetitionStatus.FINISHED) {
+            return 3;
+        }
+        return 0;
     }
 }

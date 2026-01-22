@@ -177,6 +177,16 @@ public class ContentBasedAlgorithm {
     }
 
     /**
+     * 复用余弦相似度用于外部技能向量匹配
+     */
+    public double calculateSkillCosineSimilarity(Map<Long, Integer> vector1, Map<Long, Integer> vector2) {
+        if (vector1 == null || vector2 == null) {
+            return 0.0;
+        }
+        return calculateCosineSimilarity(vector1, vector2);
+    }
+
+    /**
      * 获取用户技能映射 - 使用Repository查询避免懒加载
      */
     private Map<Long, Integer> getUserSkillMap(User user) {

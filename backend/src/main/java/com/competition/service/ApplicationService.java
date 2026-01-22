@@ -203,6 +203,9 @@ public class ApplicationService {
             }
             Competition competition = competitionRepository.findById(competitionRef.getId())
                     .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "competition not found"));
+            if (competition.getStatus() == Competition.CompetitionStatus.FINISHED) {
+                throw new ApiException(HttpStatus.CONFLICT, "竞赛已结束，不能通过申请");
+            }
             Integer maxSize = competition.getMaxTeamSize();
             long currentCount = teamMemberRepository.countByTeamIdAndLeftAtIsNull(team.getId());
             if (maxSize != null && currentCount >= maxSize) {

@@ -1,10 +1,11 @@
 <script lang="ts" setup>
 import { ElMessage } from "element-plus"
-import { getCompetitionDetail, type CompetitionDetail } from "@/api/competitions"
+import { getCompetitionDetail, updateCompetitionStatus, type CompetitionDetail } from "@/api/competitions"
 import { listSkills, type Skill } from "@/api/skills"
 import { createTeacherApplication } from "@/api/teacherApplications"
 import { useAuthStore } from "@/stores/auth"
 import StatusPill from "@@/components/StatusPill/index.vue"
+import { getApiErrorMessage } from "@/utils/errorMessage"
 
 const route = useRoute()
 const router = useRouter()
@@ -22,9 +23,17 @@ const favoredSkillRows = ref<Array<{ skillId: number | null; weight: number }>>(
   Array.from({ length: 5 }, () => ({ skillId: null, weight: 1 }))
 )
 const applyRemark = ref("")
+const editDialogVisible = ref(false)
+const editDialogLoading = ref(false)
+const editDialogError = ref("")
+const editForm = ref({
+  status: "" as CompetitionDetail["status"] | ""
+})
 
 const competitionId = computed(() => Number(route.params.id))
-const isTeacher = computed(() => String(authStore.user?.role ?? "").toUpperCase() === "TEACHER")
+const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
+const isTeacher = computed(() => roleUpper.value === "TEACHER")
+const isAdmin = computed(() => roleUpper.value === "ADMIN")
 const registrationDeadlineDate = computed(() => {
   const deadline = detail.value?.registrationDeadline
   if (!deadline) return null
@@ -73,6 +82,12 @@ const formatDateTime = (value?: string | null) => {
   }
   return value
 }
+
+const statusOptions = [
+  { label: "未开始", value: "UPCOMING" },
+  { label: "进行中", value: "ONGOING" },
+  { label: "已结束", value: "FINISHED" }
+]
 
 
 const showRequestError = (error: any, fallback: string) => {
@@ -169,6 +184,41 @@ const metaFields = computed(() => {
 const handleBack = () => {
   router.push("/competitions")
 }
+
+const openEditDialog = () => {
+  if (!detail.value) return
+  editDialogError.value = ""
+  editForm.value = {
+    status: detail.value.status ?? ""
+  }
+  editDialogVisible.value = true
+}
+
+const closeEditDialog = () => {
+  if (editDialogLoading.value) return
+  editDialogVisible.value = false
+  editDialogError.value = ""
+}
+
+const submitEdit = async () => {
+  if (!detail.value?.id) return
+  editDialogError.value = ""
+  if (!editForm.value.status) {
+    editDialogError.value = "请选择竞赛状态"
+    return
+  }
+  editDialogLoading.value = true
+  try {
+    await updateCompetitionStatus(detail.value.id, editForm.value.status)
+    ElMessage.success("竞赛状态已更新")
+    editDialogVisible.value = false
+    await loadDetail()
+  } catch (error: any) {
+    editDialogError.value = getApiErrorMessage(error, "更新竞赛失败")
+  } finally {
+    editDialogLoading.value = false
+  }
+}
 const openSubmitDialog = () => {
   submitError.value = ""
   favoredSkillRows.value = Array.from({ length: 5 }, () => ({ skillId: null, weight: 1 }))
@@ -252,6 +302,7 @@ watch(submitDialogVisible, (visible) => {
             {{ applyDisabledReason }}
           </div>
         </div>
+        <el-button v-if="isAdmin" size="small" type="primary" @click="openEditDialog">修改竞赛状态</el-button>
         <el-button class="back-btn" size="small" @click="handleBack">返回</el-button>
       </div>
     </div>
@@ -387,6 +438,29 @@ watch(submitDialogVisible, (visible) => {
         <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleApply">
           提交
         </el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="editDialogVisible"
+      title="修改竞赛状态"
+      width="520px"
+      append-to-body
+      top="12vh"
+      :close-on-click-modal="false"
+      :before-close="closeEditDialog"
+    >
+      <el-form label-position="top">
+        <el-form-item label="状态">
+          <el-select v-model="editForm.status" placeholder="请选择状态" clearable>
+            <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <el-alert v-if="editDialogError" type="error" :closable="false" :title="editDialogError" />
+      <template #footer>
+        <el-button :disabled="editDialogLoading" @click="closeEditDialog">取消</el-button>
+        <el-button type="primary" :loading="editDialogLoading" @click="submitEdit">保存</el-button>
       </template>
     </el-dialog>
   </el-card>

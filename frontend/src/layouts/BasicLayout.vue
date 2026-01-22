@@ -27,10 +27,13 @@ const handleLogout = () => {
       <div class="basic-layout__logo">竞赛平台</div>
       <el-menu :default-active="route.path" router>
         <el-menu-item index="/dashboard">仪表盘</el-menu-item>
-        <el-menu-item index="/competitions">竞赛</el-menu-item>
+        <el-sub-menu index="/competitions">
+          <template #title>竞赛</template>
+          <el-menu-item index="/competitions">竞赛列表</el-menu-item>
+          <el-menu-item v-if="roleUpper === 'STUDENT'" index="/competitions/apply">竞赛报名</el-menu-item>
+        </el-sub-menu>
         <el-sub-menu index="/teams">
           <template #title>队伍</template>
-          <el-menu-item v-if="roleUpper === 'STUDENT'" index="/teams/join">加入队伍</el-menu-item>
           <el-menu-item v-if="roleUpper === 'STUDENT'" index="/teams/my-applications">我的申请</el-menu-item>
           <el-menu-item v-if="roleUpper === 'STUDENT'" index="/teams/my">我的队伍</el-menu-item>
           <el-menu-item v-if="roleUpper === 'TEACHER' || roleUpper === 'ADMIN'" index="/teams/lookup">
@@ -42,7 +45,8 @@ const handleLogout = () => {
         <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teacher/applications">我的教师申请</el-menu-item>
         <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/teacher-applications">教师申请审核</el-menu-item>
         <el-menu-item index="/me/profile">个人信息</el-menu-item>
-        <el-menu-item v-if="roleUpper !== 'TEACHER'" index="/me/skills">技能</el-menu-item>
+        <el-menu-item v-if="roleUpper !== 'TEACHER' && roleUpper !== 'ADMIN'" index="/me/skills">技能</el-menu-item>
+        <el-menu-item v-else-if="roleUpper === 'ADMIN'" index="/me/skills">技能管理</el-menu-item>
         <el-menu-item v-if="roleUpper === 'STUDENT'" index="/me/honors">荣誉</el-menu-item>
       </el-menu>
     </el-aside>

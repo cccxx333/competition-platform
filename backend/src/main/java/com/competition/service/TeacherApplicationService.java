@@ -196,6 +196,13 @@ public class TeacherApplicationService {
         }
 
         if (request.getApproved()) {
+            Competition competition = application.getCompetition();
+            if (competition == null) {
+                throw new ApiException(HttpStatus.NOT_FOUND, "竞赛不存在");
+            }
+            if (competition.getStatus() == Competition.CompetitionStatus.FINISHED) {
+                throw new ApiException(HttpStatus.CONFLICT, "竞赛已结束，不能通过申请");
+            }
             Team team = ensureTeamForApplication(application);
             syncTeamSkillsFromApplication(application, team);
             application.setGeneratedTeam(team);

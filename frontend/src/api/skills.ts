@@ -16,7 +16,14 @@ export type Skill = {
   category?: string
   description?: string
   isActive?: number
+  createdAt?: string
   [key: string]: unknown
+}
+
+export type SkillPayload = {
+  name: string
+  category?: string
+  description?: string
 }
 
 const unwrapData = <T>(payload: any): T => {
@@ -46,6 +53,24 @@ export async function listSkills(): Promise<Skill[]> {
     return unwrapData<Skill[]>(response?.data)
   } catch (error: any) {
     throw toError(error, "Failed to load skills")
+  }
+}
+
+export async function createSkill(payload: SkillPayload): Promise<Skill> {
+  try {
+    const response = await client.post("/skills", payload)
+    return unwrapData<Skill>(response?.data)
+  } catch (error: any) {
+    throw toError(error, "Failed to create skill")
+  }
+}
+
+export async function updateSkill(id: number, payload: SkillPayload): Promise<Skill> {
+  try {
+    const response = await client.put(`/skills/${id}`, payload)
+    return unwrapData<Skill>(response?.data)
+  } catch (error: any) {
+    throw toError(error, "Failed to update skill")
   }
 }
 

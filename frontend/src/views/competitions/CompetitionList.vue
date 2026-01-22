@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ElMessage } from "element-plus"
-import { listCompetitions, type CompetitionListItem, type CompetitionListParams } from "@/api/competitions"
+import { createCompetition, listCompetitions, type CompetitionCreatePayload, type CompetitionListItem, type CompetitionListParams } from "@/api/competitions"
 import StatusPill from "@@/components/StatusPill/index.vue"
 import { useAuthStore } from "@/stores/auth"
 
@@ -29,6 +29,20 @@ const errorMessage = ref("")
 const total = ref<number | null>(null)
 const initialized = ref(false)
 const isApplying = ref(false)
+const createDialogVisible = ref(false)
+const createDialogLoading = ref(false)
+const createDialogError = ref("")
+const createForm = ref({
+  name: "",
+  organizer: "",
+  level: "",
+  startDate: "",
+  endDate: "",
+  registrationDeadline: "",
+  minTeamSize: 1,
+  maxTeamSize: 1,
+  description: ""
+})
 
 type StatusFilterValue = "" | "UPCOMING" | "ONGOING" | "FINISHED"
 
@@ -225,6 +239,80 @@ const formatDate = (value?: string | null) => {
   return value
 }
 
+const openCreateDialog = () => {
+  createDialogError.value = ""
+  createForm.value = {
+    name: "",
+    organizer: "",
+    level: "",
+    startDate: "",
+    endDate: "",
+    registrationDeadline: "",
+    minTeamSize: 1,
+    maxTeamSize: 1,
+    description: ""
+  }
+  createDialogVisible.value = true
+}
+
+const closeCreateDialog = () => {
+  if (createDialogLoading.value) return
+  createDialogVisible.value = false
+  createDialogError.value = ""
+}
+
+const submitCreate = async () => {
+  const form = createForm.value
+  const name = form.name.trim()
+  if (!name) {
+    createDialogError.value = "请填写竞赛名称"
+    return
+  }
+  if (!form.startDate || !form.endDate || !form.registrationDeadline) {
+    createDialogError.value = "请完整填写日期"
+    return
+  }
+  if (form.registrationDeadline > form.startDate) {
+    createDialogError.value = "报名截止时间必须早于或等于比赛开始时间"
+    return
+  }
+  if (form.startDate >= form.endDate) {
+    createDialogError.value = "比赛开始时间必须早于比赛结束时间"
+    return
+  }
+  if (!Number.isFinite(form.minTeamSize) || form.minTeamSize < 1) {
+    createDialogError.value = "最小队伍人数需大于等于 1"
+    return
+  }
+  if (!Number.isFinite(form.maxTeamSize) || form.maxTeamSize < form.minTeamSize) {
+    createDialogError.value = "最大队伍人数需大于等于最小队伍人数"
+    return
+  }
+  const payload: CompetitionCreatePayload = {
+    name,
+    organizer: form.organizer.trim() || undefined,
+    level: form.level.trim() || undefined,
+    startDate: form.startDate,
+    endDate: form.endDate,
+    registrationDeadline: form.registrationDeadline,
+    minTeamSize: form.minTeamSize,
+    maxTeamSize: form.maxTeamSize,
+    description: form.description.trim() || undefined
+  }
+  createDialogLoading.value = true
+  createDialogError.value = ""
+  try {
+    await createCompetition(payload)
+    ElMessage.success("发布成功")
+    createDialogVisible.value = false
+    fetchList()
+  } catch (error: any) {
+    createDialogError.value = error?.message || "发布竞赛失败"
+  } finally {
+    createDialogLoading.value = false
+  }
+}
+
 const parseNumber = (value: unknown, fallback: number) => {
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) return fallback
@@ -380,6 +468,7 @@ onBeforeUnmount(() => {
   <el-card shadow="never" v-loading="loading">
     <div class="page-header">
       <h2>竞赛列表</h2>
+      <el-button v-if="isAdmin" type="primary" size="small" @click="openCreateDialog">发布竞赛</el-button>
     </div>
 
     <el-form class="filter-bar" label-position="top" label-width="120px">
@@ -494,6 +583,51 @@ onBeforeUnmount(() => {
       />
     </div>
   </el-card>
+
+  <el-dialog
+    v-model="createDialogVisible"
+    title="发布竞赛"
+    width="560px"
+    append-to-body
+    top="12vh"
+    :close-on-click-modal="false"
+    :before-close="closeCreateDialog"
+  >
+    <el-form label-position="top">
+      <el-form-item label="竞赛名称">
+        <el-input v-model="createForm.name" placeholder="请输入竞赛名称" />
+      </el-form-item>
+      <el-form-item label="主办方">
+        <el-input v-model="createForm.organizer" placeholder="请输入主办方（可选）" />
+      </el-form-item>
+      <el-form-item label="级别">
+        <el-input v-model="createForm.level" placeholder="请输入级别（可选）" />
+      </el-form-item>
+      <el-form-item label="开始日期">
+        <el-date-picker v-model="createForm.startDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择开始日期" />
+      </el-form-item>
+      <el-form-item label="结束日期">
+        <el-date-picker v-model="createForm.endDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择结束日期" />
+      </el-form-item>
+      <el-form-item label="报名截止">
+        <el-date-picker v-model="createForm.registrationDeadline" type="date" value-format="YYYY-MM-DD" placeholder="请选择报名截止日期" />
+      </el-form-item>
+      <el-form-item label="最小队伍人数">
+        <el-input-number v-model="createForm.minTeamSize" :min="1" :controls="true" />
+      </el-form-item>
+      <el-form-item label="最大队伍人数">
+        <el-input-number v-model="createForm.maxTeamSize" :min="1" :controls="true" />
+      </el-form-item>
+      <el-form-item label="竞赛说明">
+        <el-input v-model="createForm.description" type="textarea" :rows="3" placeholder="请输入竞赛说明（可选）" />
+      </el-form-item>
+    </el-form>
+    <el-alert v-if="createDialogError" type="error" :closable="false" :title="createDialogError" />
+    <template #footer>
+      <el-button :disabled="createDialogLoading" @click="closeCreateDialog">取消</el-button>
+      <el-button type="primary" :loading="createDialogLoading" @click="submitCreate">发布</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped>

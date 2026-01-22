@@ -3,11 +3,15 @@ package com.competition.service;
 import com.competition.dto.CompetitionCreateRequest;
 import com.competition.dto.CompetitionResponse;
 import com.competition.dto.CompetitionUpdateRequest;
+import com.competition.dto.TeamRecommendationResponse;
 import com.competition.entity.Competition;
 import com.competition.entity.CompetitionSkill;
+import com.competition.entity.Team;
 import com.competition.entity.User;
+import com.competition.exception.ApiException;
 import com.competition.repository.CompetitionRepository;
 import com.competition.repository.CompetitionSkillRepository;
+import com.competition.repository.TeamRepository;
 import com.competition.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -35,6 +40,7 @@ public class CompetitionService {
     private final CompetitionRepository competitionRepository;
     private final CompetitionSkillRepository competitionSkillRepository;
     private final UserRepository userRepository;
+    private final TeamRepository teamRepository;
     private final RecommendationService recommendationService;
     private static final int DEFAULT_TOP_K = 10;
     private static final int MAX_TOP_K = 50;
@@ -43,6 +49,13 @@ public class CompetitionService {
      * 创建竞赛
      */
     public CompetitionResponse createCompetition(CompetitionCreateRequest request) {
+        validateCompetitionDates(
+                request.getRegistrationDeadline(),
+                request.getStartDate(),
+                request.getEndDate(),
+                request.getMinTeamSize(),
+                request.getMaxTeamSize()
+        );
         Competition competition = convertToEntity(request);
         Competition savedCompetition = competitionRepository.save(competition);
 
@@ -85,6 +98,7 @@ public class CompetitionService {
                                                      Competition.CompetitionStatus status,
                                                      String keyword,
                                                      boolean recommend,
+                                                     boolean applyable,
                                                      Long userId,
                                                      Integer topK) {
         int effectiveTopK = calculateEffectiveTopK(topK);
@@ -98,17 +112,17 @@ public class CompetitionService {
         }
 
         if (!recommend || fallbackReason != null) {
-            return getCompetitionsDefault(pageable, name, status, keyword);
+            return getCompetitionsDefault(pageable, name, status, keyword, applyable);
         }
 
-        List<Competition> candidates = getCandidateCompetitions(name, status, keyword);
+        List<Competition> candidates = getCandidateCompetitions(name, status, keyword, applyable);
         if (candidates.isEmpty()) {
             return new PageImpl<>(new ArrayList<>(), pageable, 0);
         }
 
         Map<Long, Double> matchScores = recommendationService.calculateCompetitionMatchScores(userId, candidates);
         if (matchScores.isEmpty()) {
-            return getCompetitionsDefault(pageable, name, status, keyword);
+            return getCompetitionsDefault(pageable, name, status, keyword, applyable);
         }
 
         Comparator<Competition> baseComparator = buildSortComparator(pageable.getSort());
@@ -151,6 +165,69 @@ public class CompetitionService {
     }
 
     /**
+     * 获取竞赛下队伍推荐
+     */
+    @Transactional(readOnly = true)
+    public List<TeamRecommendationResponse> recommendTeams(Long currentUserId, Long competitionId, Integer topK) {
+        try {
+            User student = userRepository.findById(currentUserId)
+                    .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "无权限：仅学生可进行竞赛报名推荐"));
+            if (student.getRole() != User.Role.STUDENT) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "无权限：仅学生可进行竞赛报名推荐");
+            }
+
+            Competition competition = competitionRepository.findById(competitionId)
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "竞赛不存在"));
+
+            List<Team> teams = teamRepository.findByCompetitionId(competition.getId()).stream()
+                    .filter(team -> team.getStatus() == Team.TeamStatus.RECRUITING)
+                    .collect(Collectors.toList());
+
+            if (teams.isEmpty()) {
+                return List.of();
+            }
+
+            int limit = calculateEffectiveTopK(topK);
+            Map<Long, Double> matchScores = recommendationService.calculateTeamMatchScores(currentUserId, teams);
+            double maxScore = matchScores.values().stream().max(Double::compareTo).orElse(0.0);
+            boolean fallbackSorted = maxScore < 0.10;
+
+            Comparator<Team> defaultComparator = Comparator
+                    .comparing(Team::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+                    .reversed()
+                    .thenComparing(Team::getId, Comparator.nullsLast(Comparator.naturalOrder()));
+
+            List<Team> sorted = new ArrayList<>(teams);
+            if (fallbackSorted) {
+                sorted.sort(defaultComparator);
+            } else {
+                sorted.sort(Comparator
+                        .comparing((Team team) -> matchScores.getOrDefault(team.getId(), 0.0))
+                        .reversed()
+                        .thenComparing(defaultComparator));
+            }
+
+            return sorted.stream()
+                    .limit(limit)
+                    .map(team -> {
+                        TeamRecommendationResponse response = new TeamRecommendationResponse();
+                        response.setTeamId(team.getId());
+                        response.setTeamName(team.getName());
+                        response.setTeamStatus(team.getStatus());
+                        response.setMatchScore(matchScores.getOrDefault(team.getId(), 0.0));
+                        response.setReasons(recommendationService.buildTeamRecommendReasons(currentUserId, team));
+                        response.setFallbackSorted(fallbackSorted);
+                        return response;
+                    })
+                    .collect(Collectors.toList());
+        } catch (ApiException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "队伍推荐失败，请稍后重试");
+        }
+    }
+
+    /**
      * 根据ID获取竞赛详情
      */
     @Transactional(readOnly = true)
@@ -185,7 +262,12 @@ public class CompetitionService {
     /**
      * 更新竞赛
      */
-    public CompetitionResponse updateCompetition(Long id, CompetitionUpdateRequest request) {
+    public CompetitionResponse updateCompetition(Long currentUserId, Long id, CompetitionUpdateRequest request) {
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "用户不存在"));
+        if (currentUser.getRole() != User.Role.ADMIN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "无权限：仅管理员可修改竞赛状态");
+        }
         Competition competition = competitionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("竞赛不存在"));
         applyUpdate(competition, request);
@@ -215,43 +297,26 @@ public class CompetitionService {
     }
 
     private void applyUpdate(Competition competition, CompetitionUpdateRequest request) {
-        if (request.getName() != null) {
-            competition.setName(request.getName());
-        }
-        if (request.getDescription() != null) {
-            competition.setDescription(request.getDescription());
-        }
-        if (request.getOrganizer() != null) {
-            competition.setOrganizer(request.getOrganizer());
-        }
-        if (request.getStartDate() != null) {
-            competition.setStartDate(request.getStartDate());
-        }
-        if (request.getEndDate() != null) {
-            competition.setEndDate(request.getEndDate());
-        }
-        if (request.getRegistrationDeadline() != null) {
-            competition.setRegistrationDeadline(request.getRegistrationDeadline());
-        }
-        if (request.getMinTeamSize() != null) {
-            competition.setMinTeamSize(request.getMinTeamSize());
-        }
-        if (request.getMaxTeamSize() != null) {
-            competition.setMaxTeamSize(request.getMaxTeamSize());
-        }
-        if (request.getCategory() != null) {
-            competition.setCategory(request.getCategory());
-        }
-        if (request.getLevel() != null) {
-            competition.setLevel(request.getLevel());
-        }
         if (request.getStatus() != null) {
             competition.setStatus(request.getStatus());
         }
-        if (request.getCreatedById() != null) {
-            User createdBy = userRepository.findById(request.getCreatedById())
-                    .orElseThrow(() -> new RuntimeException("创建人不存在"));
-            competition.setCreatedBy(createdBy);
+    }
+
+    private void validateCompetitionDates(LocalDate registrationDeadline,
+                                          LocalDate startDate,
+                                          LocalDate endDate,
+                                          Integer minTeamSize,
+                                          Integer maxTeamSize) {
+        if (registrationDeadline != null && startDate != null && registrationDeadline.isAfter(startDate)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "报名截止时间必须早于或等于比赛开始时间");
+        }
+        if (startDate != null && endDate != null && !startDate.isBefore(endDate)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "比赛开始时间必须早于比赛结束时间");
+        }
+        if (minTeamSize != null && maxTeamSize != null) {
+            if (minTeamSize < 1 || maxTeamSize < minTeamSize) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "队伍人数范围不合法");
+            }
         }
     }
 
@@ -288,50 +353,64 @@ public class CompetitionService {
     private Page<CompetitionResponse> getCompetitionsDefault(Pageable pageable,
                                                              String name,
                                                              Competition.CompetitionStatus status,
-                                                             String keyword) {
+                                                             String keyword,
+                                                             boolean applyable) {
         if (keyword != null && !keyword.isBlank()) {
             List<Competition> results = competitionRepository.findByKeyword(keyword);
             results = filterByNameAndStatus(results, name, status);
+            results = filterByApplyable(results, applyable);
             List<Competition> sorted = sortCompetitions(results, pageable.getSort());
             return toResponsePage(sorted, pageable);
         }
 
         if (name != null && status != null) {
             List<Competition> results = competitionRepository.findByNameContainingIgnoreCaseAndStatus(name, status);
+            results = filterByApplyable(results, applyable);
             List<Competition> sorted = sortCompetitions(results, pageable.getSort());
             return toResponsePage(sorted, pageable);
         }
         if (name != null) {
             List<Competition> results = competitionRepository.findByNameContainingIgnoreCase(name);
+            results = filterByApplyable(results, applyable);
             List<Competition> sorted = sortCompetitions(results, pageable.getSort());
             return toResponsePage(sorted, pageable);
         }
         if (status != null) {
             List<Competition> results = competitionRepository.findByStatus(status);
+            results = filterByApplyable(results, applyable);
             List<Competition> sorted = sortCompetitions(results, pageable.getSort());
             return toResponsePage(sorted, pageable);
         }
 
-        return competitionRepository.findAll(pageable).map(this::convertToResponse);
+        if (!applyable) {
+            return competitionRepository.findAll(pageable).map(this::convertToResponse);
+        }
+
+        List<Competition> results = competitionRepository.findAll();
+        results = filterByApplyable(results, true);
+        List<Competition> sorted = sortCompetitions(results, pageable.getSort());
+        return toResponsePage(sorted, pageable);
     }
 
     private List<Competition> getCandidateCompetitions(String name,
                                                        Competition.CompetitionStatus status,
-                                                       String keyword) {
+                                                       String keyword,
+                                                       boolean applyable) {
         if (keyword != null && !keyword.isBlank()) {
             List<Competition> results = competitionRepository.findByKeyword(keyword);
-            return filterByNameAndStatus(results, name, status);
+            results = filterByNameAndStatus(results, name, status);
+            return filterByApplyable(results, applyable);
         }
         if (name != null && status != null) {
-            return competitionRepository.findByNameContainingIgnoreCaseAndStatus(name, status);
+            return filterByApplyable(competitionRepository.findByNameContainingIgnoreCaseAndStatus(name, status), applyable);
         }
         if (name != null) {
-            return competitionRepository.findByNameContainingIgnoreCase(name);
+            return filterByApplyable(competitionRepository.findByNameContainingIgnoreCase(name), applyable);
         }
         if (status != null) {
-            return competitionRepository.findByStatus(status);
+            return filterByApplyable(competitionRepository.findByStatus(status), applyable);
         }
-        return competitionRepository.findAll();
+        return filterByApplyable(competitionRepository.findAll(), applyable);
     }
 
     private List<Competition> filterByNameAndStatus(List<Competition> competitions,
@@ -356,6 +435,20 @@ public class CompetitionService {
         Comparator<Competition> comparator = buildSortComparator(sort);
         sorted.sort(comparator);
         return sorted;
+    }
+
+    private List<Competition> filterByApplyable(List<Competition> competitions, boolean applyable) {
+        if (!applyable) {
+            return competitions;
+        }
+        LocalDate today = LocalDate.now();
+        return competitions.stream()
+                .filter(competition -> competition.getStatus() == Competition.CompetitionStatus.UPCOMING)
+                .filter(competition -> {
+                    LocalDate deadline = competition.getRegistrationDeadline();
+                    return deadline != null && !deadline.isBefore(today);
+                })
+                .collect(Collectors.toList());
     }
 
     private int calculateEffectiveTopK(Integer topK) {

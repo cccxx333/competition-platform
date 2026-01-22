@@ -10,4 +10,5 @@ public class CompetitionAdminUpdateRequest {
     private LocalDate endDate;
     private LocalDate registrationDeadline;
     private Competition.CompetitionStatus status;
+    private String description;
 }
