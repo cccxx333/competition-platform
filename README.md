@@ -57,13 +57,15 @@
 
 ### 启动 Spring Boot 应用：
 ```bash
-mvn spring-boot:run
+cd backend
+.\mvnw.cmd -DskipTests clean package
+.\mvnw.cmd spring-boot:run
 ```
 ## 前端启动步骤：
 
 ### 安装依赖：
 ```bash
-cd competition-frontend
+cd frontend
 npm install
 ```
 ### 启动开发服务器：

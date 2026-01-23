@@ -7,21 +7,30 @@ Thumbs.db
 
 # Backend (Maven / Spring Boot)
 /backend/target/
-/backend/.mvn/wrapper/maven-wrapper.jar
 /backend/logs/
 *.log
 /backend/src/main/resources/application-local.yml
 
-# Frontend (React)
-/competition-frontend/node_modules/
-/competition-frontend/build/
-/competition-frontend/coverage/
-/competition-frontend/.pnp
-/competition-frontend/.pnp.js
-/competition-frontend/.env.local
-/competition-frontend/.env.development.local
-/competition-frontend/.env.test.local
-/competition-frontend/.env.production.local
-/competition-frontend/npm-debug.log*
-/competition-frontend/yarn-debug.log*
-/competition-frontend/yarn-error.log*
+# ===== Frontend (CURRENT: Vue3 / Vite / Element Plus) =====
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.vite/
+/frontend/.cache/
+# 如有本地环境变量文件（按需保留或提交 .env.example）
+/frontend/.env
+/frontend/.env.*
+!/frontend/.env.example
+
+# ===== General Node (in case nested packages exist) =====
+**/node_modules/
+**/dist/
+**/.vite/
+
+ .vscode/
+ **/.vscode/
+
+# runtime uploads (do not commit)
+uploads/
+
+# ===== Local/dev docs & logs (do not commit to GitHub) =====
+docs_local/
