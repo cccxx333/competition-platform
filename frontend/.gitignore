@@ -16,3 +16,6 @@ vite.config.*.timestamp*
 # Use the pnpm
 package-lock.json
 yarn.lock
+
+# frontend auto-generated types
+types/auto/
