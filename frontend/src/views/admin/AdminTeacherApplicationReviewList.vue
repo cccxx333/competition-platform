@@ -5,7 +5,7 @@ import {
   adminReviewTeacherApplication,
   type AdminTeacherApplicationListItem
 } from "@/api/teacherApplications"
-import StatusPill from "@@/components/StatusPill/index.vue"
+import StatusTag from "@@/components/StatusTag/index.vue"
 
 const loading = ref(false)
 const items = ref<AdminTeacherApplicationListItem[]>([])
@@ -145,103 +145,109 @@ onMounted(fetchList)
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
-    <div class="page-header">
-      <h2>教师申请审核</h2>
-    </div>
+  <div class="page-container">
 
-    <el-table :data="items" style="width: 100%">
-      <el-table-column prop="teacherName" label="教师" min-width="160" />
-      <el-table-column prop="competitionName" label="竞赛" min-width="200" />
-      <el-table-column label="状态" width="140">
-        <template #default="{ row }">
-          <StatusPill :value="row.status" kind="teacherApplication" />
-        </template>
-      </el-table-column>
-      <el-table-column label="创建时间" width="180">
-        <template #default="{ row }">
-          {{ formatDateTime(row.createdAt) || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="200">
-        <template #default="{ row }">
+    <div class="page-header">
+        <h2>教师申请审核</h2>
+      </div>
+
+  <el-card shadow="never" v-loading="loading">
+    
+
+      <el-table :data="items" style="width: 100%">
+        <el-table-column prop="teacherName" label="教师" min-width="160" />
+        <el-table-column prop="competitionName" label="竞赛" min-width="200" />
+        <el-table-column label="状态" width="140">
+          <template #default="{ row }">
+            <StatusTag :status="row.status" kind="teacherApplication" />
+        
+      </template>
+        </el-table-column>
+        <el-table-column label="创建时间" width="180">
+          <template #default="{ row }">
+            {{ formatDateTime(row.createdAt) || "-" }}
+      </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200">
+          <template #default="{ row }">
+            <el-button
+              size="small"
+              type="primary"
+              :disabled="row.status !== 'PENDING'"
+              @click="openApproveDialog(row)"
+            >
+              通过
+            </el-button>
+            <el-button
+              size="small"
+              type="danger"
+              :disabled="row.status !== 'PENDING'"
+              @click="openRejectDialog(row)"
+            >
+              拒绝
+            </el-button>
+      </template>
+        </el-table-column>
+      </el-table>
+
+      <div class="pagination">
+        <el-pagination
+          :current-page="pagination.page + 1"
+          :page-size="pagination.size"
+          :total="total"
+          layout="total, prev, pager, next, sizes"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
+        />
+      </div>
+
+      <el-dialog
+        v-model="reviewDialogVisible"
+        :title="reviewAction === 'approve' ? '通过' : '拒绝'"
+        width="480px"
+        center
+        :close-on-click-modal="true"
+        :close-on-press-escape="true"
+        :before-close="closeReviewDialog"
+      >
+        <div class="review-note">原因（可选）</div>
+        <el-alert
+          v-if="submitError"
+          :title="submitError"
+          type="error"
+          show-icon
+          :closable="false"
+          style="margin-bottom: 12px"
+        />
+        <el-input
+          v-model="reviewReason"
+          type="textarea"
+          :rows="4"
+          placeholder="请填写原因（可选）"
+        />
+        <template #footer>
+          <el-button :disabled="reviewSubmitting" @click="closeReviewDialog">取消</el-button>
           <el-button
-            size="small"
+            v-if="reviewAction === 'approve'"
             type="primary"
-            :disabled="row.status !== 'PENDING'"
-            @click="openApproveDialog(row)"
+            :loading="reviewSubmitting"
+            @click="submitReview"
           >
             通过
           </el-button>
           <el-button
-            size="small"
+            v-else
             type="danger"
-            :disabled="row.status !== 'PENDING'"
-            @click="openRejectDialog(row)"
+            :loading="reviewSubmitting"
+            @click="submitReview"
           >
             拒绝
           </el-button>
         </template>
-      </el-table-column>
-    </el-table>
-
-    <div class="pagination">
-      <el-pagination
-        :current-page="pagination.page + 1"
-        :page-size="pagination.size"
-        :total="total"
-        layout="total, prev, pager, next, sizes"
-        @current-change="handlePageChange"
-        @size-change="handleSizeChange"
-      />
-    </div>
-
-    <el-dialog
-      v-model="reviewDialogVisible"
-      :title="reviewAction === 'approve' ? '通过' : '拒绝'"
-      width="480px"
-      center
-      :close-on-click-modal="true"
-      :close-on-press-escape="true"
-      :before-close="closeReviewDialog"
-    >
-      <div class="review-note">原因（可选）</div>
-      <el-alert
-        v-if="submitError"
-        :title="submitError"
-        type="error"
-        show-icon
-        :closable="false"
-        style="margin-bottom: 12px"
-      />
-      <el-input
-        v-model="reviewReason"
-        type="textarea"
-        :rows="4"
-        placeholder="请填写原因（可选）"
-      />
-      <template #footer>
-        <el-button :disabled="reviewSubmitting" @click="closeReviewDialog">取消</el-button>
-        <el-button
-          v-if="reviewAction === 'approve'"
-          type="primary"
-          :loading="reviewSubmitting"
-          @click="submitReview"
-        >
-          通过
-        </el-button>
-        <el-button
-          v-else
-          type="danger"
-          :loading="reviewSubmitting"
-          @click="submitReview"
-        >
-          拒绝
-        </el-button>
-      </template>
-    </el-dialog>
-  </el-card>
-</template>
+      </el-dialog>
+    </el-card>
+  </div>
+    </template>
 
 <style scoped>
 .page-header {

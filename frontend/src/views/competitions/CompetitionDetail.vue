@@ -4,7 +4,7 @@ import { getCompetitionDetail, updateCompetitionStatus, type CompetitionDetail }
 import { listSkills, type Skill } from "@/api/skills"
 import { createTeacherApplication } from "@/api/teacherApplications"
 import { useAuthStore } from "@/stores/auth"
-import StatusPill from "@@/components/StatusPill/index.vue"
+import StatusTag from "@@/components/StatusTag/index.vue"
 import { getApiErrorMessage } from "@/utils/errorMessage"
 
 const route = useRoute()
@@ -284,187 +284,191 @@ watch(submitDialogVisible, (visible) => {
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div class="page-container">
+
     <div class="page-header">
-      <h2>竞赛详情</h2>
-      <div class="header-actions">
-        <div v-if="isTeacher" class="apply-action">
-          <el-button
-            size="small"
-            type="primary"
-            :loading="submitting"
-            :disabled="loading || submitting || !canApplyTeacher"
-            @click="openSubmitDialog"
-          >
-            提交教师申请
-          </el-button>
-          <div v-if="!canApplyTeacher && applyDisabledReason" class="apply-hint">
-            {{ applyDisabledReason }}
-          </div>
-        </div>
-        <el-button v-if="isAdmin" size="small" type="primary" @click="openEditDialog">修改竞赛状态</el-button>
-        <el-button class="back-btn" size="small" @click="handleBack">返回</el-button>
-      </div>
-    </div>
-
-    <el-alert
-      v-if="errorMessage"
-      type="error"
-      :closable="false"
-      :title="errorMessage"
-      style="margin-bottom: 12px"
-    />
-
-    <el-skeleton v-if="loading" :rows="6" animated />
-
-    <div v-else-if="!errorMessage && detail">
-      <el-card shadow="never" class="section">
-        <h3>基本信息</h3>
-        <el-descriptions v-if="basicFields.length || detail.status" :column="1">
-          <el-descriptions-item v-for="item in basicFields" :key="item.label" :label="item.label">
-            {{ item.value }}
-          </el-descriptions-item>
-          <el-descriptions-item v-if="detail.status" label="状态">
-            <StatusPill :value="detail.status" kind="competition" />
-          </el-descriptions-item>
-        </el-descriptions>
-        <div v-else>暂无信息</div>
-      </el-card>
-
-      <el-card shadow="never" class="section">
-        <h3>时间信息</h3>
-        <el-descriptions v-if="timeFields.length" :column="1">
-          <el-descriptions-item v-for="item in timeFields" :key="item.label" :label="item.label">
-            {{ item.value }}
-          </el-descriptions-item>
-        </el-descriptions>
-        <div v-else>暂无信息</div>
-      </el-card>
-
-      <el-card shadow="never" class="section">
-        <h3>规则</h3>
-        <el-descriptions v-if="ruleFields.length" :column="1">
-          <el-descriptions-item v-for="item in ruleFields" :key="item.label" :label="item.label">
-            {{ item.value }}
-          </el-descriptions-item>
-        </el-descriptions>
-        <div v-else>暂无信息</div>
-      </el-card>
-
-      <el-card shadow="never" class="section">
-        <h3>元信息</h3>
-        <el-descriptions v-if="metaFields.length" :column="1">
-          <el-descriptions-item v-for="item in metaFields" :key="item.label" :label="item.label">
-            {{ item.value }}
-          </el-descriptions-item>
-        </el-descriptions>
-        <div v-else>暂无信息</div>
-      </el-card>
-
-      <el-card v-if="detail.description" shadow="never" class="section">
-        <el-collapse>
-          <el-collapse-item title="描述" name="description">
-            <pre>{{ detail.description }}</pre>
-          </el-collapse-item>
-        </el-collapse>
-      </el-card>
-    </div>
-
-    <el-dialog
-      v-model="submitDialogVisible"
-      title="确认"
-      width="480px"
-      center
-      :close-on-click-modal="true"
-      :close-on-press-escape="true"
-      :before-close="closeSubmitDialog"
-    >
-      <div>确认提交该竞赛的教师申请？</div>
-      <div style="margin-top: 8px; color: #909399;">提交后请等待管理员审核。</div>
-      <div style="margin-top: 12px;">
-        <div style="margin-bottom: 6px;">青睐技能（可选，最多 5 个）</div>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <div v-for="(row, idx) in favoredSkillRows" :key="idx" style="display: flex; align-items: center; gap: 12px;">
-            <el-select
-              v-model="row.skillId"
-              placeholder="技能"
-              clearable
-              filterable
-              style="flex: 0 0 72%;"
-              :loading="skillsLoading"
-              :disabled="skillsLoading"
+        <h2>竞赛详情</h2>
+        <div class="header-actions">
+          <div v-if="isTeacher" class="apply-action">
+            <el-button
+              size="small"
+              type="primary"
+              :loading="submitting"
+              :disabled="loading || submitting || !canApplyTeacher"
+              @click="openSubmitDialog"
             >
-              <el-option
-                v-for="s in allSkills"
-                :key="s.id"
-                :label="s.name"
-                :value="s.id"
-                :disabled="typeof s.id === 'number' && row.skillId !== s.id && selectedSkillIds.has(s.id)"
-              />
-            </el-select>
-            <el-input-number
-              v-model="row.weight"
-              :min="1"
-              :step="1"
-              controls-position="right"
-              placeholder="权重"
-              style="width: 120px;"
-            />
+              提交教师申请
+            </el-button>
+            <div v-if="!canApplyTeacher && applyDisabledReason" class="apply-hint">
+              {{ applyDisabledReason }}
+            </div>
           </div>
+          <el-button v-if="isAdmin" size="small" type="primary" @click="openEditDialog">修改竞赛状态</el-button>
+          <el-button class="back-btn" size="small" @click="handleBack">返回</el-button>
         </div>
-        <div style="margin-top: 6px; color: #909399;">已选 {{ selectedCount }}/5</div>
       </div>
-      <div style="margin-top: 12px;">
-        <div style="margin-bottom: 6px;">备注（可选）</div>
-        <el-input
-          v-model="applyRemark"
-          type="textarea"
-          :rows="3"
-          placeholder="可填写对队伍的说明或期望"
-          maxlength="200"
-          show-word-limit
-        />
-      </div>
-      <el-alert
-        v-if="submitError"
-        :title="submitError"
-        type="error"
-        show-icon
-        :closable="false"
-        style="margin-top: 12px"
-      />
-      <template #footer>
-        <el-button :disabled="submitting" @click="closeSubmitDialog">取消</el-button>
-        <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleApply">
-          提交
-        </el-button>
-      </template>
-    </el-dialog>
 
-    <el-dialog
-      v-model="editDialogVisible"
-      title="修改竞赛状态"
-      width="520px"
-      append-to-body
-      top="12vh"
-      :close-on-click-modal="false"
-      :before-close="closeEditDialog"
-    >
-      <el-form label-position="top">
-        <el-form-item label="状态">
-          <el-select v-model="editForm.status" placeholder="请选择状态" clearable>
-            <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-      <el-alert v-if="editDialogError" type="error" :closable="false" :title="editDialogError" />
-      <template #footer>
-        <el-button :disabled="editDialogLoading" @click="closeEditDialog">取消</el-button>
-        <el-button type="primary" :loading="editDialogLoading" @click="submitEdit">保存</el-button>
-      </template>
-    </el-dialog>
-  </el-card>
-</template>
+  <el-card shadow="never" v-loading="loading">
+    
+
+      <el-alert
+        v-if="errorMessage"
+        type="error"
+        :closable="false"
+        :title="errorMessage"
+        style="margin-bottom: 12px"
+      />
+
+      <el-skeleton v-if="loading" :rows="6" animated />
+
+      <div v-else-if="!errorMessage && detail">
+        <el-card shadow="never" class="section">
+          <h3>基本信息</h3>
+          <el-descriptions v-if="basicFields.length || detail.status" :column="1">
+            <el-descriptions-item v-for="item in basicFields" :key="item.label" :label="item.label">
+              {{ item.value }}
+            </el-descriptions-item>
+            <el-descriptions-item v-if="detail.status" label="状态">
+              <StatusTag :status="detail.status" kind="competition" />
+            </el-descriptions-item>
+          </el-descriptions>
+          <div v-else>暂无信息</div>
+        </el-card>
+
+        <el-card shadow="never" class="section">
+          <h3>时间信息</h3>
+          <el-descriptions v-if="timeFields.length" :column="1">
+            <el-descriptions-item v-for="item in timeFields" :key="item.label" :label="item.label">
+              {{ item.value }}
+            </el-descriptions-item>
+          </el-descriptions>
+          <div v-else>暂无信息</div>
+        </el-card>
+
+        <el-card shadow="never" class="section">
+          <h3>规则</h3>
+          <el-descriptions v-if="ruleFields.length" :column="1">
+            <el-descriptions-item v-for="item in ruleFields" :key="item.label" :label="item.label">
+              {{ item.value }}
+            </el-descriptions-item>
+          </el-descriptions>
+          <div v-else>暂无信息</div>
+        </el-card>
+
+        <el-card shadow="never" class="section">
+          <h3>元信息</h3>
+          <el-descriptions v-if="metaFields.length" :column="1">
+            <el-descriptions-item v-for="item in metaFields" :key="item.label" :label="item.label">
+              {{ item.value }}
+            </el-descriptions-item>
+          </el-descriptions>
+          <div v-else>暂无信息</div>
+        </el-card>
+
+        <el-card v-if="detail.description" shadow="never" class="section">
+          <el-collapse>
+            <el-collapse-item title="描述" name="description">
+              <pre>{{ detail.description }}</pre>
+            </el-collapse-item>
+          </el-collapse>
+        </el-card>
+      </div>
+
+      <el-dialog
+        v-model="submitDialogVisible"
+        title="确认"
+        width="480px"
+        center
+        :close-on-click-modal="true"
+        :close-on-press-escape="true"
+        :before-close="closeSubmitDialog"
+      >
+        <div>确认提交该竞赛的教师申请？</div>
+        <div style="margin-top: 8px; color: #909399;">提交后请等待管理员审核。</div>
+        <div style="margin-top: 12px;">
+          <div style="margin-bottom: 6px;">青睐技能（可选，最多 5 个）</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div v-for="(row, idx) in favoredSkillRows" :key="idx" style="display: flex; align-items: center; gap: 12px;">
+              <el-select
+                v-model="row.skillId"
+                placeholder="技能"
+                clearable
+                filterable
+                style="flex: 0 0 72%;"
+                :loading="skillsLoading"
+                :disabled="skillsLoading"
+              >
+                <el-option
+                  v-for="s in allSkills"
+                  :key="s.id"
+                  :label="s.name"
+                  :value="s.id"
+                  :disabled="typeof s.id === 'number' && row.skillId !== s.id && selectedSkillIds.has(s.id)"
+                />
+              </el-select>
+              <el-input-number
+                v-model="row.weight"
+                :min="1"
+                :step="1"
+                controls-position="right"
+                placeholder="权重"
+                style="width: 120px;"
+              />
+            </div>
+          </div>
+          <div style="margin-top: 6px; color: #909399;">已选 {{ selectedCount }}/5</div>
+        </div>
+        <div style="margin-top: 12px;">
+          <div style="margin-bottom: 6px;">备注（可选）</div>
+          <el-input
+            v-model="applyRemark"
+            type="textarea"
+            :rows="3"
+            placeholder="可填写对队伍的说明或期望"
+            maxlength="200"
+            show-word-limit
+          />
+        </div>
+        <el-alert
+          v-if="submitError"
+          :title="submitError"
+          type="error"
+          show-icon
+          :closable="false"
+          style="margin-top: 12px"
+        />
+        <template #footer>
+          <el-button :disabled="submitting" @click="closeSubmitDialog">取消</el-button>
+          <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleApply">
+            提交
+          </el-button>
+        </template>
+      </el-dialog>
+
+      <el-dialog
+        v-model="editDialogVisible"
+        title="修改竞赛状态"
+        width="520px"
+        append-to-body
+        top="12vh"
+        :close-on-click-modal="false"
+        :before-close="closeEditDialog"
+      >
+        <el-form label-position="top">
+          <el-form-item label="状态">
+            <el-select v-model="editForm.status" placeholder="请选择状态" clearable>
+              <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <el-alert v-if="editDialogError" type="error" :closable="false" :title="editDialogError" />
+        <template #footer>
+          <el-button :disabled="editDialogLoading" @click="closeEditDialog">取消</el-button>
+          <el-button type="primary" :loading="editDialogLoading" @click="submitEdit">保存</el-button>
+        </template>
+      </el-dialog>
+    </el-card>
+  </div></template>
 
 <style scoped>
 .page-header {

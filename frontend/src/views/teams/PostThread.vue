@@ -187,123 +187,127 @@ onMounted(loadPosts)
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div class="page-container">
+
     <div class="page-header">
-      <div>
-        <h2>帖子线程</h2>
-        <div class="page-subtitle">帖子 ID：{{ postId ?? "-" }}</div>
-      </div>
-      <div class="page-actions">
-        <el-button @click="router.push(returnPath)">返回帖子列表</el-button>
-      </div>
-    </div>
-
-    <el-alert
-      v-if="writeBlockReason"
-      type="warning"
-      show-icon
-      :title="writeBlockReason"
-      class="status-alert"
-    />
-
-    <template v-if="rootPost">
-      <div class="post-block">
-        <div class="post-meta">创建时间：{{ formatDateTime(rootPost.createdAt) }}</div>
-        <div class="post-content">{{ rootPost.content || "-" }}</div>
-        <div class="post-actions">
-          <el-button
-            v-if="canDeletePost(rootPost)"
-            size="small"
-            type="danger"
-            :loading="deleteLoadingId === rootPost.id"
-            :disabled="!canWrite"
-            @click="openDeleteDialog(rootPost, 'root')"
-          >
-            删除主帖
-          </el-button>
+        <div>
+          <h2>帖子线程</h2>
+          <div class="page-subtitle">帖子 ID：{{ postId ?? "-" }}</div>
+        </div>
+        <div class="page-actions">
+          <el-button @click="router.push(returnPath)">返回帖子列表</el-button>
         </div>
       </div>
 
-      <el-divider />
+  <el-card shadow="never" v-loading="loading">
+    
 
-      <div class="section-title">回复列表</div>
-      <el-table v-if="replies.length" :data="replies" style="width: 100%">
-        <el-table-column label="创建时间" width="180">
-          <template #default="{ row }">
-            {{ formatDateTime(row.createdAt) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="内容">
-          <template #default="{ row }">
-            <span class="post-content">{{ row.content || "-" }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="140">
-          <template #default="{ row }">
+      <el-alert
+        v-if="writeBlockReason"
+        type="warning"
+        show-icon
+        :title="writeBlockReason"
+        class="status-alert"
+      />
+
+      <template v-if="rootPost">
+        <div class="post-block">
+          <div class="post-meta">创建时间：{{ formatDateTime(rootPost.createdAt) }}</div>
+          <div class="post-content">{{ rootPost.content || "-" }}</div>
+          <div class="post-actions">
             <el-button
-              v-if="canDeletePost(row)"
+              v-if="canDeletePost(rootPost)"
               size="small"
               type="danger"
-              :loading="deleteLoadingId === row.id"
+              :loading="deleteLoadingId === rootPost.id"
               :disabled="!canWrite"
-              @click="openDeleteDialog(row, 'reply')"
+              @click="openDeleteDialog(rootPost, 'root')"
             >
-              删除
+              删除主帖
             </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <el-empty v-else description="暂无回复" />
-
-      <div class="reply-form">
-        <el-input
-          v-model="replyContent"
-          type="textarea"
-          :rows="4"
-          maxlength="2000"
-          show-word-limit
-          placeholder="回复该帖子"
-          :disabled="!canWrite"
-        />
-        <div class="reply-form__actions">
-          <el-button type="primary" :loading="submitLoading" :disabled="!canWrite" @click="submitReply">
-            回复
-          </el-button>
+          </div>
         </div>
-      </div>
-    </template>
 
-    <el-empty v-else-if="!loading" description="帖子不存在或已删除">
-      <el-button @click="router.push(returnPath)">返回帖子列表</el-button>
-    </el-empty>
-  </el-card>
+        <el-divider />
 
-    <el-dialog
-    v-model="deleteDialogVisible"
-    title="删除确认"
-    width="420px"
-    :close-on-click-modal="false"
-    :close-on-press-escape="true"
-    destroy-on-close
-    append-to-body
-    teleported
-  >
-    <div>确认删除{{ pendingDeleteType === "root" ? "主贴" : pendingDeleteType === "reply" ? "回复" : "内容" }}吗？删除后不可恢复</div>
-    <template #footer>
-      <el-button :disabled="pendingDeleteLoading" @click="deleteDialogVisible = false; pendingDeleteId = null; pendingDeleteType = null">取消</el-button>
-      <el-button type="danger" :loading="pendingDeleteLoading" @click="confirmDelete">删除</el-button>
-    </template>
-  </el-dialog>
+        <div class="section-title">回复列表</div>
+        <el-table v-if="replies.length" :data="replies" style="width: 100%">
+          <el-table-column label="创建时间" width="180">
+            <template #default="{ row }">
+              {{ formatDateTime(row.createdAt) }}
+          
+      </template>
+          </el-table-column>
+          <el-table-column label="内容">
+            <template #default="{ row }">
+              <span class="post-content">{{ row.content || "-" }}</span>
+      </template>
+          </el-table-column>
+          <el-table-column label="操作" width="140">
+            <template #default="{ row }">
+              <el-button
+                v-if="canDeletePost(row)"
+                size="small"
+                type="danger"
+                :loading="deleteLoadingId === row.id"
+                :disabled="!canWrite"
+                @click="openDeleteDialog(row, 'reply')"
+              >
+                删除
+              </el-button>
+      </template>
+          </el-table-column>
+        </el-table>
 
-<el-dialog v-model="errorDialogVisible" title="提示" width="420px">
-    <div>{{ errorDialogMessage }}</div>
-    <template #footer>
-      <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回</el-button>
-      <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
+        <el-empty v-else description="暂无回复" />
+
+        <div class="reply-form">
+          <el-input
+            v-model="replyContent"
+            type="textarea"
+            :rows="4"
+            maxlength="2000"
+            show-word-limit
+            placeholder="回复该帖子"
+            :disabled="!canWrite"
+          />
+          <div class="reply-form__actions">
+            <el-button type="primary" :loading="submitLoading" :disabled="!canWrite" @click="submitReply">
+              回复
+            </el-button>
+          </div>
+
+      <el-empty v-else-if="!loading" description="帖子不存在或已删除">
+        <el-button @click="router.push(returnPath)">返回帖子列表</el-button>
+      </el-empty>
+    </el-card>
+
+      <el-dialog
+      v-model="deleteDialogVisible"
+      title="删除确认"
+      width="420px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="true"
+      destroy-on-close
+      append-to-body
+      teleported
+    >
+      <div>确认删除{{ pendingDeleteType === "root" ? "主贴" : pendingDeleteType === "reply" ? "回复" : "内容" }}吗？删除后不可恢复</div>
+      <template #footer>
+        <el-button :disabled="pendingDeleteLoading" @click="deleteDialogVisible = false; pendingDeleteId = null; pendingDeleteType = null">取消</el-button>
+        <el-button type="danger" :loading="pendingDeleteLoading" @click="confirmDelete">删除</el-button>
+    </el-dialog>
+
+  <el-dialog v-model="errorDialogVisible" title="提示" width="420px">
+      <div>{{ errorDialogMessage }}</div>
+      <template #footer>
+        <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回</el-button>
+        <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
+    </el-dialog>
+  </div>
     </template>
-  </el-dialog>
-</template>
+    </template>
+    </template></template>
 
 <style scoped>
 .page-header {

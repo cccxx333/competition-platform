@@ -2,6 +2,7 @@ package com.competition.controller;
 
 import com.competition.dto.*;
 import com.competition.entity.UserSkill;
+import com.competition.exception.ApiException;
 import com.competition.service.ApplicationService;
 import com.competition.service.TeamService;
 import com.competition.service.UserService;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.List;
@@ -125,10 +127,24 @@ public class UserController {
             HttpServletRequest request,
             @RequestBody UserSkillBindRequest bindRequest) {
         Long userId = getUserIdFromToken(request);
+        Integer level = bindRequest.getProficiency() != null ? bindRequest.getProficiency() : 3;
+        validateSkillLevel(level);
         UserSkillCreateDTO createDTO = new UserSkillCreateDTO();
         createDTO.setSkillId(bindRequest.getSkillId());
-        createDTO.setProficiency(bindRequest.getProficiency() != null ? bindRequest.getProficiency() : 1);
+        createDTO.setProficiency(level);
         UserSkillDTO userSkill = userService.addUserSkill(userId, createDTO);
+        return ResponseEntity.ok(toUserSkillResponse(userSkill));
+    }
+
+    @PutMapping("/me/skills/{skillId}/level")
+    public ResponseEntity<UserSkillResponse> updateSkillLevel(
+            HttpServletRequest request,
+            @PathVariable Long skillId,
+            @RequestBody UserSkillLevelUpdateRequest updateRequest) {
+        Long userId = getUserIdFromToken(request);
+        Integer level = updateRequest != null ? updateRequest.getLevel() : null;
+        validateSkillLevel(level);
+        UserSkillDTO userSkill = userService.updateUserSkillLevel(userId, skillId, level);
         return ResponseEntity.ok(toUserSkillResponse(userSkill));
     }
 
@@ -311,5 +327,11 @@ public class UserController {
         response.setSkillCategory(dto.getSkillCategory());
         response.setProficiency(dto.getProficiency());
         return response;
+    }
+
+    private void validateSkillLevel(Integer level) {
+        if (level == null || level < 1 || level > 5) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "熟练度必须为 1 到 5");
+        }
     }
 }

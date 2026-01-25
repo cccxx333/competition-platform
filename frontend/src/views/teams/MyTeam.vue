@@ -1,12 +1,12 @@
 ﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
-import { getMyTeam, type TeamDto } from "@/api/teams"
+import { listMyTeams, type TeamDto } from "@/api/teams"
 import { useAuthStore } from "@/stores/auth"
 
 const router = useRouter()
 const authStore = useAuthStore()
 const loading = ref(false)
-const team = ref<TeamDto | null>(null)
+const teams = ref<TeamDto[]>([])
 const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
 const isStudent = computed(() => roleUpper.value === "STUDENT")
 
@@ -39,14 +39,15 @@ const showRequestError = (error: any, fallback: string) => {
 
 const loadTeam = async () => {
   if (!isStudent.value) {
-    team.value = null
+    teams.value = []
     return
   }
   loading.value = true
   try {
-    team.value = await getMyTeam()
+    const response = await listMyTeams()
+    teams.value = response.filter((item) => String(item.status ?? "").toUpperCase() !== "DISBANDED")
   } catch (error: any) {
-    team.value = null
+    teams.value = []
     showRequestError(error, "加载队伍失败")
   } finally {
     loading.value = false
@@ -57,10 +58,9 @@ onMounted(loadTeam)
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div class="my-team-page" v-loading="loading">
     <div class="page-header">
       <h2>我的队伍</h2>
-      <el-button v-if="isStudent" @click="router.push('/teams/my-applications')">返回我的申请</el-button>
     </div>
 
     <el-alert
@@ -71,29 +71,33 @@ onMounted(loadTeam)
       class="role-alert"
     />
 
-    <el-empty v-if="isStudent && !team && !loading" description="暂无队伍（可能尚未通过审核或未加入任何队伍）" />
+    <el-empty v-if="isStudent && !teams.length && !loading" description="暂无未解散队伍" />
 
-    <el-descriptions v-else-if="isStudent && team" border :column="1">
-      <el-descriptions-item label="队伍 ID">{{ team.id ?? "-" }}</el-descriptions-item>
-      <el-descriptions-item label="名称">{{ team.name ?? "-" }}</el-descriptions-item>
-      <el-descriptions-item label="状态">{{ team.status ?? "-" }}</el-descriptions-item>
-      <el-descriptions-item label="成员">
-        {{ team.currentMembers ?? "-" }} / {{ team.maxMembers ?? "-" }}
-      </el-descriptions-item>
-      <el-descriptions-item v-if="team.description" label="说明">
-        {{ team.description }}
-      </el-descriptions-item>
-    </el-descriptions>
+    <div v-else-if="isStudent" class="my-team-list">
+      <el-card v-for="item in teams" :key="item.id" class="cp-card my-team-card" shadow="never">
+        <el-descriptions border :column="1">
+          <el-descriptions-item label="队伍 ID">{{ item.id ?? "-" }}</el-descriptions-item>
+          <el-descriptions-item label="名称">{{ item.name ?? "-" }}</el-descriptions-item>
+          <el-descriptions-item label="状态">{{ item.status ?? "-" }}</el-descriptions-item>
+          <el-descriptions-item label="成员">
+            {{ item.currentMembers ?? "-" }} / {{ item.maxMembers ?? "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item v-if="item.description" label="说明">
+            {{ item.description }}
+          </el-descriptions-item>
+        </el-descriptions>
 
-    <div v-if="isStudent && team?.id" class="action-row">
-      <el-button type="primary" @click="router.push(`/teams/${team.id}`)">查看队伍详情</el-button>
-      <el-button @click="router.push(`/teams/${team.id}/members`)">查看成员</el-button>
+        <div v-if="item.id" class="action-row">
+          <el-button type="primary" @click="router.push(`/teams/${item.id}`)">查看队伍详情</el-button>
+          <el-button @click="router.push(`/teams/${item.id}/members`)">查看成员</el-button>
+        </div>
+      </el-card>
     </div>
 
     <div v-if="!isStudent" class="action-row">
       <el-button type="primary" @click="router.push('/teams/lookup')">前往队伍查询</el-button>
     </div>
-  </el-card>
+  </div>
 </template>
 
 <style scoped>
@@ -112,5 +116,11 @@ onMounted(loadTeam)
   margin-top: 12px;
   display: inline-flex;
   gap: 8px;
+}
+
+.my-team-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 </style>

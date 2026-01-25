@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { ElMessage, ElMessageBox } from "element-plus"
+import StatusTag from "@@/components/StatusTag/index.vue"
 import {
   adminListTeacherApplications,
   adminReviewTeacherApplication,
@@ -23,11 +24,6 @@ const formatDateTime = (value?: string | null) => {
   return value
 }
 
-const statusTagType = (status?: TeacherApplicationStatus) => {
-  if (status === "APPROVED") return "success"
-  if (status === "REJECTED") return "danger"
-  return "warning"
-}
 
 const showRequestError = (error: any, fallback: string) => {
   const status = error?.status ?? error?.response?.status
@@ -113,74 +109,79 @@ onMounted(loadApplications)
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div class="page-container">
+
     <div class="page-header">
-      <h2>教师申请审核</h2>
-      <div class="page-header__filters">
-        <el-input v-model="competitionIdFilter" placeholder="竞赛 ID" style="width: 160px" />
-        <el-select v-model="statusFilter" clearable placeholder="状态" style="width: 160px">
-          <el-option label="待处理" value="PENDING" />
-          <el-option label="已通过" value="APPROVED" />
-          <el-option label="已拒绝" value="REJECTED" />
-        </el-select>
-        <el-button :loading="loading" @click="loadApplications">刷新</el-button>
+        <h2>教师申请审核</h2>
+        <div class="page-header__filters">
+          <el-input v-model="competitionIdFilter" placeholder="竞赛 ID" style="width: 160px" />
+          <el-select v-model="statusFilter" clearable placeholder="状态" style="width: 160px">
+            <el-option label="待处理" value="PENDING" />
+            <el-option label="已通过" value="APPROVED" />
+            <el-option label="已拒绝" value="REJECTED" />
+          </el-select>
+          <el-button :loading="loading" @click="loadApplications">刷新</el-button>
+        </div>
       </div>
-    </div>
 
-    <el-alert
-      v-if="errorMessage"
-      type="error"
-      :closable="false"
-      :title="errorMessage"
-      style="margin-bottom: 12px"
-    />
+  <el-card shadow="never" v-loading="loading">
+    
 
-    <el-table v-if="items.length" :data="items" style="width: 100%">
-      <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="competitionId" label="竞赛 ID" width="150" />
-      <el-table-column prop="teacherId" label="教师 ID" width="120" />
-      <el-table-column label="状态" width="140">
-        <template #default="{ row }">
-          <el-tag :type="statusTagType(row.status)">{{ row.status ?? "-" }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="申请时间" width="180">
-        <template #default="{ row }">
-          {{ formatDateTime(row.appliedAt) || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column label="审核意见">
-        <template #default="{ row }">
-          {{ row.reviewComment || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="220">
-        <template #default="{ row }">
-          <el-button
-            size="small"
-            type="success"
-            :loading="reviewingId === row.id"
-            :disabled="row.status !== 'PENDING' || reviewingId === row.id"
-            @click="promptReview(row, true)"
-          >
-            通过
-          </el-button>
-          <el-button
-            size="small"
-            type="danger"
-            :loading="reviewingId === row.id"
-            :disabled="row.status !== 'PENDING' || reviewingId === row.id"
-            @click="promptReview(row, false)"
-          >
-            拒绝
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      <el-alert
+        v-if="errorMessage"
+        type="error"
+        :closable="false"
+        :title="errorMessage"
+        style="margin-bottom: 12px"
+      />
 
-    <el-empty v-else-if="!errorMessage && !loading" description="暂无申请" />
-  </el-card>
-</template>
+      <el-table v-if="items.length" :data="items" style="width: 100%">
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column prop="competitionId" label="竞赛 ID" width="150" />
+        <el-table-column prop="teacherId" label="教师 ID" width="120" />
+        <el-table-column label="状态" width="140">
+          <template #default="{ row }">
+            <StatusTag :status="row.status" kind="teacherApplication" />
+        
+      </template>
+        </el-table-column>
+        <el-table-column label="申请时间" width="180">
+          <template #default="{ row }">
+            {{ formatDateTime(row.appliedAt) || "-" }}
+      </template>
+        </el-table-column>
+        <el-table-column label="审核意见">
+          <template #default="{ row }">
+            {{ row.reviewComment || "-" }}
+      </template>
+        </el-table-column>
+        <el-table-column label="操作" width="220">
+          <template #default="{ row }">
+            <el-button
+              size="small"
+              type="success"
+              :loading="reviewingId === row.id"
+              :disabled="row.status !== 'PENDING' || reviewingId === row.id"
+              @click="promptReview(row, true)"
+            >
+              通过
+            </el-button>
+            <el-button
+              size="small"
+              type="danger"
+              :loading="reviewingId === row.id"
+              :disabled="row.status !== 'PENDING' || reviewingId === row.id"
+              @click="promptReview(row, false)"
+            >
+              拒绝
+            </el-button>
+      </template>
+        </el-table-column>
+      </el-table>
+
+      <el-empty v-else-if="!errorMessage && !loading" description="暂无申请" />
+    </el-card>
+  </div></template>
 
 <style scoped>
 .page-header {

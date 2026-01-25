@@ -139,56 +139,61 @@ onMounted(loadApplications)
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div class="page-container">
+
     <div class="page-header">
-      <h2>教师审核</h2>
-      <div class="page-header__filters">
-        <el-input-number v-model="teamIdFilter" :min="1" :controls="false" placeholder="队伍 ID" />
-        <el-button :loading="loading" @click="loadApplications">刷新</el-button>
+        <h2>教师审核</h2>
+        <div class="page-header__filters">
+          <el-input-number v-model="teamIdFilter" :min="1" :controls="false" placeholder="队伍 ID" />
+          <el-button :loading="loading" @click="loadApplications">刷新</el-button>
+        </div>
       </div>
-    </div>
 
-    <el-table v-if="items.length" :data="items" style="width: 100%">
-      <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="studentId" label="学生 ID" width="120" />
-      <el-table-column prop="competitionId" label="竞赛 ID" width="150" />
-      <el-table-column prop="teamId" label="队伍 ID" width="120" />
-      <el-table-column label="申请时间" width="180">
-        <template #default="{ row }">
-          {{ formatDateTime(row.appliedAt) || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="180">
-        <template #default="{ row }">
-          <el-button
-            size="small"
-            type="success"
-            :disabled="isApproveDisabled(row)"
-            :title="isApproveDisabled(row) ? '竞赛已结束，无法通过' : ''"
-            @click="openDialog(row, 'approve')"
-          >
-            通过
-          </el-button>
-          <el-button size="small" type="danger" @click="openDialog(row, 'reject')">拒绝</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+  <el-card shadow="never" v-loading="loading">
+    
 
-    <el-empty v-else-if="!loading" description="暂无待审申请" />
-  </el-card>
+      <el-table v-if="items.length" :data="items" style="width: 100%">
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column prop="studentId" label="学生 ID" width="120" />
+        <el-table-column prop="competitionId" label="竞赛 ID" width="150" />
+        <el-table-column prop="teamId" label="队伍 ID" width="120" />
+        <el-table-column label="申请时间" width="180">
+          <template #default="{ row }">
+            {{ formatDateTime(row.appliedAt) || "-" }}
+          </template>
+        
+        </el-table-column>
+        <el-table-column label="操作" width="180">
+          <template #default="{ row }">
+            <el-button
+              size="small"
+              type="success"
+              :disabled="isApproveDisabled(row)"
+              :title="isApproveDisabled(row) ? '竞赛已结束，无法通过' : ''"
+              @click="openDialog(row, 'approve')"
+            >
+              通过
+            </el-button>
+            <el-button size="small" type="danger" @click="openDialog(row, 'reject')">拒绝</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-  <el-dialog v-model="dialogVisible" :title="reviewAction === 'approve' ? '通过审核' : '拒绝申请'" width="420px">
-    <el-form label-width="80px">
-      <el-form-item label="原因">
-        <el-input v-model="reason" type="textarea" :rows="3" placeholder="（必填）" />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="dialogVisible = false">取消</el-button>
-      <el-button type="primary" :loading="dialogLoading" @click="submitReview">提交</el-button>
-    </template>
-  </el-dialog>
-</template>
+      <el-empty v-else-if="!loading" description="暂无待审申请" />
+    </el-card>
+
+    <el-dialog v-model="dialogVisible" :title="reviewAction === 'approve' ? '通过审核' : '拒绝申请'" width="420px">
+      <el-form label-width="80px">
+        <el-form-item label="原因">
+          <el-input v-model="reason" type="textarea" :rows="3" placeholder="（必填）" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="dialogLoading" @click="submitReview">提交</el-button>
+      </template>
+    </el-dialog>
+  </div></template>
 
 <style scoped>
 .page-header {

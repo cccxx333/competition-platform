@@ -47,9 +47,11 @@ export async function listMySkills(): Promise<UserSkill[]> {
   }
 }
 
-export async function listSkills(): Promise<Skill[]> {
+export async function listSkills(keyword?: string): Promise<Skill[]> {
   try {
-    const response = await client.get("/skills")
+    const response = keyword
+      ? await client.get("/skills/search", { params: { keyword } })
+      : await client.get("/skills")
     return unwrapData<Skill[]>(response?.data)
   } catch (error: any) {
     throw toError(error, "Failed to load skills")
@@ -74,12 +76,21 @@ export async function updateSkill(id: number, payload: SkillPayload): Promise<Sk
   }
 }
 
-export async function bindMySkill(skillId: number): Promise<UserSkill> {
+export async function bindMySkill(skillId: number, level?: number): Promise<UserSkill> {
   try {
-    const response = await client.post("/users/me/skills", { skillId })
+    const response = await client.post("/users/me/skills", { skillId, level })
     return unwrapData<UserSkill>(response?.data)
   } catch (error: any) {
     throw toError(error, "Failed to bind skill")
+  }
+}
+
+export async function updateMySkillLevel(skillId: number, level: number): Promise<UserSkill> {
+  try {
+    const response = await client.put(`/users/me/skills/${skillId}/level`, { level })
+    return unwrapData<UserSkill>(response?.data)
+  } catch (error: any) {
+    throw toError(error, "Failed to update skill level")
   }
 }
 

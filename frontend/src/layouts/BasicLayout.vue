@@ -1,5 +1,6 @@
 ﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
+import { Avatar, Document, House, Medal, Star, Trophy, User } from "@element-plus/icons-vue"
 import { useAuthStore } from "@/stores/auth"
 
 const route = useRoute()
@@ -23,17 +24,26 @@ const handleLogout = () => {
 
 <template>
   <el-container class="basic-layout">
-    <el-aside width="200px" class="basic-layout__aside">
+    <el-aside width="220px" class="basic-layout__aside">
       <div class="basic-layout__logo">竞赛平台</div>
       <el-menu :default-active="route.path" router>
-        <el-menu-item index="/dashboard">仪表盘</el-menu-item>
+        <el-menu-item index="/dashboard">
+          <el-icon class="basic-layout__menu-icon"><House /></el-icon>
+          <span>概览</span>
+        </el-menu-item>
         <el-sub-menu index="/competitions">
-          <template #title>竞赛</template>
+          <template #title>
+            <el-icon class="basic-layout__menu-icon"><Trophy /></el-icon>
+            <span>竞赛</span>
+          </template>
           <el-menu-item index="/competitions">竞赛列表</el-menu-item>
           <el-menu-item v-if="roleUpper === 'STUDENT'" index="/competitions/apply">竞赛报名</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="/teams">
-          <template #title>队伍</template>
+          <template #title>
+            <el-icon class="basic-layout__menu-icon"><Avatar /></el-icon>
+            <span>队伍</span>
+          </template>
           <el-menu-item v-if="roleUpper === 'STUDENT'" index="/teams/my-applications">我的申请</el-menu-item>
           <el-menu-item v-if="roleUpper === 'STUDENT'" index="/teams/my">我的队伍</el-menu-item>
           <el-menu-item v-if="roleUpper === 'TEACHER' || roleUpper === 'ADMIN'" index="/teams/lookup">
@@ -42,12 +52,30 @@ const handleLogout = () => {
           <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teams/review">审核</el-menu-item>
           <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/awards/publish">奖项发布</el-menu-item>
         </el-sub-menu>
-        <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teacher/applications">我的教师申请</el-menu-item>
-        <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/teacher-applications">教师申请审核</el-menu-item>
-        <el-menu-item index="/me/profile">个人信息</el-menu-item>
-        <el-menu-item v-if="roleUpper !== 'TEACHER' && roleUpper !== 'ADMIN'" index="/me/skills">技能</el-menu-item>
-        <el-menu-item v-else-if="roleUpper === 'ADMIN'" index="/me/skills">技能管理</el-menu-item>
-        <el-menu-item v-if="roleUpper === 'STUDENT'" index="/me/honors">荣誉</el-menu-item>
+        <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teacher/applications">
+          <el-icon class="basic-layout__menu-icon"><Document /></el-icon>
+          <span>我的教师申请</span>
+        </el-menu-item>
+        <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/teacher-applications">
+          <el-icon class="basic-layout__menu-icon"><Document /></el-icon>
+          <span>教师申请审核</span>
+        </el-menu-item>
+        <el-menu-item index="/me/profile">
+          <el-icon class="basic-layout__menu-icon"><User /></el-icon>
+          <span>个人信息</span>
+        </el-menu-item>
+        <el-menu-item v-if="roleUpper !== 'TEACHER' && roleUpper !== 'ADMIN'" index="/me/skills">
+          <el-icon class="basic-layout__menu-icon"><Star /></el-icon>
+          <span>技能</span>
+        </el-menu-item>
+        <el-menu-item v-else-if="roleUpper === 'ADMIN'" index="/me/skills">
+          <el-icon class="basic-layout__menu-icon"><Star /></el-icon>
+          <span>技能管理</span>
+        </el-menu-item>
+        <el-menu-item v-if="roleUpper === 'STUDENT'" index="/me/honors">
+          <el-icon class="basic-layout__menu-icon"><Medal /></el-icon>
+          <span>荣誉</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
@@ -91,6 +119,10 @@ const handleLogout = () => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.basic-layout__menu-icon {
+  margin-right: 8px;
 }
 
 .basic-layout__main {

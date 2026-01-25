@@ -130,71 +130,76 @@ onMounted(loadPosts)
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div class="page-container">
+
     <div class="page-header">
-      <div>
-        <h2>队伍讨论区</h2>
-        <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
+        <div>
+          <h2>队伍讨论区</h2>
+          <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
+        </div>
+        <div class="page-actions">
+          <el-button @click="router.push(returnPath)">返回队伍详情</el-button>
+        </div>
       </div>
-      <div class="page-actions">
-        <el-button @click="router.push(returnPath)">返回队伍详情</el-button>
-      </div>
-    </div>
 
-    <el-alert
-      v-if="writeBlockReason"
-      type="warning"
-      show-icon
-      :title="writeBlockReason"
-      class="status-alert"
-    />
+  <el-card shadow="never" v-loading="loading">
+    
 
-    <div class="post-form">
-      <el-input
-        v-model="content"
-        type="textarea"
-        :rows="4"
-        maxlength="2000"
-        show-word-limit
-        placeholder="发布新的讨论内容"
-        :disabled="!canWrite"
+      <el-alert
+        v-if="writeBlockReason"
+        type="warning"
+        show-icon
+        :title="writeBlockReason"
+        class="status-alert"
       />
-      <div class="post-form__actions">
-        <el-button type="primary" :loading="submitLoading" :disabled="!canWrite" @click="submitPost">
-          发布
-        </el-button>
+
+      <div class="post-form">
+        <el-input
+          v-model="content"
+          type="textarea"
+          :rows="4"
+          maxlength="2000"
+          show-word-limit
+          placeholder="发布新的讨论内容"
+          :disabled="!canWrite"
+        />
+        <div class="post-form__actions">
+          <el-button type="primary" :loading="submitLoading" :disabled="!canWrite" @click="submitPost">
+            发布
+          </el-button>
+        </div>
       </div>
-    </div>
 
-    <el-table v-if="rootPosts.length" :data="rootPosts" style="width: 100%">
-      <el-table-column label="创建时间" width="180">
-        <template #default="{ row }">
-          {{ formatDateTime(row.createdAt) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="内容">
-        <template #default="{ row }">
-          <span class="post-content">{{ row.content || "-" }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="140">
-        <template #default="{ row }">
-          <el-button size="small" @click="openThread(row.id)">查看线程</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      <el-table v-if="rootPosts.length" :data="rootPosts" style="width: 100%">
+        <el-table-column label="创建时间" width="180">
+          <template #default="{ row }">
+            {{ formatDateTime(row.createdAt) }}
+          </template>
+        
+        </el-table-column>
+        <el-table-column label="内容">
+          <template #default="{ row }">
+            <span class="post-content">{{ row.content || "-" }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="140">
+          <template #default="{ row }">
+            <el-button size="small" @click="openThread(row.id)">查看线程</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-    <el-empty v-else-if="!loading" description="暂无帖子" />
-  </el-card>
+      <el-empty v-else-if="!loading" description="暂无帖子" />
+    </el-card>
 
-  <el-dialog v-model="errorDialogVisible" title="提示" width="420px">
-    <div>{{ errorDialogMessage }}</div>
-    <template #footer>
-      <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回</el-button>
-      <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
-    </template>
-  </el-dialog>
-</template>
+    <el-dialog v-model="errorDialogVisible" title="提示" width="420px">
+      <div>{{ errorDialogMessage }}</div>
+      <template #footer>
+        <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回</el-button>
+        <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
+      </template>
+    </el-dialog>
+  </div></template>
 
 <style scoped>
 .page-header {

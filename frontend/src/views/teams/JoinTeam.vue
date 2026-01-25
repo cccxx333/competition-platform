@@ -87,35 +87,40 @@ const onCloseErrorDialog = () => {
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div class="page-container">
+
     <div class="page-header">
-      <h2>加入队伍</h2>
-    </div>
+        <h2>加入队伍</h2>
+      </div>
 
-    <el-form label-width="140px" class="join-form">
-      <el-form-item label="竞赛 ID">
-        <el-input-number v-model="form.competitionId" :min="1" :controls="false" style="width: 240px" />
-      </el-form-item>
-      <el-form-item label="队伍 ID">
-        <el-input-number v-model="form.teamId" :min="1" :controls="false" style="width: 240px" />
-      </el-form-item>
-      <el-form-item v-if="teamInfo?.status">
-        <el-tag :type="isTeamDisbanded ? 'danger' : 'info'">队伍状态：{{ teamInfo.status }}</el-tag>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" :loading="loading" :disabled="isTeamDisbanded" @click="submit">提交</el-button>
-      </el-form-item>
-    </el-form>
-  </el-card>
+  <el-card shadow="never" v-loading="loading">
+    
 
-  <el-dialog v-model="errorDialogVisible" title="操作失败" :close-on-click-modal="true" width="420px">
-    <div>{{ errorDialogMessage }}</div>
-    <template #footer>
-      <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回队伍页</el-button>
-      <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
-    </template>
-  </el-dialog>
-</template>
+      <el-form label-width="140px" class="join-form">
+        <el-form-item label="竞赛 ID">
+          <el-input-number v-model="form.competitionId" :min="1" :controls="false" style="width: 240px" />
+        </el-form-item>
+        <el-form-item label="队伍 ID">
+          <el-input-number v-model="form.teamId" :min="1" :controls="false" style="width: 240px" />
+        </el-form-item>
+        <el-form-item v-if="teamInfo?.status">
+          <el-tag :type="isTeamDisbanded ? 'danger' : 'info'">队伍状态：{{ teamInfo.status }}</el-tag>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :loading="loading" :disabled="isTeamDisbanded" @click="submit">提交</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
+    <el-dialog v-model="errorDialogVisible" title="操作失败" :close-on-click-modal="true" width="420px">
+      <div>{{ errorDialogMessage }}</div>
+      <template #footer>
+        <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回队伍页</el-button>
+        <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
+    
+    </el-dialog>
+  </div>
+    </template></template>
 
 <style scoped>
 .page-header {

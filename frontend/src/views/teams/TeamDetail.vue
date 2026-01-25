@@ -197,112 +197,116 @@ onMounted(loadTeam)
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div class="page-container">
+
     <div class="page-header">
-      <div>
-        <h2>队伍详情</h2>
-        <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
+        <div>
+          <h2>队伍详情</h2>
+          <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
+        </div>
+        <div class="page-actions">
+          <el-button @click="router.push(returnPath)">{{ returnLabel }}</el-button>
+          <el-button :disabled="!teamId" @click="router.push(`/teams/${teamId}/posts`)">讨论区</el-button>
+          <el-button :disabled="!teamId" @click="router.push(`/teams/${teamId}/submissions`)">文件提交</el-button>
+          <el-button type="primary" :disabled="!teamId" @click="router.push(`/teams/${teamId}/members`)">
+            成员管理
+          </el-button>
+        </div>
       </div>
-      <div class="page-actions">
-        <el-button @click="router.push(returnPath)">{{ returnLabel }}</el-button>
-        <el-button :disabled="!teamId" @click="router.push(`/teams/${teamId}/posts`)">讨论区</el-button>
-        <el-button :disabled="!teamId" @click="router.push(`/teams/${teamId}/submissions`)">文件提交</el-button>
-        <el-button type="primary" :disabled="!teamId" @click="router.push(`/teams/${teamId}/members`)">
-          成员管理
-        </el-button>
+
+  <el-card shadow="never" v-loading="loading">
+    
+
+      <el-alert
+        v-if="writeBlockReason"
+        type="warning"
+        show-icon
+        :title="writeBlockReason"
+        class="status-alert"
+      />
+
+      <el-empty v-if="!team && !loading" description="暂无队伍或无访问权限" />
+
+      <el-descriptions v-else-if="team" border :column="1">
+        <el-descriptions-item label="名称">{{ team.name ?? "-" }}</el-descriptions-item>
+        <el-descriptions-item label="状态">{{ team.status ?? "-" }}</el-descriptions-item>
+        <el-descriptions-item label="最大人数">{{ team.maxMembers ?? "-" }}</el-descriptions-item>
+        <el-descriptions-item label="当前人数">{{ currentCount }}</el-descriptions-item>
+        <el-descriptions-item label="指导教师">
+          {{ team.leader?.realName || team.leader?.username || "-" }}
+        </el-descriptions-item>
+        <el-descriptions-item label="队伍所需技能">
+          <span v-if="team.teamSkills && team.teamSkills.length">
+            <el-tag v-for="skill in team.teamSkills" :key="skill.skillId" style="margin-right: 6px;">
+              {{ skill.skillName || "-" }}
+            </el-tag>
+          </span>
+          <span v-else>暂无</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="获奖情况">
+          <span v-if="awardLoading">加载中...</span>
+          <span v-else-if="awardError">{{ awardError }}</span>
+          <span v-else-if="awardSummary?.hasAward">
+            {{ awardSummary.awardName || "-" }}
+            <span v-if="awardSummary.publishedAt"> ({{ toYmd(awardSummary.publishedAt) }})</span>
+          </span>
+          <span v-else>暂无奖项</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ team.createdAt ?? "-" }}</el-descriptions-item>
+        <el-descriptions-item label="队伍说明">{{ team.description || "无" }}</el-descriptions-item>
+      </el-descriptions>
+
+      <div v-if="team" class="action-panel">
+        <el-divider />
+        <div class="action-panel__row">
+          <el-button v-if="canShowClose" type="warning" :disabled="!canClose" @click="closeDialogVisible = true">
+            停止招人
+          </el-button>
+          <el-button
+            v-if="isAdmin"
+            type="danger"
+            :disabled="isTeamDisbanded"
+            @click="disbandDialogVisible = true"
+          >
+            解散队伍
+          </el-button>
+          <span v-if="canShowClose && !canClose" class="action-hint">{{ closeDisabledReason }}</span>
+          <span v-if="isAdmin && isTeamDisbanded" class="action-hint">队伍已解散</span>
+        </div>
       </div>
-    </div>
+    </el-card>
 
-    <el-alert
-      v-if="writeBlockReason"
-      type="warning"
-      show-icon
-      :title="writeBlockReason"
-      class="status-alert"
-    />
+    <el-dialog v-model="closeDialogVisible" title="停止招人" width="420px">
+      <div>确认将队伍状态变更为 CLOSED？</div>
+      <template #footer>
+        <el-button @click="closeDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="actionLoading" @click="submitCloseTeam">确认</el-button>
+      </template>
+    </el-dialog>
 
-    <el-empty v-if="!team && !loading" description="暂无队伍或无访问权限" />
+    <el-dialog
+      v-model="disbandDialogVisible"
+      title="解散队伍"
+      width="420px"
+      append-to-body
+      top="12vh"
+      :close-on-click-modal="false"
+    >
+      <div>确认解散该队伍吗？解散后不可报名、审核、提交与讨论。</div>
+      <template #footer>
+        <el-button :disabled="disbandLoading" @click="disbandDialogVisible = false">取消</el-button>
+        <el-button type="danger" :loading="disbandLoading" @click="submitDisbandTeam">确认</el-button>
+      </template>
+    </el-dialog>
 
-    <el-descriptions v-else-if="team" border :column="1">
-      <el-descriptions-item label="名称">{{ team.name ?? "-" }}</el-descriptions-item>
-      <el-descriptions-item label="状态">{{ team.status ?? "-" }}</el-descriptions-item>
-      <el-descriptions-item label="最大人数">{{ team.maxMembers ?? "-" }}</el-descriptions-item>
-      <el-descriptions-item label="当前人数">{{ currentCount }}</el-descriptions-item>
-      <el-descriptions-item label="指导教师">
-        {{ team.leader?.realName || team.leader?.username || "-" }}
-      </el-descriptions-item>
-      <el-descriptions-item label="队伍所需技能">
-        <span v-if="team.teamSkills && team.teamSkills.length">
-          <el-tag v-for="skill in team.teamSkills" :key="skill.skillId" style="margin-right: 6px;">
-            {{ skill.skillName || "-" }}
-          </el-tag>
-        </span>
-        <span v-else>暂无</span>
-      </el-descriptions-item>
-      <el-descriptions-item label="获奖情况">
-        <span v-if="awardLoading">加载中...</span>
-        <span v-else-if="awardError">{{ awardError }}</span>
-        <span v-else-if="awardSummary?.hasAward">
-          {{ awardSummary.awardName || "-" }}
-          <span v-if="awardSummary.publishedAt"> ({{ toYmd(awardSummary.publishedAt) }})</span>
-        </span>
-        <span v-else>暂无奖项</span>
-      </el-descriptions-item>
-      <el-descriptions-item label="创建时间">{{ team.createdAt ?? "-" }}</el-descriptions-item>
-      <el-descriptions-item label="队伍说明">{{ team.description || "无" }}</el-descriptions-item>
-    </el-descriptions>
-
-    <div v-if="team" class="action-panel">
-      <el-divider />
-      <div class="action-panel__row">
-        <el-button v-if="canShowClose" type="warning" :disabled="!canClose" @click="closeDialogVisible = true">
-          停止招人
-        </el-button>
-        <el-button
-          v-if="isAdmin"
-          type="danger"
-          :disabled="isTeamDisbanded"
-          @click="disbandDialogVisible = true"
-        >
-          解散队伍
-        </el-button>
-        <span v-if="canShowClose && !canClose" class="action-hint">{{ closeDisabledReason }}</span>
-        <span v-if="isAdmin && isTeamDisbanded" class="action-hint">队伍已解散</span>
-      </div>
-    </div>
-  </el-card>
-
-  <el-dialog v-model="closeDialogVisible" title="停止招人" width="420px">
-    <div>确认将队伍状态变更为 CLOSED？</div>
-    <template #footer>
-      <el-button @click="closeDialogVisible = false">取消</el-button>
-      <el-button type="primary" :loading="actionLoading" @click="submitCloseTeam">确认</el-button>
-    </template>
-  </el-dialog>
-
-  <el-dialog
-    v-model="disbandDialogVisible"
-    title="解散队伍"
-    width="420px"
-    append-to-body
-    top="12vh"
-    :close-on-click-modal="false"
-  >
-    <div>确认解散该队伍吗？解散后不可报名、审核、提交与讨论。</div>
-    <template #footer>
-      <el-button :disabled="disbandLoading" @click="disbandDialogVisible = false">取消</el-button>
-      <el-button type="danger" :loading="disbandLoading" @click="submitDisbandTeam">确认</el-button>
-    </template>
-  </el-dialog>
-
-  <el-dialog v-model="errorDialogVisible" title="提示" width="420px">
-    <div>{{ errorDialogMessage }}</div>
-    <template #footer>
-      <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回</el-button>
-      <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
-    </template>
-  </el-dialog>
-</template>
+    <el-dialog v-model="errorDialogVisible" title="提示" width="420px">
+      <div>{{ errorDialogMessage }}</div>
+      <template #footer>
+        <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回</el-button>
+        <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
+      </template>
+    </el-dialog>
+  </div></template>
 
 <style scoped>
 .page-header {

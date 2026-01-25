@@ -1,8 +1,8 @@
 ﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
+import StatusTag from "@@/components/StatusTag/index.vue"
 import { listMyApplications, type ApplicationItem } from "@/api/teamApplications"
 
-const router = useRouter()
 const loading = ref(false)
 const items = ref<ApplicationItem[]>([])
 
@@ -42,20 +42,6 @@ const showRequestError = (error: any, fallback: string) => {
   return fallback
 }
 
-const statusLabel = (status?: ApplicationItem["status"]) => {
-  if (status === "PENDING") return "待审核"
-  if (status === "APPROVED") return "已通过"
-  if (status === "REJECTED") return "已拒绝"
-  if (status === "REMOVED") return "已移除"
-  return "-"
-}
-
-const statusTagType = (status?: ApplicationItem["status"]) => {
-  if (status === "APPROVED") return "success"
-  if (status === "REJECTED") return "danger"
-  if (status === "REMOVED") return "info"
-  return "warning"
-}
 
 const loadApplications = async () => {
   loading.value = true
@@ -69,31 +55,23 @@ const loadApplications = async () => {
   }
 }
 
-const hasApproved = computed(() => items.value.some((item) => item.status === "APPROVED"))
-
 onMounted(loadApplications)
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div>
     <div class="page-header">
       <h2>我的申请</h2>
-      <div class="page-header__actions">
-        <el-button :loading="loading" @click="loadApplications">刷新</el-button>
-        <el-button v-if="hasApproved" type="primary" @click="router.push('/teams/my')">查看我的队伍</el-button>
-      </div>
     </div>
 
-    <el-table v-if="items.length" :data="items" style="width: 100%">
-      <el-table-column prop="id" label="ID" width="80" />
+    <el-card shadow="never" v-loading="loading">
+      <el-table v-if="items.length" :data="items" style="width: 100%">
+        <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="competitionId" label="竞赛 ID" width="150" />
       <el-table-column prop="teamId" label="队伍 ID" width="120" />
       <el-table-column label="状态" width="160">
         <template #default="{ row }">
-          <el-tag :type="statusTagType(row.status)">
-            {{ statusLabel(row.status) }}
-          </el-tag>
-          <span v-if="row.status" class="status-meta">({{ row.status }})</span>
+          <StatusTag :status="row.status" kind="teamApplication" />
         </template>
       </el-table-column>
       <el-table-column label="原因">
@@ -111,8 +89,9 @@ onMounted(loadApplications)
       </el-table-column>
     </el-table>
 
-    <el-empty v-else-if="!loading" description="暂无申请" />
-  </el-card>
+      <el-empty v-else-if="!loading" description="暂无申请" />
+    </el-card>
+  </div>
 </template>
 
 <style scoped>
@@ -121,18 +100,6 @@ onMounted(loadApplications)
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
-}
-
-.page-header__actions {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.status-meta {
-  margin-left: 6px;
-  color: #9ca3af;
-  font-size: 12px;
 }
 
 .reason-text {

@@ -155,72 +155,77 @@ onMounted(loadMembers)
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div class="page-container">
+
     <div class="page-header">
-      <div>
-        <h2>成员列表</h2>
-        <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
+        <div>
+          <h2>成员列表</h2>
+          <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
+        </div>
+        <div class="page-actions">
+          <el-button @click="router.push(returnPath)">{{ returnLabel }}</el-button>
+        </div>
       </div>
-      <div class="page-actions">
-        <el-button @click="router.push(returnPath)">{{ returnLabel }}</el-button>
+
+  <el-card shadow="never" v-loading="loading">
+    
+
+      <el-alert
+        v-if="writeBlockReason"
+        type="warning"
+        show-icon
+        :title="writeBlockReason"
+        class="status-alert"
+      />
+
+      <el-table v-if="members.length" :data="members" style="width: 100%">
+        <el-table-column prop="userId" label="用户 ID" width="120" />
+        <el-table-column prop="username" label="用户名" width="160" />
+        <el-table-column prop="realName" label="姓名" width="160" />
+        <el-table-column prop="role" label="角色" width="120" />
+        <el-table-column label="加入时间" width="180">
+          <template #default="{ row }">
+            {{ formatDateTime(row.joinedAt) }}
+          </template>
+        
+        </el-table-column>
+        <el-table-column v-if="canShowRemove" label="操作" width="180">
+          <template #default="{ row }">
+            <el-button
+              size="small"
+              type="danger"
+              :disabled="!canRemove(row)"
+              :title="!canRemove(row) ? removeDisabledReason(row) : ''"
+              @click="openRemoveDialog(row)"
+            >
+              移除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-empty v-else-if="!loading" description="暂无成员或无权限查看" />
+    </el-card>
+
+    <el-dialog v-model="dialogVisible" title="移除成员" width="420px">
+      <div class="dialog-body">
+        <div>确认移除该成员？</div>
+        <el-input v-model="removeReason" type="textarea" :rows="3" placeholder="移除原因（可选）" />
       </div>
-    </div>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="dialogLoading" @click="submitRemove">确认</el-button>
+      </template>
+    </el-dialog>
 
-    <el-alert
-      v-if="writeBlockReason"
-      type="warning"
-      show-icon
-      :title="writeBlockReason"
-      class="status-alert"
-    />
-
-    <el-table v-if="members.length" :data="members" style="width: 100%">
-      <el-table-column prop="userId" label="用户 ID" width="120" />
-      <el-table-column prop="username" label="用户名" width="160" />
-      <el-table-column prop="realName" label="姓名" width="160" />
-      <el-table-column prop="role" label="角色" width="120" />
-      <el-table-column label="加入时间" width="180">
-        <template #default="{ row }">
-          {{ formatDateTime(row.joinedAt) }}
-        </template>
-      </el-table-column>
-      <el-table-column v-if="canShowRemove" label="操作" width="180">
-        <template #default="{ row }">
-          <el-button
-            size="small"
-            type="danger"
-            :disabled="!canRemove(row)"
-            :title="!canRemove(row) ? removeDisabledReason(row) : ''"
-            @click="openRemoveDialog(row)"
-          >
-            移除
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <el-empty v-else-if="!loading" description="暂无成员或无权限查看" />
-  </el-card>
-
-  <el-dialog v-model="dialogVisible" title="移除成员" width="420px">
-    <div class="dialog-body">
-      <div>确认移除该成员？</div>
-      <el-input v-model="removeReason" type="textarea" :rows="3" placeholder="移除原因（可选）" />
-    </div>
-    <template #footer>
-      <el-button @click="dialogVisible = false">取消</el-button>
-      <el-button type="primary" :loading="dialogLoading" @click="submitRemove">确认</el-button>
-    </template>
-  </el-dialog>
-
-  <el-dialog v-model="errorDialogVisible" title="提示" width="420px">
-    <div>{{ errorDialogMessage }}</div>
-    <template #footer>
-      <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回</el-button>
-      <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
-    </template>
-  </el-dialog>
-</template>
+    <el-dialog v-model="errorDialogVisible" title="提示" width="420px">
+      <div>{{ errorDialogMessage }}</div>
+      <template #footer>
+        <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回</el-button>
+        <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
+      </template>
+    </el-dialog>
+  </div></template>
 
 <style scoped>
 .page-header {

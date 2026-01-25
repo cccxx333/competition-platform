@@ -173,119 +173,126 @@ const confirmApply = async () => {
 </script>
 
 <template>
-  <el-card shadow="never">
+  <div class="page-container">
+
     <div class="page-header">
-      <h2>竞赛报名</h2>
-    </div>
+        <h2>竞赛报名</h2>
+      </div>
 
-    <el-form label-width="0" class="apply-form">
-      <el-form-item>
-        <el-select
-          v-model="selectedCompetitionId"
-          filterable
-          remote
-          clearable
-          :remote-method="handleSearch"
-          :loading="competitionLoading"
-          no-data-text="暂无可报名竞赛"
-          placeholder="请选择竞赛（可输入关键字搜索）"
-          style="width: 360px"
-          @visible-change="handleDropdownVisible"
-          @change="handleCompetitionChange"
-        >
-          <el-option
-            v-for="item in competitionOptions"
-            :key="item.id"
-            :label="item.name ?? ''"
-            :value="item.id"
-          />
-        </el-select>
-      </el-form-item>
-    </el-form>
+  <el-card shadow="never">
+    
 
-    <div v-if="selectedCompetitionId" class="team-panel">
-      <el-alert
-        v-if="fallbackSorted"
-        type="warning"
-        :closable="false"
-        title="当前竞赛下队伍与您的技能匹配度整体较低，已按默认顺序展示。"
-        style="margin-bottom: 12px"
-      />
+      <el-form label-width="0" class="apply-form">
+        <el-form-item>
+          <el-select
+            v-model="selectedCompetitionId"
+            filterable
+            remote
+            clearable
+            :remote-method="handleSearch"
+            :loading="competitionLoading"
+            no-data-text="暂无可报名竞赛"
+            placeholder="请选择竞赛（可输入关键字搜索）"
+            style="width: 360px"
+            @visible-change="handleDropdownVisible"
+            @change="handleCompetitionChange"
+          >
+            <el-option
+              v-for="item in competitionOptions"
+              :key="item.id"
+              :label="item.name ?? ''"
+              :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
 
-      <el-table :data="teamRows" v-loading="teamLoading" style="width: 100%" empty-text="暂无可申请队伍">
-        <el-table-column prop="teamName" label="队伍名称" min-width="180" />
-        <el-table-column label="状态" width="140">
-          <template #default="{ row }">
-            <el-tag :type="row.teamStatus === 'RECRUITING' ? 'success' : row.teamStatus === 'CLOSED' ? 'info' : 'danger'">
-              {{ statusLabelMap[row.teamStatus ?? ""] ?? "未知" }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="匹配分" width="120">
-          <template #default="{ row }">
-            <span>{{ typeof row.matchScore === "number" ? row.matchScore.toFixed(3) : "-" }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="推荐信息" min-width="260">
-          <template #default="{ row }">
-            {{ buildReasonText(row.reasons) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="120">
-          <template #default="{ row }">
-            <el-button type="primary" size="small" @click="handleApplyClick(row)">申请</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
-  </el-card>
-
-  <el-dialog v-model="errorDialogVisible" title="提示" width="420px" :close-on-click-modal="true">
-    <div>{{ errorDialogMessage }}</div>
-    <template #footer>
-      <el-button type="primary" @click="closeErrorDialog">确定</el-button>
-    </template>
-  </el-dialog>
-
-  <el-dialog v-model="successDialogVisible" title="提示" width="420px" :close-on-click-modal="true">
-    <div>{{ successDialogMessage }}</div>
-    <template #footer>
-      <el-button type="primary" @click="closeSuccessDialog">确定</el-button>
-    </template>
-  </el-dialog>
-
-  <el-dialog
-    v-model="applyDialogVisible"
-    title="提示"
-    width="520px"
-    :align-center="true"
-    top="12vh"
-    append-to-body="true"
-    :close-on-click-modal="false"
-  >
-    <div>确认提交报名申请吗？</div>
-    <div v-if="pendingApplyTeam" class="apply-dialog__team">
-      <span>队伍：{{ pendingApplyTeam.teamName ?? "未知队伍" }}（ID：{{ pendingApplyTeam.teamId }}）</span>
-    </div>
-    <el-form label-width="80px" class="apply-dialog__form">
-      <el-form-item label="申请备注">
-        <el-input
-          type="textarea"
-          v-model="applyRemark"
-          placeholder="可填写申请备注（可选）"
-          :rows="3"
+      <div v-if="selectedCompetitionId" class="team-panel">
+        <el-alert
+          v-if="fallbackSorted"
+          type="warning"
+          :closable="false"
+          title="当前竞赛下队伍与您的技能匹配度整体较低，已按默认顺序展示。"
+          style="margin-bottom: 12px"
         />
-      </el-form-item>
-    </el-form>
-    <div v-if="applyDialogError" class="apply-dialog__error">
-      {{ applyDialogError }}
-    </div>
-    <template #footer>
-      <el-button @click="cancelApply">取消</el-button>
-      <el-button type="primary" :loading="applyDialogLoading" @click="confirmApply">确认</el-button>
-    </template>
-  </el-dialog>
-</template>
+
+        <el-table :data="teamRows" v-loading="teamLoading" style="width: 100%" empty-text="暂无可申请队伍">
+          <el-table-column prop="teamName" label="队伍名称" min-width="180" />
+          <el-table-column label="状态" width="140">
+            <template #default="{ row }">
+              <el-tag :type="row.teamStatus === 'RECRUITING' ? 'success' : row.teamStatus === 'CLOSED' ? 'info' : 'danger'">
+                {{ statusLabelMap[row.teamStatus ?? ""] ?? "未知" }}
+              </el-tag>
+            </template>
+          
+          </el-table-column>
+          <el-table-column label="匹配分" width="120">
+            <template #default="{ row }">
+              <span>{{ typeof row.matchScore === "number" ? row.matchScore.toFixed(3) : "-" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="推荐信息" min-width="260">
+            <template #default="{ row }">
+              {{ buildReasonText(row.reasons) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120">
+            <template #default="{ row }">
+              <el-button type="primary" size="small" @click="handleApplyClick(row)">申请</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </el-card>
+
+    <el-dialog v-model="errorDialogVisible" title="提示" width="420px" :close-on-click-modal="true">
+      <div>{{ errorDialogMessage }}</div>
+      <template #footer>
+        <el-button type="primary" @click="closeErrorDialog">确定</el-button>
+      </template>
+    </el-dialog>
+      
+
+    <el-dialog v-model="successDialogVisible" title="提示" width="420px" :close-on-click-modal="true">
+      <div>{{ successDialogMessage }}</div>
+      <template #footer>
+        <el-button type="primary" @click="closeSuccessDialog">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="applyDialogVisible"
+      title="提示"
+      width="520px"
+      :align-center="true"
+      top="12vh"
+      append-to-body="true"
+      :close-on-click-modal="false"
+    >
+      <div>确认提交报名申请吗？</div>
+      <div v-if="pendingApplyTeam" class="apply-dialog__team">
+        <span>队伍：{{ pendingApplyTeam.teamName ?? "未知队伍" }}（ID：{{ pendingApplyTeam.teamId }}）</span>
+      </div>
+      <el-form label-width="80px" class="apply-dialog__form">
+        <el-form-item label="申请备注">
+          <el-input
+            type="textarea"
+            v-model="applyRemark"
+            placeholder="可填写申请备注（可选）"
+            :rows="3"
+          />
+        </el-form-item>
+      </el-form>
+      <div v-if="applyDialogError" class="apply-dialog__error">
+        {{ applyDialogError }}
+      </div>
+      <template #footer>
+        <el-button @click="cancelApply">取消</el-button>
+        <el-button type="primary" :loading="applyDialogLoading" @click="confirmApply">确认</el-button>
+      </template>
+    </el-dialog>
+      
+  </div></template>
 
 <style scoped>
 .page-header {
