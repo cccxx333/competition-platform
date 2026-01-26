@@ -93,6 +93,18 @@ const reviewReason = ref("")
 const reviewTargetId = ref<number | null>(null)
 const reviewSubmitting = ref(false)
 const submitError = ref("")
+const approveButtonStyle = {
+  "--el-button-bg-color": "#22c55e",
+  "--el-button-border-color": "#22c55e",
+  "--el-button-text-color": "#ffffff",
+  "--el-button-hover-bg-color": "#16a34a",
+  "--el-button-hover-border-color": "#16a34a",
+  "--el-button-active-bg-color": "#15803d",
+  "--el-button-active-border-color": "#15803d",
+  "--el-button-disabled-bg-color": "#22c55e",
+  "--el-button-disabled-border-color": "#22c55e",
+  "--el-button-disabled-text-color": "#ffffff"
+} as const
 
 const openApproveDialog = (row: AdminTeacherApplicationListItem) => {
   if (!row.id) return
@@ -172,7 +184,8 @@ onMounted(fetchList)
           <template #default="{ row }">
             <el-button
               size="small"
-              type="primary"
+              type="success"
+              :style="{ ...approveButtonStyle, ...(row.status !== 'PENDING' ? { opacity: 0.6 } : {}) }"
               :disabled="row.status !== 'PENDING'"
               @click="openApproveDialog(row)"
             >

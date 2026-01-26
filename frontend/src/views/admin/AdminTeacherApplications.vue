@@ -14,6 +14,18 @@ const items = ref<TeacherApplicationItem[]>([])
 const statusFilter = ref<TeacherApplicationStatus | "">("")
 const competitionIdFilter = ref("")
 const reviewingId = ref<number | null>(null)
+const approveButtonStyle = {
+  "--el-button-bg-color": "#22c55e",
+  "--el-button-border-color": "#22c55e",
+  "--el-button-text-color": "#ffffff",
+  "--el-button-hover-bg-color": "#16a34a",
+  "--el-button-hover-border-color": "#16a34a",
+  "--el-button-active-bg-color": "#15803d",
+  "--el-button-active-border-color": "#15803d",
+  "--el-button-disabled-bg-color": "#22c55e",
+  "--el-button-disabled-border-color": "#22c55e",
+  "--el-button-disabled-text-color": "#ffffff"
+} as const
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return ""
@@ -160,6 +172,8 @@ onMounted(loadApplications)
             <el-button
               size="small"
               type="success"
+              class="approve-button"
+              :style="approveButtonStyle"
               :loading="reviewingId === row.id"
               :disabled="row.status !== 'PENDING' || reviewingId === row.id"
               @click="promptReview(row, true)"
@@ -196,4 +210,20 @@ onMounted(loadApplications)
   gap: 8px;
   align-items: center;
 }
+
+.approve-button {
+  background-color: #22c55e !important;
+  border-color: #22c55e !important;
+  color: #ffffff !important;
+}
+
+.approve-button.is-disabled,
+.approve-button.is-disabled:hover,
+.approve-button.is-disabled:focus {
+  background-color: #22c55e !important;
+  border-color: #22c55e !important;
+  color: #ffffff !important;
+  opacity: 0.6 !important;
+}
+
 </style>

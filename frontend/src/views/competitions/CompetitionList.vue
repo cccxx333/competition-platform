@@ -469,7 +469,7 @@ onBeforeUnmount(() => {
 
     <div class="page-header">
         <h2>竞赛列表</h2>
-        <el-button v-if="isAdmin" type="primary" size="small" @click="openCreateDialog">发布竞赛</el-button>
+        <el-button v-if="isAdmin" type="primary" size="default" @click="openCreateDialog">发布竞赛</el-button>
       </div>
 
   <el-card shadow="never" v-loading="loading" class="competition-list-page">
@@ -549,6 +549,7 @@ onBeforeUnmount(() => {
         highlight-current-row
       >
         <el-table-column prop="name" label="名称" min-width="180" />
+        <el-table-column prop="id" label="竞赛 ID" width="120" />
         <el-table-column label="状态" width="140">
           <template #default="{ row }">
             <StatusTag :status="row.status" kind="competition" />

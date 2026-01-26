@@ -114,14 +114,6 @@ const submitAdminSkill = async () => {
   }
 }
 
-const formatDateValue = (value?: string) => {
-  if (!value) return "-"
-  if (value.includes("T")) {
-    return value.split("T")[0]
-  }
-  return value
-}
-
 const loadSelectableSkills = async (keyword?: string) => {
   loadingOptions.value = true
   try {
@@ -197,12 +189,12 @@ watch(isAdmin, () => {
 <template>
   <div class="page-container">
     <template v-if="isAdmin">
-      <div class="page-header">
+      <div class="page-header admin-header">
         <h2>技能管理</h2>
-        <el-button size="small" type="primary" @click="openCreateSkillDialog">新建技能</el-button>
+        <el-button size="default" type="primary" @click="openCreateSkillDialog">新建技能</el-button>
       </div>
 
-      <el-card shadow="never" v-loading="adminLoading">
+      <el-card shadow="never" v-loading="adminLoading" class="admin-skill-card">
         <el-table
           :data="adminSkills"
           v-loading="adminLoading"
@@ -213,11 +205,6 @@ watch(isAdmin, () => {
           <el-table-column prop="id" label="技能 ID" width="120" />
           <el-table-column prop="name" label="名称" />
           <el-table-column prop="category" label="分类" />
-          <el-table-column label="创建时间" min-width="160">
-            <template #default="{ row }">
-              {{ formatDateValue(row.createdAt) }}
-            </template>
-          </el-table-column>
           <el-table-column label="操作" width="140">
             <template #default="{ row }">
               <el-button type="text" size="small" @click.stop="openEditSkillDialog(row)">编辑</el-button>
@@ -364,6 +351,14 @@ watch(isAdmin, () => {
 
 .action-column :deep(.el-button) {
   padding-left: 0;
+}
+
+.admin-header {
+  align-items: center;
+}
+
+.admin-skill-card {
+  max-width: 920px;
 }
 </style>
 
