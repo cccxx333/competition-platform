@@ -144,7 +144,7 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <div class="page-header">
+    <div class="page-header admin-header">
       <h2>发布奖项</h2>
     </div>
 
@@ -209,7 +209,7 @@ onMounted(() => {
       </el-card>
     </el-card>
 
-    <div class="page-header">
+    <div class="page-header admin-header">
       <h2>奖项记录</h2>
     </div>
 
@@ -258,6 +258,12 @@ onMounted(() => {
 .publish-card,
 .records-card {
   max-width: 980px;
+  margin: 0 auto;
+}
+
+.admin-header {
+  max-width: 980px;
+  margin: 0 auto 12px;
 }
 
 .result-card {

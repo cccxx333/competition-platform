@@ -10,6 +10,7 @@ public class AdminTeacherApplicationListItemDTO {
     private Long id;
     private Long teacherId;
     private String teacherName;
+    private String teacherAccountNo;
     private Long competitionId;
     private String competitionName;
     private TeacherApplication.Status status;

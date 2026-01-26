@@ -189,9 +189,11 @@ watch(isAdmin, () => {
 <template>
   <div class="page-container">
     <template v-if="isAdmin">
-      <div class="page-header admin-header">
-        <h2>技能管理</h2>
-        <el-button size="default" type="primary" @click="openCreateSkillDialog">新建技能</el-button>
+      <div class="admin-header-wrap">
+        <div class="page-header admin-header">
+          <h2>技能管理</h2>
+          <el-button size="default" type="primary" @click="openCreateSkillDialog">新建技能</el-button>
+        </div>
       </div>
 
       <el-card shadow="never" v-loading="adminLoading" class="admin-skill-card">
@@ -354,11 +356,19 @@ watch(isAdmin, () => {
 }
 
 .admin-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
+}
+
+.admin-header-wrap {
+  max-width: 920px;
+  margin: 0 auto 12px;
 }
 
 .admin-skill-card {
   max-width: 920px;
+  margin: 0 auto;
 }
 </style>
 

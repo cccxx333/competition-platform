@@ -159,28 +159,29 @@ onMounted(fetchList)
 <template>
   <div class="page-container">
 
-    <div class="page-header">
-        <h2>教师申请审核</h2>
-      </div>
+    <div class="page-header review-header">
+      <h2>教师申请审核</h2>
+    </div>
 
-  <el-card shadow="never" v-loading="loading">
+  <el-card shadow="never" v-loading="loading" class="review-card">
     
 
       <el-table :data="items" style="width: 100%">
-        <el-table-column prop="teacherName" label="教师" min-width="160" />
-        <el-table-column prop="competitionName" label="竞赛" min-width="200" />
+        <el-table-column prop="teacherName" label="教师" min-width="100" />
+        <el-table-column prop="teacherAccountNo" label="工号" width="180" />
+        <el-table-column prop="competitionName" label="竞赛" min-width="160" />
         <el-table-column label="状态" width="140">
           <template #default="{ row }">
             <StatusTag :status="row.status" kind="teacherApplication" />
         
       </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="180">
+        <el-table-column label="创建时间" width="160">
           <template #default="{ row }">
             {{ formatDateTime(row.createdAt) || "-" }}
       </template>
         </el-table-column>
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="170">
           <template #default="{ row }">
             <el-button
               size="small"
@@ -268,6 +269,16 @@ onMounted(fetchList)
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.review-header {
+  max-width: 980px;
+  margin: 0 auto 12px;
+}
+
+.review-card {
+  max-width: 1040px;
+  margin: 0 auto;
 }
 
 .pagination {

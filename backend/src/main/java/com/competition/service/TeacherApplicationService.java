@@ -352,6 +352,7 @@ public class TeacherApplicationService {
         if (application.getTeacher() != null) {
             dto.setTeacherId(application.getTeacher().getId());
             dto.setTeacherName(resolveTeacherName(application.getTeacher()));
+            dto.setTeacherAccountNo(application.getTeacher().getAccountNo());
         }
         if (application.getCompetition() != null) {
             dto.setCompetitionId(application.getCompetition().getId());

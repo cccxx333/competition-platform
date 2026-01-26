@@ -3,6 +3,7 @@ import { ElMessage } from "element-plus"
 import { getCompetitionDetail } from "@/api/competitions"
 import { listPendingApplications, reviewApplication, type ApplicationItem } from "@/api/teamApplications"
 import { getApiErrorMessage } from "@/utils/errorMessage"
+import StatusTag from "@/common/components/StatusTag/index.vue"
 
 const router = useRouter()
 const loading = ref(false)
@@ -44,9 +45,14 @@ const showRequestError = (error: any, fallback: string) => {
 const loadApplications = async () => {
   loading.value = true
   try {
-    items.value = await listPendingApplications({
-      status: "PENDING",
+    const list = await listPendingApplications({
+      status: undefined,
       teamId: teamIdFilter.value ?? undefined
+    })
+    items.value = (list ?? []).slice().sort((a, b) => {
+      const timeA = a.appliedAt ? Date.parse(a.appliedAt) : 0
+      const timeB = b.appliedAt ? Date.parse(b.appliedAt) : 0
+      return timeB - timeA
     })
     await loadCompetitionStatuses(items.value)
   } catch (error: any) {
@@ -141,31 +147,36 @@ onMounted(loadApplications)
 <template>
   <div class="page-container">
 
-    <div class="page-header">
-        <h2>教师审核</h2>
-        <div class="page-header__filters" />
-      </div>
+    <div class="page-header review-header">
+      <h2>教师审核</h2>
+      <div class="page-header__filters" />
+    </div>
 
   <el-card shadow="never" v-loading="loading" class="review-card">
     
 
       <el-table v-if="items.length" :data="items" style="width: 100%">
-        <el-table-column label="学生" width="160">
+        <el-table-column label="学生" width="120">
           <template #default="{ row }">
             {{ row.studentName || "-" }}
           </template>
         </el-table-column>
-        <el-table-column label="学号" width="140">
+        <el-table-column label="学号" width="110">
           <template #default="{ row }">
             {{ row.studentAccountNo || "-" }}
           </template>
         </el-table-column>
-        <el-table-column label="竞赛" min-width="220" show-overflow-tooltip>
+        <el-table-column label="竞赛" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.competitionName || "-" }}
           </template>
         </el-table-column>
         <el-table-column prop="teamId" label="队伍 ID" width="120" />
+        <el-table-column label="审核状态" width="140">
+          <template #default="{ row }">
+            <StatusTag :status="row.status" kind="teamApplication" />
+          </template>
+        </el-table-column>
         <el-table-column label="申请时间" width="180">
           <template #default="{ row }">
             {{ formatDateTime(row.appliedAt) || "-" }}
@@ -177,13 +188,22 @@ onMounted(loadApplications)
             <el-button
               size="small"
               type="success"
-              :disabled="isApproveDisabled(row)"
+              :disabled="row.status !== 'PENDING' || isApproveDisabled(row)"
+              :style="row.status !== 'PENDING' ? { opacity: 0.6 } : undefined"
               :title="isApproveDisabled(row) ? '竞赛已结束，无法通过' : ''"
               @click="openDialog(row, 'approve')"
             >
               通过
             </el-button>
-            <el-button size="small" type="danger" @click="openDialog(row, 'reject')">拒绝</el-button>
+            <el-button
+              size="small"
+              type="danger"
+              :disabled="row.status !== 'PENDING'"
+              :style="row.status !== 'PENDING' ? { opacity: 0.6 } : undefined"
+              @click="openDialog(row, 'reject')"
+            >
+              拒绝
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -218,8 +238,14 @@ onMounted(loadApplications)
   align-items: center;
 }
 
+.review-header {
+  max-width: 1080px;
+  margin: 0 auto 12px;
+}
+
 .review-card {
-  max-width: 980px;
+  max-width: 1080px;
+  margin: 0 auto;
 }
 
 </style>
