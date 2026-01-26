@@ -93,6 +93,10 @@ body {
   font-size: 15px;
 }
 
+.basic-layout__aside .el-sub-menu__title {
+  margin-bottom: 6px;
+}
+
 .basic-layout__aside .el-menu-item:hover,
 .basic-layout__aside .el-sub-menu__title:hover {
   background: var(--hover-bg);
@@ -110,6 +114,7 @@ body {
 
 .basic-layout__aside .el-sub-menu .el-menu-item {
   padding-left: 32px;
+  margin-top: 6px;
 }
 
 .basic-layout__logo {

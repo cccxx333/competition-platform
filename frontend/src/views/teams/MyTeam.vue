@@ -77,6 +77,7 @@ onMounted(loadTeam)
       <el-card v-for="item in teams" :key="item.id" class="cp-card my-team-card" shadow="never">
         <el-descriptions border :column="1">
           <el-descriptions-item label="队伍 ID">{{ item.id ?? "-" }}</el-descriptions-item>
+          <el-descriptions-item label="竞赛">{{ item.competition?.name ?? "-" }}</el-descriptions-item>
           <el-descriptions-item label="名称">{{ item.name ?? "-" }}</el-descriptions-item>
           <el-descriptions-item label="状态">{{ item.status ?? "-" }}</el-descriptions-item>
           <el-descriptions-item label="成员">
@@ -89,7 +90,6 @@ onMounted(loadTeam)
 
         <div v-if="item.id" class="action-row">
           <el-button type="primary" @click="router.push(`/teams/${item.id}`)">查看队伍详情</el-button>
-          <el-button @click="router.push(`/teams/${item.id}/members`)">查看成员</el-button>
         </div>
       </el-card>
     </div>

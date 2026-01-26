@@ -206,8 +206,6 @@ onMounted(loadTeam)
         </div>
         <div class="page-actions">
           <el-button @click="router.push(returnPath)">{{ returnLabel }}</el-button>
-          <el-button :disabled="!teamId" @click="router.push(`/teams/${teamId}/posts`)">讨论区</el-button>
-          <el-button :disabled="!teamId" @click="router.push(`/teams/${teamId}/submissions`)">文件提交</el-button>
           <el-button type="primary" :disabled="!teamId" @click="router.push(`/teams/${teamId}/members`)">
             成员管理
           </el-button>
@@ -229,6 +227,7 @@ onMounted(loadTeam)
 
       <el-descriptions v-else-if="team" border :column="1">
         <el-descriptions-item label="名称">{{ team.name ?? "-" }}</el-descriptions-item>
+        <el-descriptions-item label="竞赛">{{ team.competition?.name ?? "-" }}</el-descriptions-item>
         <el-descriptions-item label="状态">{{ team.status ?? "-" }}</el-descriptions-item>
         <el-descriptions-item label="最大人数">{{ team.maxMembers ?? "-" }}</el-descriptions-item>
         <el-descriptions-item label="当前人数">{{ currentCount }}</el-descriptions-item>
@@ -272,6 +271,10 @@ onMounted(loadTeam)
           </el-button>
           <span v-if="canShowClose && !canClose" class="action-hint">{{ closeDisabledReason }}</span>
           <span v-if="isAdmin && isTeamDisbanded" class="action-hint">队伍已解散</span>
+          <div v-if="teamId" class="card-actions">
+            <el-button @click="router.push(`/teams/${teamId}/posts`)">讨论区</el-button>
+            <el-button @click="router.push(`/teams/${teamId}/submissions`)">文件提交</el-button>
+          </div>
         </div>
       </div>
     </el-card>
@@ -336,9 +339,16 @@ onMounted(loadTeam)
 }
 
 .action-panel__row {
-  display: inline-flex;
+  display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.card-actions {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 8px;
 }
 
 .action-hint {

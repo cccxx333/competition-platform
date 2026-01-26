@@ -1,10 +1,14 @@
 ﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
-import { Avatar, Message, PriceTag, User } from "@element-plus/icons-vue"
+import { Avatar, Message, Postcard, PriceTag, User } from "@element-plus/icons-vue"
 import { getMyProfile } from "@/api/profile"
 
 const loading = ref(false)
 const profile = ref<Awaited<ReturnType<typeof getMyProfile>> | null>(null)
+
+const roleUpper = computed(() => String(profile.value?.role ?? "").toUpperCase())
+const accountLabel = computed(() => (roleUpper.value === "STUDENT" ? "学号" : "工号"))
+const accountNo = computed(() => profile.value?.accountNo ?? profile.value?.username ?? "-")
 
 const showRequestError = (error: any, fallback: string) => {
   const status = error?.status ?? error?.response?.status
@@ -35,6 +39,7 @@ const showRequestError = (error: any, fallback: string) => {
 const infoRows = computed(() => {
   const data = profile.value
   return [
+    { label: accountLabel.value, value: accountNo.value, icon: Postcard },
     { label: "用户名", value: data?.username ?? "-", icon: User },
     { label: "姓名", value: data?.realName ?? "-", icon: Avatar },
     { label: "邮箱", value: data?.email ?? "-", icon: Message },

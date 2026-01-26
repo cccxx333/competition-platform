@@ -293,9 +293,10 @@ watch(isAdmin, () => {
               </el-select>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="140">
+          <el-table-column label="操作" width="140" align="left" header-align="left" class-name="action-column">
             <template #default="scope">
               <el-button
+                type="text"
                 size="small"
                 :loading="actionLoading"
                 :disabled="loadingList"
@@ -355,4 +356,14 @@ watch(isAdmin, () => {
     </template>
   </div>
 </template>
+
+<style scoped>
+.action-column :deep(.cell) {
+  padding-left: 0;
+}
+
+.action-column :deep(.el-button) {
+  padding-left: 0;
+}
+</style>
 

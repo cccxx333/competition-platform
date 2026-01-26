@@ -2,6 +2,7 @@
 
 export type UserProfile = {
   id?: number
+  accountNo?: string
   username?: string
   realName?: string
   email?: string

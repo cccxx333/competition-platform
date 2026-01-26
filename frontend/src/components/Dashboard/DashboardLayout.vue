@@ -12,11 +12,11 @@ import OngoingCompetitionsPanel from "./OngoingCompetitionsPanel.vue"
         <slot name="topRight" />
       </el-card>
     </div>
-    <el-card shadow="never" class="cp-card dashboard-card">
+    <div class="dashboard-section">
       <slot name="bottom">
         <OngoingCompetitionsPanel />
       </slot>
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -35,6 +35,12 @@ import OngoingCompetitionsPanel from "./OngoingCompetitionsPanel.vue"
 
 .dashboard-card {
   min-height: 140px;
+}
+
+.dashboard-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 @media (max-width: 960px) {
