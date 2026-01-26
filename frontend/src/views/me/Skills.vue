@@ -42,7 +42,11 @@ const adminDialogError = ref("")
 const loadAdminSkills = async () => {
   adminLoading.value = true
   try {
-    adminSkills.value = await listSkills()
+    adminSkills.value = (await listSkills()).slice().sort((a, b) => {
+      const aId = a.id ?? Number.MAX_SAFE_INTEGER
+      const bId = b.id ?? Number.MAX_SAFE_INTEGER
+      return aId - bId
+    })
   } catch (error: any) {
     ElMessage.error(getApiErrorMessage(error, "加载技能列表失败"))
     adminSkills.value = []
