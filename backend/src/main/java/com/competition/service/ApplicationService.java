@@ -248,9 +248,21 @@ public class ApplicationService {
     private ApplicationResponse toResponse(Application application) {
         ApplicationResponse response = new ApplicationResponse();
         response.setId(application.getId());
-        response.setCompetitionId(application.getCompetition() != null ? application.getCompetition().getId() : null);
-        response.setTeamId(application.getTeam() != null ? application.getTeam().getId() : null);
-        response.setStudentId(application.getStudent() != null ? application.getStudent().getId() : null);
+        Competition competition = application.getCompetition();
+        Team team = application.getTeam();
+        User student = application.getStudent();
+        response.setCompetitionId(competition != null ? competition.getId() : null);
+        response.setCompetitionName(competition != null ? competition.getName() : null);
+        response.setTeamId(team != null ? team.getId() : null);
+        response.setStudentId(student != null ? student.getId() : null);
+        if (student != null) {
+            String name = student.getRealName();
+            if (name == null || name.isBlank()) {
+                name = student.getUsername();
+            }
+            response.setStudentName(name);
+            response.setStudentAccountNo(student.getAccountNo());
+        }
         response.setStatus(application.getStatus());
         response.setIsActive(application.getIsActive());
         response.setAppliedAt(application.getAppliedAt());

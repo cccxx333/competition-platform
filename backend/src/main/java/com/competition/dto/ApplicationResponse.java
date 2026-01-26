@@ -11,6 +11,9 @@ public class ApplicationResponse {
     private Long competitionId;
     private Long teamId;
     private Long studentId;
+    private String studentName;
+    private String studentAccountNo;
+    private String competitionName;
     private Application.Status status;
     private Boolean isActive;
     private LocalDateTime appliedAt;

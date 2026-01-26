@@ -143,19 +143,28 @@ onMounted(loadApplications)
 
     <div class="page-header">
         <h2>教师审核</h2>
-        <div class="page-header__filters">
-          <el-input-number v-model="teamIdFilter" :min="1" :controls="false" placeholder="队伍 ID" />
-          <el-button :loading="loading" @click="loadApplications">刷新</el-button>
-        </div>
+        <div class="page-header__filters" />
       </div>
 
-  <el-card shadow="never" v-loading="loading">
+  <el-card shadow="never" v-loading="loading" class="review-card">
     
 
       <el-table v-if="items.length" :data="items" style="width: 100%">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="studentId" label="学生 ID" width="120" />
-        <el-table-column prop="competitionId" label="竞赛 ID" width="150" />
+        <el-table-column label="学生" width="160">
+          <template #default="{ row }">
+            {{ row.studentName || "-" }}
+          </template>
+        </el-table-column>
+        <el-table-column label="学号" width="140">
+          <template #default="{ row }">
+            {{ row.studentAccountNo || "-" }}
+          </template>
+        </el-table-column>
+        <el-table-column label="竞赛" min-width="220" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.competitionName || "-" }}
+          </template>
+        </el-table-column>
         <el-table-column prop="teamId" label="队伍 ID" width="120" />
         <el-table-column label="申请时间" width="180">
           <template #default="{ row }">
@@ -208,4 +217,9 @@ onMounted(loadApplications)
   gap: 8px;
   align-items: center;
 }
+
+.review-card {
+  max-width: 980px;
+}
+
 </style>

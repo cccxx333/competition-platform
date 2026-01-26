@@ -148,7 +148,7 @@ onMounted(fetchList)
         </el-table-column>
         <el-table-column label="详情" width="100">
           <template #default="{ row }">
-            <el-button size="small" @click="openDetailDialog(row)">查看</el-button>
+            <el-button type="text" size="small" @click="openDetailDialog(row)">查看</el-button>
       </template>
         </el-table-column>
       </el-table>

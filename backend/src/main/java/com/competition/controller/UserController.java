@@ -76,6 +76,12 @@ public class UserController {
         return ResponseEntity.ok(toUserProfileResponse(user));
     }
 
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserProfileResponse> getUserById(@PathVariable Long userId) {
+        UserDTO user = userService.getUserById(userId);
+        return ResponseEntity.ok(toUserProfileResponse(user));
+    }
+
     @PutMapping("/me")
     public ResponseEntity<UserProfileResponse> updateCurrentUser(
             HttpServletRequest request,

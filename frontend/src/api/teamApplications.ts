@@ -5,8 +5,11 @@ export type ApplicationStatus = "PENDING" | "APPROVED" | "REJECTED" | "REMOVED"
 export type ApplicationItem = {
   id?: number
   competitionId?: number
+  competitionName?: string
   teamId?: number
   studentId?: number
+  studentName?: string
+  studentAccountNo?: string
   status?: ApplicationStatus
   reason?: string | null
   appliedAt?: string

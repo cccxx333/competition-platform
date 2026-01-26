@@ -1,10 +1,10 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import DashboardLayout from "@/components/Dashboard/DashboardLayout.vue"
 import OngoingCompetitionsPanel from "@/components/Dashboard/OngoingCompetitionsPanel.vue"
 import { useAuthStore } from "@/stores/auth"
 
 const authStore = useAuthStore()
-const username = computed(() => authStore.user?.username?.trim() || "同学")
+const username = computed(() => authStore.user?.username?.trim() || "管理员")
 </script>
 
 <template>
@@ -29,9 +29,7 @@ const username = computed(() => authStore.user?.username?.trim() || "同学")
 </template>
 
 <style scoped>
-
 .page-header h2 {
-  font-size: 35px; /* 你想要的大小 */
+  font-size: 35px;
 }
-
 </style>
