@@ -6,7 +6,7 @@
   --active-bg: rgba(0, 0, 0, 0.05);
   --radius-md: 10px;
   --radius-lg: 14px;
-  --topbar-h: 60px;
+  --topbar-h: 70px;
   --el-card-border-radius: 18px;
   --el-button-bg-color: #f5f7fa;
   --el-button-border-color: #dcdfe6;
@@ -79,6 +79,7 @@ body {
 .basic-layout__aside .el-menu {
   background: transparent;
   border-right: 0;
+  margin-top: -8px;
 }
 
 .basic-layout__aside .el-menu-item,
@@ -124,7 +125,7 @@ body {
   height: var(--topbar-h);
   background: var(--panel-bg);
   border-bottom: 1px solid var(--border-color);
-  padding: 0 24px;
+  padding: 0 30px;
   display: flex;
   align-items: center;
   flex: 0 0 var(--topbar-h);

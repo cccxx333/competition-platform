@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import { getMyHonors, type AwardDetail, type UserHonorsResponse } from "@/api/honors"
 import { toYmd } from "@/common/utils/datetime"
 import { getApiErrorMessage } from "@/utils/errorMessage"
@@ -41,15 +41,11 @@ onMounted(loadHonors)
 
 <template>
   <div class="page-container">
-
     <div class="page-header">
-        <h2>我的荣誉</h2>
-        <el-button size="small" :loading="loading" @click="loadHonors">刷新</el-button>
-      </div>
+      <h2>我的荣誉</h2>
+    </div>
 
-  <el-card shadow="never" v-loading="loading">
-    
-
+    <div class="honors-content" v-loading="loading">
       <el-alert v-if="errorMessage" type="error" show-icon :title="errorMessage" class="status-alert" />
 
       <el-card v-if="showCounts" shadow="never" class="section">
@@ -76,13 +72,11 @@ onMounted(loadHonors)
             </template>
           </el-table-column>
         </el-table>
-        <el-empty
-          v-else-if="!loading && !errorMessage"
-          description="暂无荣誉"
-        />
+        <el-empty v-else-if="!loading && !errorMessage" description="暂无荣誉" />
       </el-card>
-    </el-card>
-  </div></template>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .page-header {
@@ -96,7 +90,13 @@ onMounted(loadHonors)
   margin-bottom: 12px;
 }
 
+.honors-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .section {
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 </style>

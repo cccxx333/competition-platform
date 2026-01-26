@@ -1,12 +1,15 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import { Trophy, Medal } from "@element-plus/icons-vue"
 import DashboardLayout from "@/components/Dashboard/DashboardLayout.vue"
 import OngoingCompetitionsPanel from "@/components/Dashboard/OngoingCompetitionsPanel.vue"
 import { getMyHonors } from "@/api/honors"
+import { useAuthStore } from "@/stores/auth"
 
+const authStore = useAuthStore()
 const loading = ref(false)
 const participationCount = ref(0)
 const awardCount = ref(0)
+const username = computed(() => authStore.user?.username?.trim() || "同学")
 
 const loadCounts = async () => {
   loading.value = true
@@ -23,36 +26,42 @@ onMounted(loadCounts)
 </script>
 
 <template>
-  <DashboardLayout>
-    <template #topLeft>
-      <div class="stat-card">
-        <div class="stat-icon">
-          <el-icon :size="20"><Trophy /></el-icon>
+  <div>
+    <div class="page-header">
+      <h2>欢迎回来，{{ username }}！</h2>
+    </div>
+    <DashboardLayout>
+      <template #topLeft>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <el-icon :size="20"><Trophy /></el-icon>
+          </div>
+          <div class="stat-body">
+            <div class="stat-value">{{ participationCount }}</div>
+            <div class="stat-label">参赛次数</div>
+          </div>
         </div>
-        <div class="stat-body">
-          <div class="stat-value">{{ participationCount }}</div>
-          <div class="stat-label">参赛次数</div>
+      </template>
+      <template #topRight>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <el-icon :size="20"><Medal /></el-icon>
+          </div>
+          <div class="stat-body">
+            <div class="stat-value">{{ awardCount }}</div>
+            <div class="stat-label">获奖次数</div>
+          </div>
         </div>
-      </div>
-    </template>
-    <template #topRight>
-      <div class="stat-card">
-        <div class="stat-icon">
-          <el-icon :size="20"><Medal /></el-icon>
-        </div>
-        <div class="stat-body">
-          <div class="stat-value">{{ awardCount }}</div>
-          <div class="stat-label">获奖次数</div>
-        </div>
-      </div>
-    </template>
-    <template #bottom>
-      <OngoingCompetitionsPanel />
-    </template>
-  </DashboardLayout>
+      </template>
+      <template #bottom>
+        <OngoingCompetitionsPanel />
+      </template>
+    </DashboardLayout>
+  </div>
 </template>
 
 <style scoped>
+
 .stat-card {
   display: flex;
   align-items: center;
@@ -70,6 +79,11 @@ onMounted(loadCounts)
   justify-content: center;
   color: #4b5563;
 }
+
+.page-header h2 {
+  font-size: 35px; /* 你想要的大小 */
+}
+
 
 .stat-body {
   display: flex;

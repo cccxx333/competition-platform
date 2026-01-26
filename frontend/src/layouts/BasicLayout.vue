@@ -1,6 +1,6 @@
 ﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
-import { Avatar, Document, House, Medal, Star, Trophy, User } from "@element-plus/icons-vue"
+import { Avatar, Document, House, Medal, Star, Trophy, User, SwitchButton } from "@element-plus/icons-vue"
 import { useAuthStore } from "@/stores/auth"
 
 const route = useRoute()
@@ -25,7 +25,9 @@ const handleLogout = () => {
 <template>
   <el-container class="basic-layout">
     <el-aside width="220px" class="basic-layout__aside">
-      <div class="basic-layout__logo">竞赛平台</div>
+      <div class="basic-layout__logo">
+        <img class="basic-layout__sidebar-motto" src="/branding/motto.png" alt="校训" />
+      </div>
       <el-menu :default-active="route.path" router>
         <el-menu-item index="/dashboard">
           <el-icon class="basic-layout__menu-icon"><House /></el-icon>
@@ -80,10 +82,19 @@ const handleLogout = () => {
     </el-aside>
     <el-container>
       <el-header class="basic-layout__header">
-        <div class="basic-layout__title">竞赛平台</div>
+        <div class="basic-layout__title">学科竞赛平台</div>
         <div class="basic-layout__user">
-          <span>{{ userLabel }}</span>
-          <el-button type="default" link @click="handleLogout">退出登录</el-button>
+          <div class="basic-layout__user-meta">
+            <el-icon class="basic-layout__user-avatar"><User /></el-icon>
+            <div class="basic-layout__user-text">
+              <div class="basic-layout__user-name">{{ authStore.user?.username ?? "用户" }}</div>
+              <div class="basic-layout__user-role">{{ authStore.user?.role ?? "-" }}</div>
+            </div>
+          </div>
+          <el-button type="default" link class="basic-layout__logout" @click="handleLogout">
+            <el-icon><SwitchButton /></el-icon>
+            <span>退出</span>
+          </el-button>
         </div>
       </el-header>
       <el-main class="basic-layout__main">
@@ -104,8 +115,14 @@ const handleLogout = () => {
 }
 
 .basic-layout__logo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  height: 80px;
+  padding: -4px 8px 0;
+  text-align: center;
   font-weight: 600;
-  padding: 0 16px 12px;
+  font-size: 20px;
 }
 
 .basic-layout__header {
@@ -115,10 +132,58 @@ const handleLogout = () => {
   border-bottom: 1px solid #e5e7eb;
 }
 
+.basic-layout__title {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 30px; /* 往右移 */
+  font-size: 25px; /* 字体大小 */
+  font-weight: 650; /* 字体粗细 */
+  gap: 12px;
+}
+
+.basic-layout__sidebar-motto {
+  margin-top: -30px;
+  height: 110px;
+  object-fit: contain;
+}
+
 .basic-layout__user {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 20px;
+}
+
+.basic-layout__user-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.basic-layout__user-avatar {
+  font-size: 22px;
+  color: #111827;
+}
+
+.basic-layout__user-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.basic-layout__user-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.basic-layout__user-role {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.basic-layout__logout {
+  gap: 6px;
+  color: #374151;
 }
 
 .basic-layout__menu-icon {
