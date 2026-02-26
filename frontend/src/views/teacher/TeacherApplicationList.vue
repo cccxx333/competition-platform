@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { listMyTeacherApplicationPage, type TeacherApplicationListItem, type TeacherApplicationSkill } from "@/api/teacherApplications"
 import { listSkills, type Skill } from "@/api/skills"
-import StatusPill from "@@/components/StatusPill/index.vue"
+import StatusTag from "@@/components/StatusTag/index.vue"
 
 const loading = ref(false)
 const items = ref<TeacherApplicationListItem[]>([])
@@ -111,69 +111,75 @@ onMounted(fetchList)
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div class="page-container">
+
     <div class="page-header">
-      <h2>我的教师申请</h2>
-    </div>
+        <h2>我的教师申请</h2>
+      </div>
 
-    <el-table :data="items" style="width: 100%">
-      <el-table-column prop="competitionName" label="竞赛" min-width="200" />
-      <el-table-column label="状态" width="140">
-        <template #default="{ row }">
-          <StatusPill :value="row.status" kind="teacherApplication" />
-        </template>
-      </el-table-column>
-      <el-table-column label="申请时间" width="180">
-        <template #default="{ row }">
-          {{ formatDateTime(row.createdAt) || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column label="审核时间" width="180">
-        <template #default="{ row }">
-          {{ formatDateTime(row.updatedAt) || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column label="原因" min-width="200">
-        <template #default="{ row }">
-          <el-tooltip v-if="getReason(row) !== '-'" :content="getReason(row)" placement="top">
-            <span class="truncate">{{ getReason(row) }}</span>
-          </el-tooltip>
-          <span v-else>-</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="详情" width="100">
-        <template #default="{ row }">
-          <el-button size="small" @click="openDetailDialog(row)">查看</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+  <el-card shadow="never" v-loading="loading">
+    
 
-    <div class="pagination">
-      <el-pagination
-        :current-page="pagination.page + 1"
-        :page-size="pagination.size"
-        :total="total"
-        layout="total, prev, pager, next, sizes"
-        @current-change="handlePageChange"
-        @size-change="handleSizeChange"
-      />
-    </div>
-  </el-card>
+      <el-table :data="items" style="width: 100%">
+        <el-table-column prop="competitionName" label="竞赛" min-width="200" />
+        <el-table-column label="状态" width="140">
+          <template #default="{ row }">
+            <StatusTag :status="row.status" kind="teacherApplication" />
+        
+      </template>
+        </el-table-column>
+        <el-table-column label="申请时间" width="180">
+          <template #default="{ row }">
+            {{ formatDateTime(row.createdAt) || "-" }}
+      </template>
+        </el-table-column>
+        <el-table-column label="审核时间" width="180">
+          <template #default="{ row }">
+            {{ formatDateTime(row.updatedAt) || "-" }}
+      </template>
+        </el-table-column>
+        <el-table-column label="原因" min-width="200">
+          <template #default="{ row }">
+            <el-tooltip v-if="getReason(row) !== '-'" :content="getReason(row)" placement="top">
+              <span class="truncate">{{ getReason(row) }}</span>
+            </el-tooltip>
+            <span v-else>-</span>
+      </template>
+        </el-table-column>
+        <el-table-column label="详情" width="100">
+          <template #default="{ row }">
+            <el-button type="text" size="small" @click="openDetailDialog(row)">查看</el-button>
+      </template>
+        </el-table-column>
+      </el-table>
 
-  <el-dialog v-model="detailDialogVisible" title="申请详情" width="520px" @close="closeDetailDialog">
-    <div class="detail-row">
-      <div class="detail-label">队伍所需技能</div>
-      <div class="detail-value">{{ formatSkills(selectedApplication?.skills) }}</div>
-    </div>
-    <div class="detail-row">
-      <div class="detail-label">队伍说明</div>
-      <div class="detail-value">{{ selectedApplication?.teamDescription || "无" }}</div>
-    </div>
-    <template #footer>
-      <el-button type="primary" @click="closeDetailDialog">关闭</el-button>
+      <div class="pagination">
+        <el-pagination
+          :current-page="pagination.page + 1"
+          :page-size="pagination.size"
+          :total="total"
+          layout="total, prev, pager, next, sizes"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
+        />
+      </div>
+    </el-card>
+
+    <el-dialog v-model="detailDialogVisible" title="申请详情" width="520px" @close="closeDetailDialog">
+      <div class="detail-row">
+        <div class="detail-label">队伍所需技能</div>
+        <div class="detail-value">{{ formatSkills(selectedApplication?.skills) }}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">队伍说明</div>
+        <div class="detail-value">{{ selectedApplication?.teamDescription || "无" }}</div>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="closeDetailDialog">关闭</el-button>
+      </template>
+    </el-dialog>
+  </div>
     </template>
-  </el-dialog>
-</template>
 
 <style scoped>
 .page-header {

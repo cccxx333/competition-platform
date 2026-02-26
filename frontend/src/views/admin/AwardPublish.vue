@@ -1,5 +1,6 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
+import { getCompetitionDetail } from "@/api/competitions"
 import { listAwardRecords, publishAward, type AwardPublishResponse, type AwardRecordItem } from "@/api/awards"
 import { useAuthStore } from "@/stores/auth"
 import { toYmd } from "@/common/utils/datetime"
@@ -21,6 +22,7 @@ const lastResult = ref<AwardPublishResponse | null>(null)
 const records = ref<AwardRecordItem[]>([])
 const errorDialogVisible = ref(false)
 const errorDialogMessage = ref("")
+const competitionNameMap = ref<Record<number, string>>({})
 
 const resetResult = () => {
   lastResult.value = null
@@ -70,6 +72,7 @@ const handleSubmit = async () => {
     const result = await publishAward({ competitionId, teamId, awardName })
     lastResult.value = result
     ElMessage.success("奖项已发布")
+    await loadRecords(true)
   } catch (error: any) {
     const status = error?.status ?? error?.response?.status
     const fallback = getFallbackMessage(status)
@@ -88,6 +91,31 @@ const parseOptionalId = (value: string) => {
   return parsed
 }
 
+const loadCompetitionNames = async (list: AwardRecordItem[]) => {
+  const ids = Array.from(new Set(
+    list
+      .map(item => item.competitionId)
+      .filter((id): id is number => typeof id === "number" && id > 0)
+  ))
+  if (!ids.length) {
+    competitionNameMap.value = {}
+    return
+  }
+  try {
+    const pairs = await Promise.all(ids.map(async (id) => {
+      const detail = await getCompetitionDetail(id)
+      return [id, detail?.name ?? "-"] as const
+    }))
+    const next: Record<number, string> = {}
+    for (const [id, name] of pairs) {
+      next[id] = name
+    }
+    competitionNameMap.value = next
+  } catch (error) {
+    competitionNameMap.value = {}
+  }
+}
+
 const loadRecords = async (useFilters = false) => {
   loadingRecords.value = true
   try {
@@ -98,6 +126,7 @@ const loadRecords = async (useFilters = false) => {
         }
       : {}
     records.value = await listAwardRecords(params)
+    await loadCompetitionNames(records.value)
   } catch (error: any) {
     const status = error?.status ?? error?.response?.status
     const fallback = getFallbackMessage(status)
@@ -114,85 +143,84 @@ onMounted(() => {
 </script>
 
 <template>
-  <el-card shadow="never">
-    <div class="page-header">
+  <div class="page-container">
+    <div class="page-header admin-header">
       <h2>发布奖项</h2>
     </div>
 
-    <el-alert
-      v-if="!isAdmin"
-      type="warning"
-      show-icon
-      title="仅管理员可发布奖项。"
-      class="status-alert"
-    />
+    <el-card shadow="never" class="publish-card">
+      <el-alert
+        v-if="!isAdmin"
+        type="warning"
+        show-icon
+        title="仅管理员可发布奖项"
+        class="status-alert"
+      />
 
-    <el-alert
-      type="info"
-      show-icon
-      class="status-alert"
-      title="需要手动输入，请通过竞赛列表和队伍查询获取 ID。"
-    />
+      <el-alert
+        type="info"
+        show-icon
+        class="status-alert"
+        title="需要手动输入，请通过竞赛列表和队伍查询获取ID"
+      />
 
-    <el-form label-position="top" class="publish-form">
-      <el-form-item label="竞赛 ID">
-        <el-input
-          v-model="form.competitionId"
-          placeholder="请输入竞赛 ID（已结束）"
-          :disabled="submitting"
-        />
-      </el-form-item>
-      <el-form-item label="队伍 ID">
-        <el-input
-          v-model="form.teamId"
-          placeholder="请输入队伍 ID（已关闭）"
-          :disabled="submitting"
-        />
-      </el-form-item>
-      <el-form-item label="奖项名称">
-        <el-input
-          v-model="form.awardName"
-          maxlength="64"
-          show-word-limit
-          placeholder="例如：一等奖"
-          :disabled="submitting"
-        />
-      </el-form-item>
-      <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleSubmit">
-        发布
-      </el-button>
-    </el-form>
+      <el-form label-position="top" class="publish-form">
+        <el-form-item label="竞赛 ID">
+          <el-input
+            v-model="form.competitionId"
+            placeholder="请输入竞赛ID（已结束）"
+            :disabled="submitting"
+          />
+        </el-form-item>
+        <el-form-item label="队伍 ID">
+          <el-input
+            v-model="form.teamId"
+            placeholder="请输入队伍ID（已关闭）"
+            :disabled="submitting"
+          />
+        </el-form-item>
+        <el-form-item label="奖项名称">
+          <el-input
+            v-model="form.awardName"
+            maxlength="64"
+            show-word-limit
+            placeholder="例如：一等奖"
+            :disabled="submitting"
+          />
+        </el-form-item>
+        <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleSubmit">
+          发布
+        </el-button>
+      </el-form>
 
-    <el-card v-if="lastResult" shadow="never" class="result-card">
-      <h3>发布结果</h3>
-      <el-descriptions :column="1">
-        <el-descriptions-item label="奖项 ID">{{ lastResult.awardId ?? "-" }}</el-descriptions-item>
-        <el-descriptions-item label="竞赛 ID">{{ lastResult.competitionId ?? "-" }}</el-descriptions-item>
-        <el-descriptions-item label="队伍 ID">{{ lastResult.teamId ?? "-" }}</el-descriptions-item>
-        <el-descriptions-item label="奖项名称">{{ lastResult.awardName ?? "-" }}</el-descriptions-item>
-        <el-descriptions-item label="获奖人数">{{ lastResult.recipientCount ?? "-" }}</el-descriptions-item>
-        <el-descriptions-item label="获奖用户 ID">
-          {{ lastResult.recipientUserIds?.length ? lastResult.recipientUserIds.join(", ") : "-" }}
-        </el-descriptions-item>
-      </el-descriptions>
-      <div class="result-hint">
-        可使用获奖成员账号验证荣誉页。
-      </div>
+      <el-card v-if="lastResult" shadow="never" class="result-card">
+        <h3>发布结果</h3>
+        <el-descriptions :column="1">
+          <el-descriptions-item label="奖项 ID">{{ lastResult.awardId ?? "-" }}</el-descriptions-item>
+          <el-descriptions-item label="竞赛 ID">{{ lastResult.competitionId ?? "-" }}</el-descriptions-item>
+          <el-descriptions-item label="队伍 ID">{{ lastResult.teamId ?? "-" }}</el-descriptions-item>
+          <el-descriptions-item label="奖项名称">{{ lastResult.awardName ?? "-" }}</el-descriptions-item>
+          <el-descriptions-item label="获奖人数">{{ lastResult.recipientCount ?? "-" }}</el-descriptions-item>
+          <el-descriptions-item label="获奖用户 ID">
+            {{ lastResult.recipientUserIds?.length ? lastResult.recipientUserIds.join(", ") : "-" }}
+          </el-descriptions-item>
+        </el-descriptions>
+        <div class="result-hint">可使用获奖成员账号验证荣誉页。</div>
+      </el-card>
     </el-card>
 
+    <div class="page-header admin-header">
+      <h2>奖项记录</h2>
+    </div>
+
     <el-card shadow="never" class="records-card">
-      <div class="records-header">
-        <h3>奖项记录</h3>
-        <div class="records-actions">
-          <el-button size="small" :loading="loadingRecords" @click="loadRecords(false)">刷新</el-button>
-          <el-button size="small" :loading="loadingRecords" @click="loadRecords(true)">
-            带条件刷新
-          </el-button>
-        </div>
-      </div>
       <el-table v-if="records.length" :data="records" v-loading="loadingRecords" style="width: 100%">
         <el-table-column prop="awardId" label="奖项 ID" width="120" />
-        <el-table-column prop="competitionId" label="竞赛 ID" width="140" />
+        <el-table-column label="竞赛" min-width="180" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ typeof row.competitionId === "number" ? competitionNameMap[row.competitionId] ?? "-" : "-" }}
+          </template>
+        </el-table-column>
         <el-table-column prop="teamId" label="队伍 ID" width="120" />
         <el-table-column prop="awardName" label="奖项名称" min-width="160" />
         <el-table-column prop="recipientCount" label="获奖人数" width="120" />
@@ -204,14 +232,14 @@ onMounted(() => {
       </el-table>
       <el-empty v-else-if="!loadingRecords" description="暂无奖项记录" />
     </el-card>
-  </el-card>
 
-  <el-dialog v-model="errorDialogVisible" title="发布失败" width="420px">
-    <div>{{ errorDialogMessage }}</div>
-    <template #footer>
-      <el-button type="primary" @click="errorDialogVisible = false">确定</el-button>
-    </template>
-  </el-dialog>
+    <el-dialog v-model="errorDialogVisible" title="发布失败" width="420px">
+      <div>{{ errorDialogMessage }}</div>
+      <template #footer>
+        <el-button type="primary" @click="errorDialogVisible = false">确定</el-button>
+      </template>
+    </el-dialog>
+  </div>
 </template>
 
 <style scoped>
@@ -227,24 +255,23 @@ onMounted(() => {
   max-width: 520px;
 }
 
+.publish-card,
+.records-card {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.admin-header {
+  max-width: 980px;
+  margin: 0 auto 12px;
+}
+
 .result-card {
   margin-top: 16px;
 }
 
 .records-card {
-  margin-top: 16px;
-}
-
-.records-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.records-actions {
-  display: inline-flex;
-  gap: 8px;
+  margin-top: 0;
 }
 
 .result-hint {

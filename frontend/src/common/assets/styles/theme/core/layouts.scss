@@ -55,11 +55,15 @@
 
 /* 通用 Card */
 .cp-card {
-  background: var(--cp-surface);
-  border: 1px solid var(--cp-border);
-  border-radius: var(--cp-radius-lg);
-  box-shadow: var(--cp-shadow-sm);
-  padding: var(--cp-space-6);
+  background: var(--cp-card-bg);
+  border: var(--cp-card-border-width) solid var(--cp-card-border-color);
+  border-radius: var(--cp-radius-card);
+  box-shadow: var(--cp-card-shadow);
+  padding: var(--cp-card-padding);
+}
+
+.el-card.cp-card {
+  border-radius: var(--cp-radius-card) !important;
 }
 
 /* 概览 / 卡片网格 */

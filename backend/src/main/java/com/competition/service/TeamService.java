@@ -28,7 +28,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -328,26 +331,55 @@ public class TeamService {
     public List<TeamDTO> listMyTeams(Long currentUserId, String keyword) {
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
-        if (currentUser.getRole() != User.Role.TEACHER) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "only TEACHER can view teams");
+        if (currentUser.getRole() == User.Role.TEACHER) {
+            List<Team> teams;
+            String trimmed = keyword != null ? keyword.trim() : "";
+            if (trimmed.isEmpty()) {
+                teams = teamRepository.findByLeaderId(currentUserId);
+            } else if (trimmed.matches("\\d+")) {
+                Long teamId = Long.valueOf(trimmed);
+                teams = teamRepository.findByIdAndLeaderId(teamId, currentUserId)
+                        .map(List::of)
+                        .orElseGet(List::of);
+            } else {
+                teams = teamRepository.findByLeaderIdAndNameContainingIgnoreCase(currentUserId, trimmed);
+            }
+
+            return teams.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
         }
 
-        List<Team> teams;
-        String trimmed = keyword != null ? keyword.trim() : "";
-        if (trimmed.isEmpty()) {
-            teams = teamRepository.findByLeaderId(currentUserId);
-        } else if (trimmed.matches("\\d+")) {
-            Long teamId = Long.valueOf(trimmed);
-            teams = teamRepository.findByIdAndLeaderId(teamId, currentUserId)
-                    .map(List::of)
-                    .orElseGet(List::of);
-        } else {
-            teams = teamRepository.findByLeaderIdAndNameContainingIgnoreCase(currentUserId, trimmed);
+        if (currentUser.getRole() == User.Role.STUDENT) {
+            List<TeamMember> memberships = teamMemberRepository.findByUserIdAndLeftAtIsNull(currentUserId);
+            Map<Long, Team> teamMap = memberships.stream()
+                    .map(TeamMember::getTeam)
+                    .filter(Objects::nonNull)
+                    .filter(team -> team.getStatus() != Team.TeamStatus.DISBANDED)
+                    .collect(Collectors.toMap(Team::getId, team -> team, (left, right) -> left));
+            List<Team> teams = new ArrayList<>(teamMap.values());
+
+            String trimmed = keyword != null ? keyword.trim() : "";
+            if (!trimmed.isEmpty()) {
+                if (trimmed.matches("\\d+")) {
+                    Long teamId = Long.valueOf(trimmed);
+                    teams = teams.stream()
+                            .filter(team -> Objects.equals(team.getId(), teamId))
+                            .collect(Collectors.toList());
+                } else {
+                    String lowered = trimmed.toLowerCase();
+                    teams = teams.stream()
+                            .filter(team -> team.getName() != null && team.getName().toLowerCase().contains(lowered))
+                            .collect(Collectors.toList());
+                }
+            }
+
+            return teams.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
         }
 
-        return teams.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        throw new ApiException(HttpStatus.FORBIDDEN, "only STUDENT or TEACHER can view teams");
     }
 
     @Transactional(readOnly = true)

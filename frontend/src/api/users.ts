@@ -1,15 +1,17 @@
-﻿import { client } from "@/api/client"
+import { client } from "@/api/client"
 
 export type UserProfile = {
   id?: number
   accountNo?: string
+  role?: string
   username?: string
   realName?: string
   email?: string
+  phone?: string
+  avatarUrl?: string
   school?: string
   major?: string
   grade?: string
-  role?: string
   [key: string]: unknown
 }
 
@@ -25,11 +27,11 @@ const toError = (error: any, fallback: string) => {
   return err
 }
 
-export async function getMyProfile(): Promise<UserProfile> {
+export async function getUserById(userId: number): Promise<UserProfile> {
   try {
-    const response = await client.get("/users/me")
+    const response = await client.get(`/users/${userId}`)
     return unwrapData<UserProfile>(response?.data)
   } catch (error: any) {
-    throw toError(error, "Failed to load profile")
+    throw toError(error, "Failed to load user")
   }
 }

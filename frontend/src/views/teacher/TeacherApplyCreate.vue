@@ -68,39 +68,43 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div class="page-container">
+
     <div class="page-header">
-      <h2>申请成为教师</h2>
-    </div>
+        <h2>申请成为教师</h2>
+      </div>
 
-    <el-alert
-      v-if="errorMessage"
-      type="error"
-      :closable="false"
-      :title="errorMessage"
-      style="margin-bottom: 12px"
-    />
+  <el-card shadow="never" v-loading="loading">
+    
 
-    <el-form label-width="120px">
-      <el-form-item label="队伍名称">
-        <el-input v-model="form.teamName" placeholder="可选队伍名称" />
-      </el-form-item>
-      <el-form-item label="说明">
-        <el-input
-          v-model="form.description"
-          type="textarea"
-          :rows="4"
-          placeholder="可选说明"
-        />
-      </el-form-item>
-    </el-form>
+      <el-alert
+        v-if="errorMessage"
+        type="error"
+        :closable="false"
+        :title="errorMessage"
+        style="margin-bottom: 12px"
+      />
 
-    <div class="page-actions">
-      <el-button :loading="loading" type="primary" @click="handleSubmit">提交</el-button>
-      <el-button :disabled="loading" @click="handleCancel">取消</el-button>
-    </div>
-  </el-card>
-</template>
+      <el-form label-width="120px">
+        <el-form-item label="队伍名称">
+          <el-input v-model="form.teamName" placeholder="可选队伍名称" />
+        </el-form-item>
+        <el-form-item label="说明">
+          <el-input
+            v-model="form.description"
+            type="textarea"
+            :rows="4"
+            placeholder="可选说明"
+          />
+        </el-form-item>
+      </el-form>
+
+      <div class="page-actions">
+        <el-button :loading="loading" type="primary" @click="handleSubmit">提交</el-button>
+        <el-button :disabled="loading" @click="handleCancel">取消</el-button>
+      </div>
+    </el-card>
+  </div></template>
 
 <style scoped>
 .page-header {

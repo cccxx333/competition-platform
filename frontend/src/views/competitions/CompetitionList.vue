@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { createCompetition, listCompetitions, type CompetitionCreatePayload, type CompetitionListItem, type CompetitionListParams } from "@/api/competitions"
-import StatusPill from "@@/components/StatusPill/index.vue"
+import StatusTag from "@@/components/StatusTag/index.vue"
 import { useAuthStore } from "@/stores/auth"
 
 const route = useRoute()
@@ -465,170 +465,175 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div class="page-container">
+
     <div class="page-header">
-      <h2>竞赛列表</h2>
-      <el-button v-if="isAdmin" type="primary" size="small" @click="openCreateDialog">发布竞赛</el-button>
-    </div>
+        <h2>竞赛列表</h2>
+        <el-button v-if="isAdmin" type="primary" size="default" @click="openCreateDialog">发布竞赛</el-button>
+      </div>
 
-    <el-form class="filter-bar" label-position="top" label-width="120px">
-      <el-row :gutter="12">
-        <el-col :span="isTeacher ? 24 : 16">
-          <div class="competition-filter-group">
-            <el-form-item label="关键词">
-              <el-input
-                v-model="filters.keyword"
-                class="competition-search-input"
-                clearable
-                placeholder="关键词"
-                :disabled="sourceMode === 'algorithm'"
-              />
-            </el-form-item>
-            <el-form-item label="状态">
-              <el-select
-                v-model="filters.status"
-                class="competition-status-select"
-                clearable
-                placeholder="状态"
-                :disabled="sourceMode === 'algorithm'"
-              >
-                <el-option
-                  v-for="item in statusOptions"
-                  :key="`status-${item.value}`"
-                  :label="item.label"
-                  :value="item.value"
+  <el-card shadow="never" v-loading="loading" class="competition-list-page">
+    
+
+      <el-form class="filter-bar" label-position="top" label-width="120px">
+        <el-row :gutter="12">
+          <el-col :span="isTeacher ? 24 : 16">
+            <div class="competition-filter-group">
+              <el-form-item label="关键词">
+                <el-input
+                  v-model="filters.keyword"
+                  class="competition-search-input"
+                  clearable
+                  placeholder="关键词"
+                  :disabled="sourceMode === 'algorithm'"
                 />
-              </el-select>
-            </el-form-item>
-            <el-form-item label=" " label-width="80px">
-              <el-button type="primary" @click="resetFilters">重置</el-button>
-            </el-form-item>
-          </div>
-        </el-col>
-        <el-col v-if="!isTeacher && !isAdmin" :span="8" class="filter-right">
-          <div class="filter-right__inner">
-            <el-form-item v-if="sourceMode === 'algorithm'" label="推荐数量">
-              <el-input-number v-model="topK" :min="1" :max="50" :disabled="sourceMode !== 'algorithm'" />
-            </el-form-item>
-            <el-form-item label="来源">
-              <el-radio-group v-model="sourceMode">
-                <el-radio-button label="list">列表</el-radio-button>
-                <el-radio-button label="algorithm">算法</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </div>
-        </el-col>
-      </el-row>
-    </el-form>
+              </el-form-item>
+              <el-form-item label="状态">
+                <el-select
+                  v-model="filters.status"
+                  class="competition-status-select"
+                  clearable
+                  placeholder="状态"
+                  :disabled="sourceMode === 'algorithm'"
+                >
+                  <el-option
+                    v-for="item in statusOptions"
+                    :key="`status-${item.value}`"
+                    :label="item.label"
+                    :value="item.value"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item label=" " label-width="80px">
+                <el-button @click="resetFilters">重置</el-button>
+              </el-form-item>
+            </div>
+          </el-col>
+          <el-col v-if="!isTeacher && !isAdmin" :span="8" class="filter-right">
+            <div class="filter-right__inner">
+              <el-form-item v-if="sourceMode === 'algorithm'" label="推荐数量">
+                <el-input-number v-model="topK" :min="1" :max="50" :disabled="sourceMode !== 'algorithm'" />
+              </el-form-item>
+              <el-form-item label="来源">
+                <el-radio-group v-model="sourceMode">
+                  <el-radio-button label="list">列表</el-radio-button>
+                  <el-radio-button label="algorithm">算法</el-radio-button>
+                </el-radio-group>
+              </el-form-item>
+            </div>
+          </el-col>
+        </el-row>
+      </el-form>
 
-    <el-alert
-      v-if="sourceMode === 'algorithm'"
-      type="info"
-      :closable="false"
-      title="算法模式仅使用推荐数量，关键词和状态不可用。"
-      style="margin-bottom: 12px"
-    />
-
-    <el-alert
-      v-if="errorMessage"
-      type="error"
-      :closable="false"
-      :title="errorMessage"
-      style="margin-bottom: 12px"
-    />
-
-    <el-table
-      :data="rows"
-      style="width: 100%"
-      @row-click="goDetail"
-      v-loading="loading"
-      highlight-current-row
-    >
-      <el-table-column prop="name" label="名称" min-width="180" />
-      <el-table-column label="状态" width="140">
-        <template #default="{ row }">
-          <StatusPill :value="row.status" kind="competition" />
-        </template>
-      </el-table-column>
-      <el-table-column label="日期范围" min-width="200">
-        <template #default="{ row }">
-          {{ formatDateRange(row) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="organizer" label="主办方" min-width="180" />
-      <el-table-column label="推荐信息" min-width="220">
-        <template #default="{ row }">
-          <div v-if="row.score !== undefined || row.reason">
-            <div v-if="row.score !== undefined">匹配分：{{ row.score.toFixed(3) }}</div>
-            <div v-if="row.reason">原因：{{ row.reason }}</div>
-          </div>
-          <span v-else>-</span>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <div v-if="!loading && !errorMessage && rows.length === 0" class="empty-state">
-      <span v-if="sourceMode === 'algorithm'">暂无推荐，请完善技能。</span>
-      <span v-else>暂无竞赛</span>
-    </div>
-
-    <div v-if="total !== null && sourceMode === 'list'" class="pagination">
-      <el-pagination
-        :current-page="pagination.page + 1"
-        :page-size="pagination.size"
-        :total="total"
-        layout="total, prev, pager, next, sizes"
-        @current-change="handlePageChange"
-        @size-change="handleSizeChange"
+      <el-alert
+        v-if="sourceMode === 'algorithm'"
+        type="info"
+        :closable="false"
+        title="算法模式仅使用推荐数量，关键词和状态不可用。"
+        style="margin-bottom: 12px"
       />
-    </div>
-  </el-card>
 
-  <el-dialog
-    v-model="createDialogVisible"
-    title="发布竞赛"
-    width="560px"
-    append-to-body
-    top="12vh"
-    :close-on-click-modal="false"
-    :before-close="closeCreateDialog"
-  >
-    <el-form label-position="top">
-      <el-form-item label="竞赛名称">
-        <el-input v-model="createForm.name" placeholder="请输入竞赛名称" />
-      </el-form-item>
-      <el-form-item label="主办方">
-        <el-input v-model="createForm.organizer" placeholder="请输入主办方（可选）" />
-      </el-form-item>
-      <el-form-item label="级别">
-        <el-input v-model="createForm.level" placeholder="请输入级别（可选）" />
-      </el-form-item>
-      <el-form-item label="开始日期">
-        <el-date-picker v-model="createForm.startDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择开始日期" />
-      </el-form-item>
-      <el-form-item label="结束日期">
-        <el-date-picker v-model="createForm.endDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择结束日期" />
-      </el-form-item>
-      <el-form-item label="报名截止">
-        <el-date-picker v-model="createForm.registrationDeadline" type="date" value-format="YYYY-MM-DD" placeholder="请选择报名截止日期" />
-      </el-form-item>
-      <el-form-item label="最小队伍人数">
-        <el-input-number v-model="createForm.minTeamSize" :min="1" :controls="true" />
-      </el-form-item>
-      <el-form-item label="最大队伍人数">
-        <el-input-number v-model="createForm.maxTeamSize" :min="1" :controls="true" />
-      </el-form-item>
-      <el-form-item label="竞赛说明">
-        <el-input v-model="createForm.description" type="textarea" :rows="3" placeholder="请输入竞赛说明（可选）" />
-      </el-form-item>
-    </el-form>
-    <el-alert v-if="createDialogError" type="error" :closable="false" :title="createDialogError" />
-    <template #footer>
-      <el-button :disabled="createDialogLoading" @click="closeCreateDialog">取消</el-button>
-      <el-button type="primary" :loading="createDialogLoading" @click="submitCreate">发布</el-button>
-    </template>
-  </el-dialog>
-</template>
+      <el-alert
+        v-if="errorMessage"
+        type="error"
+        :closable="false"
+        :title="errorMessage"
+        style="margin-bottom: 12px"
+      />
+
+      <el-table
+        :data="rows"
+        style="width: 100%"
+        @row-click="goDetail"
+        v-loading="loading"
+        highlight-current-row
+      >
+        <el-table-column prop="name" label="名称" min-width="180" />
+        <el-table-column prop="id" label="竞赛 ID" width="120" />
+        <el-table-column label="状态" width="140">
+          <template #default="{ row }">
+            <StatusTag :status="row.status" kind="competition" />
+          </template>
+        </el-table-column>
+        <el-table-column label="日期范围" min-width="200">
+          <template #default="{ row }">
+            {{ formatDateRange(row) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="organizer" label="主办方" min-width="180" />
+        <el-table-column label="推荐信息" min-width="220">
+          <template #default="{ row }">
+            <div v-if="row.score !== undefined || row.reason">
+              <div v-if="row.score !== undefined">匹配分：{{ row.score.toFixed(3) }}</div>
+              <div v-if="row.reason">原因：{{ row.reason }}</div>
+            </div>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div v-if="!loading && !errorMessage && rows.length === 0" class="empty-state">
+        <span v-if="sourceMode === 'algorithm'">暂无推荐，请完善技能。</span>
+        <span v-else>暂无竞赛</span>
+      </div>
+
+      <div v-if="total !== null && sourceMode === 'list'" class="pagination">
+        <el-pagination
+          :current-page="pagination.page + 1"
+          :page-size="pagination.size"
+          :total="total"
+          layout="total, prev, pager, next, sizes"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
+        />
+      </div>
+    </el-card>
+
+    <el-dialog
+      v-model="createDialogVisible"
+      title="发布竞赛"
+      width="560px"
+      append-to-body
+      top="12vh"
+      :close-on-click-modal="false"
+      :before-close="closeCreateDialog"
+    >
+      <el-form label-position="top">
+        <el-form-item label="竞赛名称">
+          <el-input v-model="createForm.name" placeholder="请输入竞赛名称" />
+        </el-form-item>
+        <el-form-item label="主办方">
+          <el-input v-model="createForm.organizer" placeholder="请输入主办方（可选）" />
+        </el-form-item>
+        <el-form-item label="级别">
+          <el-input v-model="createForm.level" placeholder="请输入级别（可选）" />
+        </el-form-item>
+        <el-form-item label="开始日期">
+          <el-date-picker v-model="createForm.startDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择开始日期" />
+        </el-form-item>
+        <el-form-item label="结束日期">
+          <el-date-picker v-model="createForm.endDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择结束日期" />
+        </el-form-item>
+        <el-form-item label="报名截止">
+          <el-date-picker v-model="createForm.registrationDeadline" type="date" value-format="YYYY-MM-DD" placeholder="请选择报名截止日期" />
+        </el-form-item>
+        <el-form-item label="最小队伍人数">
+          <el-input-number v-model="createForm.minTeamSize" :min="1" :controls="true" />
+        </el-form-item>
+        <el-form-item label="最大队伍人数">
+          <el-input-number v-model="createForm.maxTeamSize" :min="1" :controls="true" />
+        </el-form-item>
+        <el-form-item label="竞赛说明">
+          <el-input v-model="createForm.description" type="textarea" :rows="3" placeholder="请输入竞赛说明（可选）" />
+        </el-form-item>
+      </el-form>
+      <el-alert v-if="createDialogError" type="error" :closable="false" :title="createDialogError" />
+      <template #footer>
+        <el-button :disabled="createDialogLoading" @click="closeCreateDialog">取消</el-button>
+        <el-button type="primary" :loading="createDialogLoading" @click="submitCreate">发布</el-button>
+      </template>
+    </el-dialog>
+  </div></template>
 
 <style scoped>
 .page-header {
@@ -670,6 +675,19 @@ onBeforeUnmount(() => {
   width: 180px;
   min-width: 180px;
   flex: 0 0 auto;
+}
+
+.competition-list-page :deep(.el-radio-button__inner) {
+  color: #606266;
+  background-color: #ffffff;
+  border-color: #dcdfe6;
+}
+
+.competition-list-page :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  color: #303133;
+  background-color: #f5f7fa;
+  border-color: #dcdfe6;
+  box-shadow: none;
 }
 
 .empty-state {

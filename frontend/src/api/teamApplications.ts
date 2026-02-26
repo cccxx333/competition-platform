@@ -5,8 +5,11 @@ export type ApplicationStatus = "PENDING" | "APPROVED" | "REJECTED" | "REMOVED"
 export type ApplicationItem = {
   id?: number
   competitionId?: number
+  competitionName?: string
   teamId?: number
   studentId?: number
+  studentName?: string
+  studentAccountNo?: string
   status?: ApplicationStatus
   reason?: string | null
   appliedAt?: string
@@ -68,7 +71,10 @@ export async function getMyTeam(): Promise<TeamDto | null> {
 export async function listPendingApplications(params: { status?: string; teamId?: number } = {}): Promise<ApplicationItem[]> {
   try {
     const response = await client.get("/teacher/applications", {
-      params: { status: params.status ?? "PENDING", teamId: params.teamId }
+      params: {
+        status: params.status ?? undefined,
+        teamId: params.teamId
+      }
     })
     return unwrapData<ApplicationItem[]>(response?.data) ?? []
   } catch (error: any) {

@@ -54,6 +54,7 @@ export type AdminTeacherApplicationListItem = {
   id?: number
   teacherId?: number
   teacherName?: string
+  teacherAccountNo?: string
   competitionId?: number
   competitionName?: string
   status?: TeacherApplicationStatus

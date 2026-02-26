@@ -13,6 +13,7 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Long> {
     List<TeamMember> findByTeamId(Long teamId);
     List<TeamMember> findByTeamIdAndLeftAtIsNull(Long teamId);
     List<TeamMember> findByUserId(Long userId);
+    List<TeamMember> findByUserIdAndLeftAtIsNull(Long userId);
     Optional<TeamMember> findByTeamIdAndUserId(Long teamId, Long userId);
     Optional<TeamMember> findByTeamIdAndUserIdAndLeftAtIsNull(Long teamId, Long userId);
     Optional<TeamMember> findFirstByUserIdAndLeftAtIsNullOrderByJoinedAtDesc(Long userId);

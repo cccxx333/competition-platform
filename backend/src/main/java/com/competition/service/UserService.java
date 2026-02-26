@@ -248,6 +248,19 @@ public class UserService {
     }
 
     /**
+     * Update user skill proficiency by skillId.
+     */
+    @Transactional
+    public UserSkillDTO updateUserSkillLevel(Long userId, Long skillId, Integer level) {
+        UserSkill userSkill = userSkillRepository.findByUserIdAndSkillId(userId, skillId)
+                .orElseThrow(() -> new RuntimeException("技能未绑定"));
+        userSkill.setProficiency(level);
+        userSkill = userSkillRepository.save(userSkill);
+        log.info("User {} skill {} proficiency updated", userId, skillId);
+        return convertToUserSkillDTO(userSkill);
+    }
+
+    /**
      * 批量添加用户技能
      */
     @Transactional

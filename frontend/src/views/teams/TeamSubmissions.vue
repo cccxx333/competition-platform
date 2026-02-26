@@ -190,99 +190,104 @@ onMounted(loadSubmissions)
 </script>
 
 <template>
-  <el-card shadow="never" v-loading="loading">
+  <div class="page-container">
+
     <div class="page-header">
-      <div>
-        <h2>文件提交</h2>
-        <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
+        <div>
+          <h2>文件提交</h2>
+          <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
+        </div>
+        <div class="page-actions">
+          <el-button @click="router.push(returnPath)">返回队伍详情</el-button>
+        </div>
       </div>
-      <div class="page-actions">
-        <el-button @click="router.push(returnPath)">返回队伍详情</el-button>
-      </div>
-    </div>
 
-    <el-alert
-      v-if="writeBlockReason"
-      type="warning"
-      show-icon
-      :title="writeBlockReason"
-      class="status-alert"
-    />
+  <el-card shadow="never" v-loading="loading">
+    
 
-    <div class="upload-panel">
-      <div class="upload-title">上传新文件</div>
-      <div class="upload-row">
-        <input type="file" @change="handleFileChange" :disabled="isTeamDisbanded" />
-        <span v-if="selectedFile" class="file-name">{{ selectedFile.name }}</span>
-      </div>
-      <el-input
-        v-model="remark"
-        type="textarea"
-        :rows="3"
-        maxlength="255"
-        show-word-limit
-        placeholder="备注（可选）"
-        :disabled="isTeamDisbanded"
+      <el-alert
+        v-if="writeBlockReason"
+        type="warning"
+        show-icon
+        :title="writeBlockReason"
+        class="status-alert"
       />
-      <div class="upload-actions">
-        <el-button type="primary" :loading="uploadLoading" :disabled="!selectedFile || isTeamDisbanded" @click="submitUpload">
-          提交
-        </el-button>
-        <el-button :disabled="!selectedFile || isTeamDisbanded" @click="clearFile">清空</el-button>
+
+      <div class="upload-panel">
+        <div class="upload-title">上传新文件</div>
+        <div class="upload-row">
+          <input type="file" @change="handleFileChange" :disabled="isTeamDisbanded" />
+          <span v-if="selectedFile" class="file-name">{{ selectedFile.name }}</span>
+        </div>
+        <el-input
+          v-model="remark"
+          type="textarea"
+          :rows="3"
+          maxlength="255"
+          show-word-limit
+          placeholder="备注（可选）"
+          :disabled="isTeamDisbanded"
+        />
+        <div class="upload-actions">
+          <el-button type="primary" :loading="uploadLoading" :disabled="!selectedFile || isTeamDisbanded" @click="submitUpload">
+            提交
+          </el-button>
+          <el-button :disabled="!selectedFile || isTeamDisbanded" @click="clearFile">清空</el-button>
+        </div>
       </div>
-    </div>
 
-    <el-divider />
+      <el-divider />
 
-    <div class="history-title">历史记录</div>
-    <el-table v-if="submissions.length" :data="submissions" style="width: 100%">
-      <el-table-column label="当前版本" width="110">
-        <template #default="{ row }">
-          <el-tag v-if="row.id && row.id === currentSubmissionId" type="success">
-            {{ hasCurrentMarker ? "当前" : "最新" }}
-          </el-tag>
-          <span v-else>-</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="文件名">
-        <template #default="{ row }">
-          {{ row.fileName || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column label="备注" width="200">
-        <template #default="{ row }">
-          {{ row.remark || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column label="提交人" width="120">
-        <template #default="{ row }">
-          {{ row.submitterUsername || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column label="提交时间" width="180">
-        <template #default="{ row }">
-          {{ formatDateTime(row.submittedAt) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="180">
-        <template #default="{ row }">
-          <el-button size="small" @click="downloadFile(row)">下载</el-button>
-          <el-button size="small" title="需登录态访问" @click="copyLink(row)">复制链接</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      <div class="history-title">历史记录</div>
+      <el-table v-if="submissions.length" :data="submissions" style="width: 100%">
+        <el-table-column label="当前版本" width="110">
+          <template #default="{ row }">
+            <el-tag v-if="row.id && row.id === currentSubmissionId" type="success">
+              {{ hasCurrentMarker ? "当前" : "最新" }}
+            </el-tag>
+            <span v-else>-</span>
+          </template>
+        
+        </el-table-column>
+        <el-table-column label="文件名">
+          <template #default="{ row }">
+            {{ row.fileName || "-" }}
+          </template>
+        </el-table-column>
+        <el-table-column label="备注" width="200">
+          <template #default="{ row }">
+            {{ row.remark || "-" }}
+          </template>
+        </el-table-column>
+        <el-table-column label="提交人" width="120">
+          <template #default="{ row }">
+            {{ row.submitterUsername || "-" }}
+          </template>
+        </el-table-column>
+        <el-table-column label="提交时间" width="180">
+          <template #default="{ row }">
+            {{ formatDateTime(row.submittedAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="180">
+          <template #default="{ row }">
+            <el-button size="small" @click="downloadFile(row)">下载</el-button>
+            <el-button size="small" title="需登录态访问" @click="copyLink(row)">复制链接</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
-    <el-empty v-else-if="!loading" description="暂无提交记录" />
-  </el-card>
+      <el-empty v-else-if="!loading" description="暂无提交记录" />
+    </el-card>
 
-  <el-dialog v-model="errorDialogVisible" title="提示" width="420px">
-    <div>{{ errorDialogMessage }}</div>
-    <template #footer>
-      <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回</el-button>
-      <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
-    </template>
-  </el-dialog>
-</template>
+    <el-dialog v-model="errorDialogVisible" title="提示" width="420px">
+      <div>{{ errorDialogMessage }}</div>
+      <template #footer>
+        <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回</el-button>
+        <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
+      </template>
+    </el-dialog>
+  </div></template>
 
 <style scoped>
 .page-header {
