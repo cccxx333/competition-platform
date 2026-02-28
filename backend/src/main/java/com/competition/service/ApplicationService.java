@@ -36,6 +36,7 @@ public class ApplicationService {
     private final CompetitionRepository competitionRepository;
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final UserBehaviorService userBehaviorService;
 
     public ApplicationResponse createApplication(Long currentUserId, ApplicationCreateRequest req) {
         if (req == null || req.getCompetitionId() == null || req.getTeamId() == null) {
@@ -102,6 +103,7 @@ public class ApplicationService {
         } catch (DataIntegrityViolationException ex) {
             throw new ApiException(HttpStatus.CONFLICT, "active application exists");
         }
+        userBehaviorService.recordCompetitionApply(student.getId(), competition.getId());
         return toResponse(saved);
     }
 

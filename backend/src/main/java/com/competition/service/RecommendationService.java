@@ -1,14 +1,17 @@
 package com.competition.service;
 
+import com.competition.algorithm.CollaborativeFilteringAlgorithm;
 import com.competition.algorithm.ContentBasedAlgorithm;
 import com.competition.dto.TeamRecommendReason;
 import com.competition.entity.Competition;
 import com.competition.entity.CompetitionSkill;
 import com.competition.entity.Team;
 import com.competition.entity.TeamSkill;
+import com.competition.entity.UserBehavior;
 import com.competition.entity.UserSkill;
 import com.competition.repository.CompetitionSkillRepository;
 import com.competition.repository.TeamSkillRepository;
+import com.competition.repository.UserBehaviorRepository;
 import com.competition.repository.UserRepository;
 import com.competition.repository.UserSkillRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,12 +33,17 @@ import java.util.stream.Collectors;
 public class RecommendationService {
 
     private final ContentBasedAlgorithm contentBasedAlgorithm;
+    private final CollaborativeFilteringAlgorithm collaborativeFilteringAlgorithm;
     private final CompetitionSkillRepository competitionSkillRepository;
     private final TeamSkillRepository teamSkillRepository;
 
     private final UserRepository userRepository; // 添加
 
     private final UserSkillRepository userSkillRepository;
+    private final UserBehaviorRepository userBehaviorRepository;
+
+    private static final double HYBRID_ALPHA = 0.8;
+    private static final int MIN_BEHAVIORS_FOR_CF = 3;
 
 
     // 混合推荐算法权重
@@ -63,11 +72,52 @@ public class RecommendationService {
         return getRecommendFallbackReason(userId) == null;
     }
 
-    public Map<Long, Double> calculateCompetitionMatchScores(Long userId, List<Competition> competitions) {
+    public HybridScoreResult calculateCompetitionHybridScores(Long userId, List<Competition> competitions, int topK) {
         if (!canRecommendForUser(userId) || competitions == null || competitions.isEmpty()) {
-            return Collections.emptyMap();
+            return HybridScoreResult.empty(HYBRID_ALPHA);
         }
-        return contentBasedAlgorithm.calculateCompetitionSimilarity(userId, competitions);
+
+        Map<Long, Double> contentScores = contentBasedAlgorithm.calculateCompetitionSimilarity(userId, competitions);
+        if (contentScores.isEmpty()) {
+            return HybridScoreResult.empty(HYBRID_ALPHA);
+        }
+
+        int behaviorCount = userBehaviorRepository
+                .findByUserIdAndTargetType(userId, UserBehavior.TargetType.COMPETITION)
+                .size();
+        if (behaviorCount < MIN_BEHAVIORS_FOR_CF) {
+            return HybridScoreResult.fallback(contentScores, HYBRID_ALPHA, contentScores.size());
+        }
+
+        Map<Long, Double> cfScores = collaborativeFilteringAlgorithm.scoreCompetitionsForUser(userId, topK);
+        if (cfScores.isEmpty()) {
+            return HybridScoreResult.fallback(contentScores, HYBRID_ALPHA, contentScores.size());
+        }
+
+        Set<Long> candidateIds = competitions.stream()
+                .map(Competition::getId)
+                .collect(Collectors.toSet());
+        int cfCandidateCount = 0;
+        for (Long key : cfScores.keySet()) {
+            if (candidateIds.contains(key)) {
+                cfCandidateCount++;
+            }
+        }
+
+        Map<Long, Double> finalScores = new HashMap<>();
+        for (Competition competition : competitions) {
+            Long competitionId = competition.getId();
+            double contentScore = contentScores.getOrDefault(competitionId, 0.0);
+            double cfScore = cfScores.getOrDefault(competitionId, 0.0);
+            double finalScore = HYBRID_ALPHA * contentScore + (1.0 - HYBRID_ALPHA) * cfScore;
+            finalScores.put(competitionId, finalScore);
+        }
+
+        return HybridScoreResult.hybrid(finalScores, HYBRID_ALPHA, contentScores.size(), cfCandidateCount);
+    }
+
+    public Map<Long, Double> calculateCompetitionMatchScores(Long userId, List<Competition> competitions) {
+        return calculateCompetitionHybridScores(userId, competitions, 0).getScores();
     }
 
     public Map<Long, Double> calculateTeamMatchScores(Long userId, List<Team> teams) {
@@ -306,6 +356,61 @@ public class RecommendationService {
 
         private String format() {
             return String.format("%s(%dx%d)", name, level, weight);
+        }
+    }
+
+    public static final class HybridScoreResult {
+        private final Map<Long, Double> scores;
+        private final boolean fallback;
+        private final int contentCandidateCount;
+        private final int cfCandidateCount;
+        private final double alpha;
+
+        private HybridScoreResult(Map<Long, Double> scores,
+                                  boolean fallback,
+                                  int contentCandidateCount,
+                                  int cfCandidateCount,
+                                  double alpha) {
+            this.scores = scores;
+            this.fallback = fallback;
+            this.contentCandidateCount = contentCandidateCount;
+            this.cfCandidateCount = cfCandidateCount;
+            this.alpha = alpha;
+        }
+
+        public Map<Long, Double> getScores() {
+            return scores;
+        }
+
+        public boolean isFallback() {
+            return fallback;
+        }
+
+        public int getContentCandidateCount() {
+            return contentCandidateCount;
+        }
+
+        public int getCfCandidateCount() {
+            return cfCandidateCount;
+        }
+
+        public double getAlpha() {
+            return alpha;
+        }
+
+        private static HybridScoreResult empty(double alpha) {
+            return new HybridScoreResult(Collections.emptyMap(), true, 0, 0, alpha);
+        }
+
+        private static HybridScoreResult fallback(Map<Long, Double> scores, double alpha, int contentCount) {
+            return new HybridScoreResult(scores, true, contentCount, 0, alpha);
+        }
+
+        private static HybridScoreResult hybrid(Map<Long, Double> scores,
+                                                double alpha,
+                                                int contentCount,
+                                                int cfCount) {
+            return new HybridScoreResult(scores, false, contentCount, cfCount, alpha);
         }
     }
 }

@@ -13,6 +13,7 @@ import com.competition.repository.CompetitionRepository;
 import com.competition.repository.CompetitionSkillRepository;
 import com.competition.repository.TeamRepository;
 import com.competition.repository.UserRepository;
+import com.competition.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -22,6 +23,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -30,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.servlet.http.HttpServletRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +46,8 @@ public class CompetitionService {
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final RecommendationService recommendationService;
+    private final UserBehaviorService userBehaviorService;
+    private final JwtUtils jwtUtils;
     private static final int DEFAULT_TOP_K = 10;
     private static final int MAX_TOP_K = 50;
 
@@ -120,7 +126,16 @@ public class CompetitionService {
             return new PageImpl<>(new ArrayList<>(), pageable, 0);
         }
 
-        Map<Long, Double> matchScores = recommendationService.calculateCompetitionMatchScores(userId, candidates);
+        RecommendationService.HybridScoreResult hybridResult =
+                recommendationService.calculateCompetitionHybridScores(userId, candidates, effectiveTopK);
+        Map<Long, Double> matchScores = hybridResult.getScores();
+        log.info("competitions hybrid userId={}, topK={}, alpha={}, fallback={}, contentCandidates={}, cfCandidates={}",
+                userId,
+                effectiveTopK,
+                hybridResult.getAlpha(),
+                hybridResult.isFallback(),
+                hybridResult.getContentCandidateCount(),
+                hybridResult.getCfCandidateCount());
         if (matchScores.isEmpty()) {
             return getCompetitionsDefault(pageable, name, status, keyword, applyable);
         }
@@ -234,7 +249,40 @@ public class CompetitionService {
     public CompetitionResponse getCompetitionById(Long id) {
         Competition competition = competitionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("竞赛不存在"));
+        recordCompetitionViewSafely(competition.getId());
         return convertToResponse(competition);
+    }
+
+    private void recordCompetitionViewSafely(Long competitionId) {
+        Long userId = resolveCurrentUserId();
+        if (userId == null) {
+            return;
+        }
+        try {
+            userBehaviorService.recordCompetitionView(userId, competitionId);
+        } catch (Exception ex) {
+            log.warn("record competition view failed, userId={}, competitionId={}", userId, competitionId);
+        }
+    }
+
+    private Long resolveCurrentUserId() {
+        try {
+            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attrs == null) {
+                return null;
+            }
+            HttpServletRequest request = attrs.getRequest();
+            if (request == null) {
+                return null;
+            }
+            String token = request.getHeader("Authorization");
+            if (token == null || !token.startsWith("Bearer ")) {
+                return null;
+            }
+            return jwtUtils.getUserIdFromToken(token.substring(7));
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     /**
