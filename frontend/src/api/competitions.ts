@@ -19,6 +19,8 @@ export type CompetitionListItem = {
   matchScore?: number
   recommend?: boolean
   recommendReason?: string
+  fallbackApplied?: boolean
+  fallbackReason?: string
   [key: string]: unknown
 }
 

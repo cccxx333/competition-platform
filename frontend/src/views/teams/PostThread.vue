@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { deleteTeamPost, listTeamPosts, replyTeamPost, type TeamDiscussionPost } from "@/api/discussions"
 import { useAuthStore } from "@/stores/auth"
@@ -57,6 +57,28 @@ const formatDateTime = (value?: string | null) => {
     return `${date} ${time.slice(0, 5)}`
   }
   return value
+}
+
+const pickFirstText = (values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim()
+  }
+  return ""
+}
+
+const getPostAuthorName = (post: TeamDiscussionPost) => {
+  const author = (post["author"] as Record<string, unknown> | undefined) ?? {}
+  const name = pickFirstText([
+    post["authorRealName"],
+    post["authorName"],
+    post["authorUsername"],
+    post["realName"],
+    post["username"],
+    author.realName,
+    author.username
+  ])
+  if (name) return name
+  return post.authorId ? `用户#${post.authorId}` : "-"
 }
 
 const getFallbackMessage = (status?: number) => {
@@ -188,20 +210,17 @@ onMounted(loadPosts)
 
 <template>
   <div class="page-container">
-
     <div class="page-header">
-        <div>
-          <h2>帖子线程</h2>
-          <div class="page-subtitle">帖子 ID：{{ postId ?? "-" }}</div>
-        </div>
-        <div class="page-actions">
-          <el-button @click="router.push(returnPath)">返回帖子列表</el-button>
-        </div>
+      <div>
+        <h2>帖子详情</h2>
+        <div class="page-subtitle">帖子 ID：{{ postId ?? "-" }}</div>
       </div>
+      <div class="page-actions">
+        <el-button @click="router.push(returnPath)">返回帖子列表</el-button>
+      </div>
+    </div>
 
-  <el-card shadow="never" v-loading="loading">
-    
-
+    <el-card shadow="never" v-loading="loading">
       <el-alert
         v-if="writeBlockReason"
         type="warning"
@@ -212,6 +231,7 @@ onMounted(loadPosts)
 
       <template v-if="rootPost">
         <div class="post-block">
+          <div class="post-meta">发帖人：{{ getPostAuthorName(rootPost) }}</div>
           <div class="post-meta">创建时间：{{ formatDateTime(rootPost.createdAt) }}</div>
           <div class="post-content">{{ rootPost.content || "-" }}</div>
           <div class="post-actions">
@@ -235,13 +255,17 @@ onMounted(loadPosts)
           <el-table-column label="创建时间" width="180">
             <template #default="{ row }">
               {{ formatDateTime(row.createdAt) }}
-          
-      </template>
+            </template>
+          </el-table-column>
+          <el-table-column label="发帖人" width="160">
+            <template #default="{ row }">
+              {{ getPostAuthorName(row) }}
+            </template>
           </el-table-column>
           <el-table-column label="内容">
             <template #default="{ row }">
               <span class="post-content">{{ row.content || "-" }}</span>
-      </template>
+            </template>
           </el-table-column>
           <el-table-column label="操作" width="140">
             <template #default="{ row }">
@@ -255,7 +279,7 @@ onMounted(loadPosts)
               >
                 删除
               </el-button>
-      </template>
+            </template>
           </el-table-column>
         </el-table>
 
@@ -276,13 +300,15 @@ onMounted(loadPosts)
               回复
             </el-button>
           </div>
+        </div>
+      </template>
 
       <el-empty v-else-if="!loading" description="帖子不存在或已删除">
         <el-button @click="router.push(returnPath)">返回帖子列表</el-button>
       </el-empty>
     </el-card>
 
-      <el-dialog
+    <el-dialog
       v-model="deleteDialogVisible"
       title="删除确认"
       width="420px"
@@ -294,20 +320,25 @@ onMounted(loadPosts)
     >
       <div>确认删除{{ pendingDeleteType === "root" ? "主贴" : pendingDeleteType === "reply" ? "回复" : "内容" }}吗？删除后不可恢复</div>
       <template #footer>
-        <el-button :disabled="pendingDeleteLoading" @click="deleteDialogVisible = false; pendingDeleteId = null; pendingDeleteType = null">取消</el-button>
+        <el-button
+          :disabled="pendingDeleteLoading"
+          @click="deleteDialogVisible = false; pendingDeleteId = null; pendingDeleteType = null"
+        >
+          取消
+        </el-button>
         <el-button type="danger" :loading="pendingDeleteLoading" @click="confirmDelete">删除</el-button>
+      </template>
     </el-dialog>
 
-  <el-dialog v-model="errorDialogVisible" title="提示" width="420px">
+    <el-dialog v-model="errorDialogVisible" title="提示" width="420px">
       <div>{{ errorDialogMessage }}</div>
       <template #footer>
         <el-button v-if="redirectAfterError" @click="router.push(redirectAfterError)">返回</el-button>
         <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
+      </template>
     </el-dialog>
   </div>
-    </template>
-    </template>
-    </template></template>
+</template>
 
 <style scoped>
 .page-header {
@@ -368,3 +399,4 @@ onMounted(loadPosts)
   justify-content: flex-end;
 }
 </style>
+

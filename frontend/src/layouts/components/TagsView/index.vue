@@ -23,35 +23,35 @@ const permissionStore = usePermissionStore()
 
 const { listenerRouteChange } = useRouteListener()
 
-/** 鏍囩椤电粍浠跺厓绱犵殑寮曠敤鏁扮粍 */
+/** 标签页组件元素引用数组 */
 const tagRefs = useTemplateRef<InstanceType<typeof RouterLink>[]>("tagRefs")
 
-/** 鍙抽敭鑿滃崟鐨勭姸鎬?*/
+/** 右键菜单显示状态 */
 const visible = ref(false)
 
-/** 鍙抽敭鑿滃崟鐨?top 浣嶇疆 */
+/** 右键菜单 top 位置 */
 const top = ref(0)
 
-/** 鍙抽敭鑿滃崟鐨?left 浣嶇疆 */
+/** 右键菜单 left 位置 */
 const left = ref(0)
 
-/** 褰撳墠姝ｅ湪鍙抽敭鎿嶄綔鐨勬爣绛鹃〉 */
+/** 当前正在操作的标签页 */
 const selectedTag = ref<TagView>({})
 
-/** 鍥哄畾鐨勬爣绛鹃〉 */
+/** 固定标签页 */
 let affixTags: TagView[] = []
 
-/** 鍒ゆ柇鏍囩椤垫槸鍚︽縺娲?*/
+/** 判断标签页是否激活 */
 function isActive(tag: TagView) {
   return tag.path === route.path
 }
 
-/** 鍒ゆ柇鏍囩椤垫槸鍚﹀浐瀹?*/
+/** 判断标签页是否固定 */
 function isAffix(tag: TagView) {
   return tag.meta?.affix
 }
 
-/** 绛涢€夊嚭鍥哄畾鏍囩椤?*/
+/** 过滤固定标签页 */
 function filterAffixTags(routes: RouteRecordRaw[], basePath = "/") {
   const tags: TagView[] = []
   routes.forEach((route) => {
@@ -72,16 +72,16 @@ function filterAffixTags(routes: RouteRecordRaw[], basePath = "/") {
   return tags
 }
 
-/** 鍒濆鍖栨爣绛鹃〉 */
+/** 初始化标签页 */
 function initTags() {
   affixTags = filterAffixTags(permissionStore.routes)
   for (const tag of affixTags) {
-    // 蹇呴』鍚湁 name 灞炴€?
+    // 必须包含 name 属性
     tag.name && tagsViewStore.addVisitedView(tag)
   }
 }
 
-/** 娣诲姞鏍囩椤?*/
+/** 添加标签页 */
 function addTags(route: RouteLocationNormalizedGeneric) {
   if (route.name) {
     tagsViewStore.addVisitedView(route)
@@ -89,20 +89,20 @@ function addTags(route: RouteLocationNormalizedGeneric) {
   }
 }
 
-/** 鍒锋柊褰撳墠姝ｅ湪鍙抽敭鎿嶄綔鐨勬爣绛鹃〉 */
+/** 刷新当前选中的标签页 */
 function refreshSelectedTag(view: TagView) {
   tagsViewStore.delCachedView(view)
   router.replace({ path: `/redirect${view.path}`, query: view.query })
 }
 
-/** 鍏抽棴褰撳墠姝ｅ湪鍙抽敭鎿嶄綔鐨勬爣绛鹃〉 */
+/** 关闭当前选中的标签页 */
 function closeSelectedTag(view: TagView) {
   tagsViewStore.delVisitedView(view)
   tagsViewStore.delCachedView(view)
   isActive(view) && toLastView(tagsViewStore.visitedViews, view)
 }
 
-/** 鍏抽棴鍏朵粬鏍囩椤?*/
+/** 关闭其他标签页 */
 function closeOthersTags() {
   const fullPath = selectedTag.value.fullPath
   if (fullPath !== route.path && fullPath !== undefined) {
@@ -112,7 +112,7 @@ function closeOthersTags() {
   tagsViewStore.delOthersCachedViews(selectedTag.value)
 }
 
-/** 鍏抽棴鎵€鏈夋爣绛鹃〉 */
+/** 关闭所有标签页 */
 function closeAllTags(view: TagView) {
   tagsViewStore.delAllVisitedViews()
   tagsViewStore.delAllCachedViews()
@@ -120,16 +120,16 @@ function closeAllTags(view: TagView) {
   toLastView(tagsViewStore.visitedViews, view)
 }
 
-/** 璺宠浆鍒版渶鍚庝竴涓爣绛鹃〉 */
+/** 跳转到最后一个标签页 */
 function toLastView(visitedViews: TagView[], view: TagView) {
   const latestView = visitedViews.slice(-1)[0]
   const fullPath = latestView?.fullPath
   if (fullPath !== undefined) {
     router.push(fullPath)
   } else {
-    // 濡傛灉 TagsView 鍏ㄩ儴琚叧闂簡锛屽垯榛樿閲嶅畾鍚戝埌涓婚〉
+    // 如果全部标签都关闭，则默认回到首页
     if (view.name === "Dashboard") {
-      // 閲嶆柊鍔犺浇涓婚〉
+      // 重新加载首页
       router.push({ path: `/redirect${view.path}`, query: view.query })
     } else {
       router.push("/")
@@ -137,24 +137,24 @@ function toLastView(visitedViews: TagView[], view: TagView) {
   }
 }
 
-/** 鎵撳紑鍙抽敭鑿滃崟闈㈡澘 */
+/** 打开右键菜单 */
 function openMenu(tag: TagView, e: MouseEvent) {
   const menuMinWidth = 100
-  // 褰撳墠椤甸潰瀹藉害
+  // 当前页面宽度
   const offsetWidth = document.body.offsetWidth
-  // 闈㈡澘鐨勬渶澶у乏杈硅窛
+  // 菜单可用的最大左边距
   const maxLeft = offsetWidth - menuMinWidth
-  // 闈㈡澘璺濈榧犳爣鎸囬拡鐨勮窛绂?
+  // 菜单与鼠标指针间距
   const left15 = e.clientX + 10
   left.value = left15 > maxLeft ? maxLeft : left15
   top.value = e.clientY
-  // 鏄剧ず闈㈡澘
+  // 显示菜单
   visible.value = true
-  // 鏇存柊褰撳墠姝ｅ湪鍙抽敭鎿嶄綔鐨勬爣绛鹃〉
+  // 更新当前选中的标签
   selectedTag.value = tag
 }
 
-/** 鍏抽棴鍙抽敭鑿滃崟闈㈡澘 */
+/** 关闭右键菜单 */
 function closeMenu() {
   visible.value = false
 }
@@ -165,7 +165,7 @@ watch(visible, (value) => {
 
 initTags()
 
-// 鐩戝惉璺敱鍙樺寲
+// 监听路由变化
 listenerRouteChange((route) => {
   addTags(route)
 }, true)
@@ -192,16 +192,16 @@ listenerRouteChange((route) => {
     </ScrollPane>
     <ul v-show="visible" class="contextmenu" :style="{ left: `${left}px`, top: `${top}px` }">
       <li @click="refreshSelectedTag(selectedTag)">
-        鍒锋柊
+        刷新
       </li>
       <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)">
-        鍏抽棴
+        关闭
       </li>
       <li @click="closeOthersTags">
-        鍏抽棴鍏跺畠
+        关闭其他
       </li>
       <li @click="closeAllTags(selectedTag)">
-        鍏抽棴鎵€鏈?
+        关闭所有
       </li>
     </ul>
   </div>

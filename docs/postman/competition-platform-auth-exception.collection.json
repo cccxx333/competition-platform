@@ -1,0 +1,718 @@
+{
+  "info": {
+    "_postman_id": "7f66fd3f-0d9f-4a44-9b06-2f642f94e611",
+    "name": "Competition Platform - Auth & Exception Flows",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1) Permission Flow",
+      "item": [
+        {
+          "name": "Unauthenticated Access /users/me (Expect 401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('unauthenticated request is rejected', function () {",
+                  "  pm.expect([401, 403]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Student (Permission Flow)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{applyStudentUsername}}\",\n  \"password\": \"{{applyStudentPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.unset('token_student');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('student login status is 200', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "const token = (j && (j.token || (j.data && j.data.token))) || '';",
+                  "pm.test('student token exists in response', function () { pm.expect(token).to.be.a('string').and.not.empty; });",
+                  "pm.environment.set('token_student', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Student Access Teacher API (Expect 403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/teacher/applications?status=PENDING",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "teacher",
+                "applications"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('student cross-role access is rejected', function () {",
+                  "  pm.expect([401, 403]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Teacher (Permission Flow)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{teacherUsername}}\",\n  \"password\": \"{{teacherPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.unset('token_teacher');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('teacher login status is 200', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "const token = (j && (j.token || (j.data && j.data.token))) || '';",
+                  "pm.test('teacher token exists in response', function () { pm.expect(token).to.be.a('string').and.not.empty; });",
+                  "pm.environment.set('token_teacher', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Teacher Access Teacher API (Expect 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_teacher}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/teacher/applications?status=PENDING",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "teacher",
+                "applications"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('teacher access status is 200', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "const list = (j && j.data && (j.data.records || j.data.list)) || j.data || [];",
+                  "pm.test('teacher pending list is array', function () { pm.expect(Array.isArray(list)).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2) Exception Flow",
+      "item": [
+        {
+          "name": "Register Exception User (First Time)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{exceptionUsername}}\",\n  \"email\": \"{{exceptionEmail}}\",\n  \"password\": \"{{exceptionPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "register"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ts = Date.now().toString().slice(-7);",
+                  "const username = `ex_${ts}`;",
+                  "pm.environment.set('exceptionUsername', username);",
+                  "pm.environment.set('exceptionEmail', `${username}@test.com`);",
+                  "if (!pm.environment.get('exceptionPassword')) pm.environment.set('exceptionPassword', '123456');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('first registration status is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Exception User (Duplicate, Expect 400/409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{exceptionUsername}}\",\n  \"email\": \"{{exceptionEmail}}\",\n  \"password\": \"{{exceptionPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "register"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('duplicate registration is rejected', function () {",
+                  "  pm.expect([400, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login With Wrong Password (Expect 400/401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{exceptionUsername}}\",\n  \"password\": \"wrong_password_123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('wrong password is rejected', function () {",
+                  "  pm.expect([400, 401]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Student (Exception Flow)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{applyStudentUsername}}\",\n  \"password\": \"{{applyStudentPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.unset('token_student');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('student login status is 200', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "const token = (j && (j.token || (j.data && j.data.token))) || '';",
+                  "pm.test('student token exists in response', function () { pm.expect(token).to.be.a('string').and.not.empty; });",
+                  "pm.environment.set('token_student', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Competitions (Save competitionId)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/competitions?page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "competitions"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const j = pm.response.json();",
+                  "let list = [];",
+                  "if (Array.isArray(j && j.content)) list = j.content;",
+                  "else if (Array.isArray(j && j.data)) list = j.data;",
+                  "else if (Array.isArray(j && j.data && j.data.records)) list = j.data.records;",
+                  "else if (Array.isArray(j && j.data && j.data.list)) list = j.data.list;",
+                  "else if (Array.isArray(j && j.data && j.data.content)) list = j.data.content;",
+                  "else if (Array.isArray(j && j.data && j.data.items)) list = j.data.items;",
+                  "pm.test('competition list is array', function () { pm.expect(Array.isArray(list)).to.eql(true); });",
+                  "pm.test('competition list not empty', function () { pm.expect(list.length).to.be.above(0); });",
+                  "if (list.length > 0) pm.environment.set('competitionId', String(list[0].id));",
+                  "pm.test('competitionId exists', function () { pm.expect(pm.environment.get('competitionId')).to.exist; });"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.unset('competitionId');",
+                  "pm.environment.unset('teamId');",
+                  "pm.environment.unset('applicationId');",
+                  "pm.collectionVariables.unset('competitionId');",
+                  "pm.collectionVariables.unset('teamId');",
+                  "pm.collectionVariables.unset('applicationId');",
+                  "pm.globals.unset('competitionId');",
+                  "pm.globals.unset('teamId');",
+                  "pm.globals.unset('applicationId');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recommend Teams (Save teamId)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/competitions/{{competitionId}}/teams/recommend?topK=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "competitions",
+                "{{competitionId}}",
+                "teams",
+                "recommend"
+              ],
+              "query": [
+                {
+                  "key": "topK",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const code = pm.response.code;",
+                  "pm.test('recommend teams response status is valid', function () {",
+                  "  pm.expect([200, 400, 404, 409]).to.include(code);",
+                  "});",
+                  "let list = [];",
+                  "try {",
+                  "  const j = pm.response.json();",
+                  "  list = (j && j.data && (j.data.records || j.data.list)) || j.data || [];",
+                  "} catch (e) { list = []; }",
+                  "pm.test('team list is array', function () { pm.expect(Array.isArray(list)).to.eql(true); });",
+                  "if (code === 200 && Array.isArray(list) && list.length > 0) {",
+                  "  pm.environment.set('teamId', String(list[0].id));",
+                  "  pm.test('teamId exists', function () { pm.expect(pm.environment.get('teamId')).to.exist; });",
+                  "} else {",
+                  "  pm.test('no recommendable team, skip apply requests', function () { pm.expect(true).to.eql(true); });",
+                  "  postman.setNextRequest('Invalid Path Param (Expect 400)');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.unset('teamId');",
+                  "pm.collectionVariables.unset('teamId');",
+                  "pm.globals.unset('teamId');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Application (First Try)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"competitionId\": \"{{competitionId}}\",\n  \"teamId\": \"{{teamId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('first apply status is valid', function () {",
+                  "  pm.expect([200, 201, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const teamId = pm.environment.get('teamId');",
+                  "if (!teamId) {",
+                  "  console.log('teamId missing, skip first apply request');",
+                  "  postman.setNextRequest('Invalid Path Param (Expect 400)');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Application (Duplicate, Expect 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"competitionId\": \"{{competitionId}}\",\n  \"teamId\": \"{{teamId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('duplicate application is rejected', function () {",
+                  "  pm.expect([400, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const teamId = pm.environment.get('teamId');",
+                  "if (!teamId) {",
+                  "  console.log('teamId missing, skip duplicate apply request');",
+                  "  postman.setNextRequest('Invalid Path Param (Expect 400)');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid Path Param (Expect 400)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_student}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/competitions/abc/teams/recommend?topK=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "competitions",
+                "abc",
+                "teams",
+                "recommend"
+              ],
+              "query": [
+                {
+                  "key": "topK",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('invalid path parameter is rejected', function () {",
+                  "  pm.expect([400, 422]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

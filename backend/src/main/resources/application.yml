@@ -32,12 +32,17 @@ spring:
       data-locations: classpath:sql/init.sql
       encoding: UTF-8
 
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
 jwt:
   secret: competitionPlatformSecretKey2023
   expiration: 86400 # 24 hours
 
 app:
-  upload-dir: uploads
+  upload-dir: D:/workspace/competition-platform/backend/uploads
 
 logging:
   level:

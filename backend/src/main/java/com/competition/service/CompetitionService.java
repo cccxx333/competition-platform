@@ -118,7 +118,7 @@ public class CompetitionService {
         }
 
         if (!recommend || fallbackReason != null) {
-            return getCompetitionsDefault(pageable, name, status, keyword, applyable);
+            return getCompetitionsDefault(pageable, name, status, keyword, applyable, recommend && fallbackReason != null, fallbackReason);
         }
 
         List<Competition> candidates = getCandidateCompetitions(name, status, keyword, applyable);
@@ -137,7 +137,7 @@ public class CompetitionService {
                 hybridResult.getContentCandidateCount(),
                 hybridResult.getCfCandidateCount());
         if (matchScores.isEmpty()) {
-            return getCompetitionsDefault(pageable, name, status, keyword, applyable);
+            return getCompetitionsDefault(pageable, name, status, keyword, applyable, true, "EMPTY_SCORES");
         }
 
         Comparator<Competition> baseComparator = buildSortComparator(pageable.getSort());
@@ -173,7 +173,9 @@ public class CompetitionService {
                         topIds.contains(competition.getId()),
                         topIds.contains(competition.getId())
                                 ? recommendationService.buildCompetitionRecommendReason(userId, competition)
-                                : null))
+                                : null,
+                        hybridResult.isFallback(),
+                        hybridResult.isFallback() ? "CF_FALLBACK" : null))
                 .collect(Collectors.toList());
 
         return new PageImpl<>(responses, pageable, combined.size());
@@ -369,13 +371,15 @@ public class CompetitionService {
     }
 
     private CompetitionResponse convertToResponse(Competition competition) {
-        return convertToResponse(competition, null, false, null);
+        return convertToResponse(competition, null, false, null, false, null);
     }
 
     private CompetitionResponse convertToResponse(Competition competition,
                                                   Double matchScore,
                                                   boolean recommend,
-                                                  String recommendReason) {
+                                                  String recommendReason,
+                                                  boolean fallbackApplied,
+                                                  String fallbackReason) {
         CompetitionResponse response = new CompetitionResponse();
         response.setId(competition.getId());
         response.setName(competition.getName());
@@ -395,6 +399,8 @@ public class CompetitionService {
         response.setMatchScore(matchScore);
         response.setRecommend(recommend);
         response.setRecommendReason(recommendReason);
+        response.setFallbackApplied(fallbackApplied);
+        response.setFallbackReason(fallbackReason);
         return response;
     }
 
@@ -402,42 +408,58 @@ public class CompetitionService {
                                                              String name,
                                                              Competition.CompetitionStatus status,
                                                              String keyword,
-                                                             boolean applyable) {
+                                                             boolean applyable,
+                                                             boolean fallbackApplied,
+                                                             String fallbackReason) {
         if (keyword != null && !keyword.isBlank()) {
             List<Competition> results = competitionRepository.findByKeyword(keyword);
             results = filterByNameAndStatus(results, name, status);
             results = filterByApplyable(results, applyable);
             List<Competition> sorted = sortCompetitions(results, pageable.getSort());
-            return toResponsePage(sorted, pageable);
+            return applyFallbackMetadata(toResponsePage(sorted, pageable), fallbackApplied, fallbackReason);
         }
 
         if (name != null && status != null) {
             List<Competition> results = competitionRepository.findByNameContainingIgnoreCaseAndStatus(name, status);
             results = filterByApplyable(results, applyable);
             List<Competition> sorted = sortCompetitions(results, pageable.getSort());
-            return toResponsePage(sorted, pageable);
+            return applyFallbackMetadata(toResponsePage(sorted, pageable), fallbackApplied, fallbackReason);
         }
         if (name != null) {
             List<Competition> results = competitionRepository.findByNameContainingIgnoreCase(name);
             results = filterByApplyable(results, applyable);
             List<Competition> sorted = sortCompetitions(results, pageable.getSort());
-            return toResponsePage(sorted, pageable);
+            return applyFallbackMetadata(toResponsePage(sorted, pageable), fallbackApplied, fallbackReason);
         }
         if (status != null) {
             List<Competition> results = competitionRepository.findByStatus(status);
             results = filterByApplyable(results, applyable);
             List<Competition> sorted = sortCompetitions(results, pageable.getSort());
-            return toResponsePage(sorted, pageable);
+            return applyFallbackMetadata(toResponsePage(sorted, pageable), fallbackApplied, fallbackReason);
         }
 
         if (!applyable) {
-            return competitionRepository.findAll(pageable).map(this::convertToResponse);
+            Page<CompetitionResponse> page = competitionRepository.findAll(pageable).map(this::convertToResponse);
+            return applyFallbackMetadata(page, fallbackApplied, fallbackReason);
         }
 
         List<Competition> results = competitionRepository.findAll();
         results = filterByApplyable(results, true);
         List<Competition> sorted = sortCompetitions(results, pageable.getSort());
-        return toResponsePage(sorted, pageable);
+        return applyFallbackMetadata(toResponsePage(sorted, pageable), fallbackApplied, fallbackReason);
+    }
+
+    private Page<CompetitionResponse> applyFallbackMetadata(Page<CompetitionResponse> page,
+                                                            boolean fallbackApplied,
+                                                            String fallbackReason) {
+        if (!fallbackApplied) {
+            return page;
+        }
+        return page.map(item -> {
+            item.setFallbackApplied(true);
+            item.setFallbackReason(fallbackReason);
+            return item;
+        });
     }
 
     private List<Competition> getCandidateCompetitions(String name,

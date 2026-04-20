@@ -22,24 +22,24 @@ const settingsStore = useSettingsStore()
 
 const { listenerRouteChange } = useRouteListener()
 
-/** 婊氬姩鏉＄粍浠跺厓绱犵殑寮曠敤 */
+/** 滚动条组件元素引用 */
 const scrollbarRef = useTemplateRef("scrollbarRef")
 
-/** 婊氬姩鏉″唴瀹瑰厓绱犵殑寮曠敤 */
+/** 滚动内容元素引用 */
 const scrollbarContentRef = useTemplateRef("scrollbarContentRef")
 
-/** 褰撳墠婊氬姩鏉¤窛绂诲乏杈圭殑璺濈 */
+/** 当前滚动条左侧偏移 */
 let currentScrollLeft = 0
 
-/** 姣忔婊氬姩璺濈 */
+/** 每次滚动距离 */
 const translateDistance = 200
 
-/** 婊氬姩鏃惰Е鍙?*/
+/** 滚动事件处理 */
 function scroll({ scrollLeft }: { scrollLeft: number }) {
   currentScrollLeft = scrollLeft
 }
 
-/** 榧犳爣婊氳疆婊氬姩鏃惰Е鍙?*/
+/** 鼠标滚轮事件处理 */
 function wheelScroll({ deltaY }: WheelEvent) {
   if (deltaY.toString().startsWith("-")) {
     scrollTo("left")
@@ -48,23 +48,23 @@ function wheelScroll({ deltaY }: WheelEvent) {
   }
 }
 
-/** 鑾峰彇鍙兘闇€瑕佺殑瀹藉害 */
+/** 获取滚动计算所需宽度信息 */
 function getWidth() {
-  // 鍙粴鍔ㄥ唴瀹圭殑闀垮害
+  // 可滚动内容总宽度
   const scrollbarContentRefWidth = scrollbarContentRef.value!.clientWidth
-  // 婊氬姩鍙鍖哄搴?
+  // 可视区域宽度
   const scrollbarRefWidth = scrollbarRef.value!.wrapRef!.clientWidth
-  // 鏈€鍚庡墿浣欏彲婊氬姩鐨勫搴?
+  // 剩余可滚动宽度
   const lastDistance = scrollbarContentRefWidth - scrollbarRefWidth - currentScrollLeft
 
   return { scrollbarContentRefWidth, scrollbarRefWidth, lastDistance }
 }
 
-/** 宸﹀彸婊氬姩 */
+/** 左右滚动 */
 function scrollTo(direction: "left" | "right", distance: number = translateDistance) {
   let scrollLeft = 0
   const { scrollbarContentRefWidth, scrollbarRefWidth, lastDistance } = getWidth()
-  // 娌℃湁妯悜婊氬姩鏉★紝鐩存帴缁撴潫
+  // 无横向滚动条时直接返回
   if (scrollbarRefWidth > scrollbarContentRefWidth) return
   if (direction === "left") {
     scrollLeft = Math.max(0, currentScrollLeft - distance)
@@ -74,7 +74,7 @@ function scrollTo(direction: "left" | "right", distance: number = translateDista
   scrollbarRef.value!.setScrollLeft(scrollLeft)
 }
 
-/** 绉诲姩鍒扮洰鏍囦綅缃?*/
+/** 移动到当前激活的目标标签 */
 function moveTo() {
   const tagRefs = props.tagRefs!
   for (let i = 0; i < tagRefs.length; i++) {
@@ -85,13 +85,13 @@ function moveTo() {
       const offsetWidth = el.offsetWidth
       const offsetLeft = el.offsetLeft
       const { scrollbarRefWidth } = getWidth()
-      // 褰撳墠 tag 鍦ㄥ彲瑙嗗尯鍩熷乏杈规椂
+      // 当前 tag 位于可视区域左侧时
       if (offsetLeft < currentScrollLeft) {
         const distance = currentScrollLeft - offsetLeft
         scrollTo("left", distance)
         return
       }
-      // 褰撳墠 tag 鍦ㄥ彲瑙嗗尯鍩熷彸杈规椂
+      // 当前 tag 位于可视区域右侧时
       const width = scrollbarRefWidth + currentScrollLeft - offsetWidth
       if (offsetLeft > width) {
         const distance = offsetLeft - width
@@ -102,7 +102,7 @@ function moveTo() {
   }
 }
 
-// 鐩戝惉璺敱鍙樺寲锛岀Щ鍔ㄥ埌鐩爣浣嶇疆
+// 监听路由变化并滚动到目标位置
 listenerRouteChange(() => {
   nextTick(moveTo)
 })
@@ -149,7 +149,7 @@ listenerRouteChange(() => {
   }
   .el-scrollbar {
     flex: 1;
-    // 闃叉鎹㈣锛堣秴鍑哄搴︽椂锛屾樉绀烘粴鍔ㄦ潯锛?
+    // 防止换行，超出宽度时显示滚动条
     white-space: nowrap;
     .scrollbar-content {
       display: inline-block;

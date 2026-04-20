@@ -30,7 +30,7 @@ public class CompetitionController {
     private final JwtUtils jwtUtils;
 
     /**
-     * 鑾峰彇绔炶禌鍒楄〃锛堝垎椤碉級
+     * 获取竞赛列表（分页）
      */
     @GetMapping
     public ResponseEntity<Page<CompetitionResponse>> getCompetitions(
@@ -61,7 +61,7 @@ public class CompetitionController {
     }
 
     /**
-     * 鏍规嵁ID鑾峰彇绔炶禌璇︽儏
+     * 根据 ID 获取竞赛详情
      */
     @GetMapping("/{id}")
     public ResponseEntity<CompetitionResponse> getCompetitionById(@PathVariable Long id) {
@@ -70,7 +70,7 @@ public class CompetitionController {
     }
 
     /**
-     * 鎼滅储绔炶禌
+     * 搜索竞赛
      */
     @GetMapping("/search")
     public ResponseEntity<List<CompetitionResponse>> searchCompetitions(
@@ -80,7 +80,7 @@ public class CompetitionController {
     }
 
     /**
-     * 鏍规嵁鍒嗗垎绫昏幏鍙栫珵璧?
+     * 根据分类获取竞赛
      */
     @GetMapping("/category/{category}")
     public ResponseEntity<List<CompetitionResponse>> getCompetitionsByCategory(
@@ -90,7 +90,7 @@ public class CompetitionController {
     }
 
     /**
-     * 鍒涘缓绔炶禌
+     * 创建竞赛
      */
     @PostMapping
     public ResponseEntity<CompetitionResponse> createCompetition(
@@ -100,7 +100,7 @@ public class CompetitionController {
     }
 
     /**
-     * 鏇存柊绔炶禌
+     * 更新竞赛
      */
     @PutMapping("/{id}")
     public ResponseEntity<CompetitionResponse> updateCompetition(
@@ -113,7 +113,7 @@ public class CompetitionController {
     }
 
     /**
-     * 鑾峰彇鍙敤绔炶禌锛堝叕寮€鎺ュ彛锛?
+     * 获取可用竞赛（公开接口）
      */
     @GetMapping("/public/available")
     public ResponseEntity<List<CompetitionResponse>> getAvailableCompetitions() {

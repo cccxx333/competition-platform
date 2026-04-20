@@ -4,6 +4,8 @@ export type TeamDiscussionPost = {
   id?: number
   teamId?: number
   authorId?: number
+  authorRealName?: string
+  authorUsername?: string
   parentPostId?: number | null
   content?: string
   createdAt?: string

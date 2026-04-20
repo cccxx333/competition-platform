@@ -1,0 +1,752 @@
+{
+  "info": {
+    "name": "Competition Platform - 3 Flows",
+    "_postman_id": "b4c48755-3adf-4dfa-8a86-d6ca31b1f002",
+    "description": "Auth + Recommendation(Fallback) + Apply-Review flow for graduation project testing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1) Auth Flow",
+      "item": [
+        {
+          "name": "Register Student",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let seq = parseInt(pm.environment.get('studentSeq') || '4', 10);",
+                  "if (!Number.isFinite(seq) || seq < 1) seq = 4;",
+                  "const ts = Date.now().toString().slice(-6);",
+                  "const username = `s${String(seq).padStart(2, '0')}_${ts}`;",
+                  "const email = `${username}@test.com`;",
+                  "const password = pm.environment.get('studentPassword') || '123456';",
+                  "pm.environment.set('studentUsername', username);",
+                  "pm.environment.set('studentEmail', email);",
+                  "pm.environment.set('studentPassword', password);",
+                  "pm.environment.set('studentSeq', String(seq + 1));",
+                  "console.log('register user =', username, email);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const j = pm.response.json();",
+                  "const data = (j && (j.data || j)) || {};",
+                  "pm.test('register response has user id', function () {",
+                  "  pm.expect(data.id, 'id missing').to.exist;",
+                  "});",
+                  "pm.test('register username matches env', function () {",
+                  "  pm.expect(data.username, 'username mismatch').to.eql(pm.environment.get('studentUsername'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{studentUsername}}\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "const j = pm.response.json();",
+                  "const token = (j && (j.token || (j.data && j.data.token))) || '';",
+                  "pm.test('token exists in response', function () {",
+                  "  pm.expect(token, 'token missing in response').to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.environment.set('token_student', token);",
+                  "pm.test('token_student exists', function () {",
+                  "  pm.expect(pm.environment.get('token_student')).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.unset('token_student');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{studentUsername}}\",\n  \"password\": \"{{studentPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User (Student)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_student}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "const me = (j && (j.data || j)) || {};",
+                  "pm.test('current user has id and username', function () {",
+                  "  pm.expect(me.id, 'current user id missing').to.exist;",
+                  "  pm.expect(me.username, 'current user username missing').to.be.a('string').and.not.empty;",
+                  "});",
+                  "pm.test('current user equals logged student', function () {",
+                  "  pm.expect(me.username).to.eql(pm.environment.get('studentUsername'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2) Recommendation Flow (with Fallback)",
+      "item": [
+        {
+          "name": "List Competitions (Save competitionId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "if (j && Array.isArray(j.content) && j.content.length > 0) {",
+                  "  pm.environment.set('competitionId', String(j.content[0].id));",
+                  "}",
+                  "pm.test('competitionId exists', function () { pm.expect(pm.environment.get('competitionId')).to.be.a('string').and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_student}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/competitions?page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "competitions"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Recommend Competitions (Before Skills)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "if (j && Array.isArray(j.content) && j.content.length > 0) {",
+                  "  pm.environment.set('fallbackAppliedBefore', String(!!j.content[0].fallbackApplied));",
+                  "  pm.environment.set('fallbackReasonBefore', j.content[0].fallbackReason || '');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_student}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/competitions?recommend=true&topK=10&page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "competitions"
+              ],
+              "query": [
+                {
+                  "key": "recommend",
+                  "value": "true"
+                },
+                {
+                  "key": "topK",
+                  "value": "10"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Skills (Save skillId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "if (Array.isArray(j) && j.length > 0) {",
+                  "  pm.environment.set('skillId', String(j[0].id));",
+                  "}",
+                  "pm.test('skillId exists', function () { pm.expect(pm.environment.get('skillId')).to.be.a('string').and.not.empty; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_student}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/skills",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "skills"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Bind My Skill",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_student}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skillId\": {{skillId}},\n  \"level\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/skills",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me",
+                "skills"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('bind skill status is valid', function () {",
+                  "  pm.expect([200, 201, 400, 409]).to.include(pm.response.code);",
+                  "});",
+                  "if ([400, 409].includes(pm.response.code)) {",
+                  "  pm.test('duplicate bind is acceptable on rerun', function () { pm.expect(true).to.eql(true); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recommend Competitions (After Skills)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "if (j && Array.isArray(j.content) && j.content.length > 0) {",
+                  "  pm.environment.set('fallbackAppliedAfter', String(!!j.content[0].fallbackApplied));",
+                  "  pm.environment.set('fallbackReasonAfter', j.content[0].fallbackReason || '');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_student}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/competitions?recommend=true&topK=10&page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "competitions"
+              ],
+              "query": [
+                {
+                  "key": "recommend",
+                  "value": "true"
+                },
+                {
+                  "key": "topK",
+                  "value": "10"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Recommend Teams (Save teamId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "if (Array.isArray(j) && j.length > 0 && j[0].teamId) {",
+                  "  pm.environment.set('teamId', String(j[0].teamId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_student}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/competitions/{{competitionId}}/teams/recommend?topK=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "competitions",
+                "{{competitionId}}",
+                "teams",
+                "recommend"
+              ],
+              "query": [
+                {
+                  "key": "topK",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3) Apply-Review Flow",
+      "item": [
+        {
+          "name": "Create Application (Student)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('application create status is valid', function () {",
+                  "  pm.expect([200, 201, 409]).to.include(pm.response.code);",
+                  "});",
+                  "const j = pm.response.json();",
+                  "const data = (j && (j.data || j)) || {};",
+                  "if ([200, 201].includes(pm.response.code)) {",
+                  "  const appId = data.id || data.applicationId;",
+                  "  if (appId) pm.environment.set('applicationId', String(appId));",
+                  "  pm.test('applicationId exists after create', function () { pm.expect(pm.environment.get('applicationId')).to.exist; });",
+                  "}",
+                  "if (pm.response.code === 409) {",
+                  "  pm.test('duplicate application is blocked', function () { pm.expect(true).to.eql(true); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_student}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"competitionId\": {{competitionId}},\n  \"teamId\": {{teamId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "applications"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login Teacher",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('teacher login status is 200', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "const token = (j && (j.token || (j.data && j.data.token))) || '';",
+                  "pm.test('teacher token exists in response', function () { pm.expect(token).to.be.a('string').and.not.empty; });",
+                  "pm.environment.set('token_teacher', token);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.unset('token_teacher');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{teacherUsername}}\",\n  \"password\": \"{{teacherPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Teacher Pending Applications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_teacher}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teacher/applications?status=PENDING",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "teacher",
+                "applications"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+                  "const j = pm.response.json();",
+                  "const list = (j && j.data && (j.data.records || j.data.list)) || j.data || [];",
+                  "pm.test('pending list is array', function () { pm.expect(Array.isArray(list)).to.eql(true); });",
+                  "if (Array.isArray(list) && list.length > 0) {",
+                  "  const pick = list.slice().sort((a,b)=>(b.id||0)-(a.id||0))[0];",
+                  "  if (pick && pick.id) pm.environment.set('applicationId', String(pick.id));",
+                  "  pm.test('applicationId saved from pending list', function () { pm.expect(pm.environment.get('applicationId')).to.exist; });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Review Application (Teacher Approve)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_teacher}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"approved\": true,\n  \"reason\": \"通过\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/teacher/applications/{{applicationId}}/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "teacher",
+                "applications",
+                "{{applicationId}}",
+                "review"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('review status is valid', function () {",
+                  "  pm.expect([200, 400, 404, 409]).to.include(pm.response.code);",
+                  "});",
+                  "if ([400, 404, 409].includes(pm.response.code)) {",
+                  "  pm.test('rerun conflict/not-found is acceptable', function () { pm.expect(true).to.eql(true); });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -14,28 +14,28 @@ const router = useRouter()
 
 const { listenerRouteChange } = useRouteListener()
 
-/** 瀹氫箟鍝嶅簲寮忔暟鎹?breadcrumbs锛岀敤浜庡瓨鍌ㄩ潰鍖呭睉瀵艰埅淇℃伅 */
+/** 面包屑列表响应式数据 */
 const breadcrumbs = ref<RouteLocationMatched[]>([])
 
-/** 鑾峰彇闈㈠寘灞戝鑸俊鎭?*/
+/** 生成当前路由对应的面包屑 */
 function getBreadcrumb() {
   breadcrumbs.value = route.matched.filter(item => item.meta?.title && item.meta?.breadcrumb !== false)
 }
 
-/** 缂栬瘧璺敱璺緞 */
+/** 编译带参数的路由路径 */
 function pathCompile(path: string) {
   const toPath = compile(path)
   return toPath(route.params)
 }
 
-/** 澶勭悊闈㈠寘灞戝鑸偣鍑讳簨浠?*/
+/** 处理面包屑点击跳转 */
 function handleLink(item: RouteLocationMatched) {
   const { redirect, path } = item
   if (redirect) return router.push(redirect as string)
   router.push(pathCompile(path))
 }
 
-// 鐩戝惉璺敱鍙樺寲锛屾洿鏂伴潰鍖呭睉瀵艰埅淇℃伅
+// 监听路由变化并更新面包屑
 listenerRouteChange((route) => {
   if (route.path.startsWith("/redirect/")) return
   getBreadcrumb()

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { FormInstance, FormRules } from "element-plus"
 import { ElMessage } from "element-plus"
-import { login } from "@/api/auth"
+import { login, register } from "@/api/auth"
 import { useAuthStore } from "@/stores/auth"
 
 const router = useRouter()
@@ -43,21 +43,69 @@ const openRegister = () => {
   registerDialogVisible.value = true
 }
 
+const validateForm = async (ref: FormInstance | undefined, invalidMessage: string) => {
+  if (!ref) {
+    ElMessage.error("表单未初始化，请刷新后重试")
+    return false
+  }
+  try {
+    const valid = await ref.validate()
+    if (!valid) {
+      ElMessage.warning(invalidMessage)
+      return false
+    }
+    return true
+  } catch {
+    ElMessage.warning(invalidMessage)
+    return false
+  }
+}
+
+const extractErrorMessage = (error: any, fallback: string) => {
+  const responseData = error?.response?.data
+  if (responseData?.errors && typeof responseData.errors === "object") {
+    const first = Object.values(responseData.errors)[0]
+    if (typeof first === "string" && first.trim()) {
+      return first
+    }
+  }
+  if (typeof responseData?.message === "string" && responseData.message.trim()) {
+    return responseData.message
+  }
+  if (typeof error?.message === "string" && error.message.trim()) {
+    return error.message
+  }
+  return fallback
+}
+
 const handleRegister = async () => {
-  const valid = await registerFormRef.value?.validate().catch(() => false)
+  const valid = await validateForm(registerFormRef.value, "请先完善注册信息")
   if (!valid) return
 
   registering.value = true
   try {
-    ElMessage.success("注册信息已提交（功能待接入）")
+    await register({
+      username: registerForm.username,
+      email: registerForm.email,
+      password: registerForm.password
+    })
+    ElMessage.success("注册成功，请登录")
+    form.username = registerForm.username
+    form.password = ""
+    registerForm.username = ""
+    registerForm.accountNo = ""
+    registerForm.email = ""
+    registerForm.password = ""
     registerDialogVisible.value = false
+  } catch (error: any) {
+    ElMessage.error(extractErrorMessage(error, "注册失败"))
   } finally {
     registering.value = false
   }
 }
 
 const handleLogin = async () => {
-  const valid = await formRef.value?.validate().catch(() => false)
+  const valid = await validateForm(formRef.value, "请输入用户名和密码")
   if (!valid) return
 
   loading.value = true
@@ -69,7 +117,7 @@ const handleLogin = async () => {
     }
     router.replace("/dashboard")
   } catch (error: any) {
-    ElMessage.error(error?.message ?? "登录失败")
+    ElMessage.error(extractErrorMessage(error, "登录失败"))
   } finally {
     loading.value = false
   }

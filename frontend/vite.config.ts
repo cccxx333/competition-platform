@@ -16,27 +16,27 @@ export default defineConfig(({ mode }) => {
   const { VITE_PUBLIC_PATH, VITE_API_PROXY_TARGET } = loadEnv(mode, process.cwd(), "") as ImportMetaEnv
   const apiProxyTarget = VITE_API_PROXY_TARGET || "http://localhost:8080"
   return {
-    // 寮€鍙戞垨鎵撳寘鏋勫缓鏃剁敤鍒扮殑鍏叡鍩虹璺緞
+    // 开发与构建时使用的公共基础路径
     base: VITE_PUBLIC_PATH,
     resolve: {
       alias: {
-        // @ 绗﹀彿鎸囧悜 src 鐩綍
+        // @ 指向 src 目录
         "@": resolve(__dirname, "src"),
-        // @@ 绗﹀彿鎸囧悜 src/common 閫氱敤鐩綍
+        // @@ 指向 src/common 通用目录
         "@@": resolve(__dirname, "src/common")
       }
     },
-    // 寮€鍙戠幆澧冩湇鍔″櫒閰嶇疆
+    // 开发服务器配置
     server: {
-      // 鏄惁鐩戝惉鎵€鏈夊湴鍧€
+      // 监听所有地址
       host: true,
-      // 绔彛鍙?
+      // 服务端口
       port: 3333,
-      // 绔彛琚崰鐢ㄦ椂锛屾槸鍚︾洿鎺ラ€€鍑?
+      // 端口被占用时是否直接退出
       strictPort: false,
-      // 鏄惁鑷姩鎵撳紑娴忚鍣?
+      // 是否自动打开浏览器
       open: true,
-      // 鍙嶅悜浠ｇ悊
+      // 反向代理
       proxy: {
         "/api": {
           target: apiProxyTarget,
@@ -50,9 +50,9 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true
         }
       },
-      // 鏄惁鍏佽璺ㄥ煙
+      // 是否允许跨域
       cors: true,
-      // 棰勭儹甯哥敤鏂囦欢锛屾彁楂樺垵濮嬮〉闈㈠姞杞介€熷害
+      // 预热常用文件，提升初始加载速度
       warmup: {
         clientFiles: [
           "./src/layouts/**/*.*",
@@ -61,15 +61,15 @@ export default defineConfig(({ mode }) => {
         ]
       }
     },
-    // 鏋勫缓閰嶇疆
+    // 构建配置
     build: {
-      // 鑷畾涔夊簳灞傜殑 Rollup 鎵撳寘閰嶇疆
+      // 自定义 Rollup 打包配置
       rollupOptions: {
         output: {
           /**
-           * @name 鍒嗗潡绛栫暐
-           * @description 1. 娉ㄦ剰杩欎簺鍖呭悕蹇呴』瀛樺湪锛屽惁鍒欐墦鍖呬細鎶ラ敊
-           * @description 2. 濡傛灉浣犱笉鎯宠嚜瀹氫箟 chunk 鍒嗗壊绛栫暐锛屽彲浠ョ洿鎺ョЩ闄よ繖娈甸厤缃?
+           * @name 分块策略
+           * @description 1. 这些包名必须存在，否则构建会报错
+           * @description 2. 不需要自定义分块时可删除该配置
            */
           manualChunks: {
             vue: ["vue", "vue-router", "pinia"],
@@ -78,36 +78,36 @@ export default defineConfig(({ mode }) => {
           }
         }
       },
-      // 鏄惁寮€鍚?gzip 鍘嬬缉澶у皬鎶ュ憡锛岀鐢ㄦ椂鑳界暐寰彁楂樻瀯寤烘€ц兘
+      // 是否启用 gzip 体积报告，关闭可略微提升构建速度
       reportCompressedSize: false,
-      // 鍗曚釜 chunk 鏂囦欢鐨勫ぇ灏忚秴杩?2048kB 鏃跺彂鍑鸿鍛?
+      // 单个 chunk 超过 2048kB 时给出警告
       chunkSizeWarningLimit: 2048
     },
-    // 娣锋穯鍣?
+    // esbuild 配置
     esbuild:
       mode === "development"
         ? undefined
         : {
-            // 鎵撳寘鏋勫缓鏃剁Щ闄?console.log
+            // 构建时移除 console.log
             pure: ["console.log"],
-            // 鎵撳寘鏋勫缓鏃剁Щ闄?debugger
+            // 构建时移除 debugger
             drop: ["debugger"],
-            // 鎵撳寘鏋勫缓鏃剁Щ闄ゆ墍鏈夋敞閲?
+            // 构建时移除所有注释
             legalComments: "none"
           },
-    // 渚濊禆棰勬瀯寤?
+    // 依赖预构建
     optimizeDeps: {
       include: ["element-plus/es/components/*/style/css"]
     },
-    // CSS 鐩稿叧閰嶇疆
+    // CSS 相关配置
     css: {
-      // 绾跨▼涓繍琛?CSS 棰勫鐞嗗櫒
+      // 开启 CSS 预处理并行
       preprocessorMaxWorkers: true
     },
-    // 鎻掍欢閰嶇疆
+    // 插件配置
     plugins: [
       vue(),
-      // 鏀寔灏?SVG 鏂囦欢瀵煎叆涓?Vue 缁勪欢
+      // 支持将 SVG 导入为 Vue 组件
       svgLoader({
         defaultImport: "url",
         svgoConfig: {
@@ -124,27 +124,27 @@ export default defineConfig(({ mode }) => {
           ]
         }
       }),
-      // 鑷姩鐢熸垚 SvgIcon 缁勪欢鍜?SVG 闆ⅶ鍥?
+      // 自动生成 SvgIcon 组件与 SVG 雪碧图
       SvgComponent({
         iconDir: [resolve(__dirname, "src/common/assets/icons")],
         preserveColor: resolve(__dirname, "src/common/assets/icons/preserve-color"),
         dts: true,
         dtsDir: resolve(__dirname, "types/auto")
       }),
-      // 鍘熷瓙鍖?CSS
+      // UnoCSS 原子化样式
       UnoCSS(),
-      // 鑷姩鎸夐渶瀵煎叆 API
+      // 自动按需导入 API
       AutoImport({
         imports: ["vue", "vue-router", "pinia"],
         dts: "types/auto/auto-imports.d.ts",
         resolvers: [ElementPlusResolver()]
       }),
-      // 鑷姩鎸夐渶瀵煎叆缁勪欢
+      // 自动按需导入组件
       Components({
         dts: "types/auto/components.d.ts",
         resolvers: [ElementPlusResolver()]
       }),
-      // 涓洪」鐩紑鍚?MCP Server
+      // 为项目开启 MCP Server
       VueMcp()
     ],
     // Configuring Vitest: https://cn.vitest.dev/config

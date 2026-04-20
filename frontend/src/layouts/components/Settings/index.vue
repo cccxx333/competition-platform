@@ -13,7 +13,7 @@ const isLeft = { value: true }
 
 const settingsStore = useSettingsStore()
 
-// 浣跨敤 storeToRefs 灏嗘彁鍙栫殑灞炴€т繚鎸佸叾鍝嶅簲鎬?
+// 使用 storeToRefs 保持提取属性的响应性
 const {
   showTagsView,
   showLogo,
@@ -45,12 +45,12 @@ const switchSettings = {
   "Show Color Weakness": showColorWeakness
 }
 
-// 闈炲乏渚фā寮忔椂锛孒eader 閮芥槸 fixed 甯冨眬
+// 非左侧布局模式时，Header 始终固定
 watchEffect(() => {
   !isLeft.value && (fixedHeader.value = true)
 })
 
-/** 閲嶇疆椤圭洰閰嶇疆 */
+/** 重置项目布局配置 */
 function resetLayoutsConfig() {
   removeLayoutsConfig()
   location.reload()

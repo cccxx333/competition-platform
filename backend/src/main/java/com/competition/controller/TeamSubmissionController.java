@@ -4,6 +4,7 @@ import com.competition.dto.TeamSubmissionResponse;
 import com.competition.service.TeamSubmissionService;
 import com.competition.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ public class TeamSubmissionController {
     private final TeamSubmissionService teamSubmissionService;
     private final JwtUtils jwtUtils;
 
-    @PostMapping("/{teamId:\\d+}/submissions")
+    @PostMapping(value = "/{teamId:\\d+}/submissions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<TeamSubmissionResponse> createSubmission(
             HttpServletRequest request,
             @PathVariable Long teamId,

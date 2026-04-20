@@ -187,6 +187,8 @@ public class TeamDiscussionPostService {
         response.setId(post.getId());
         response.setTeamId(post.getTeam() != null ? post.getTeam().getId() : null);
         response.setAuthorId(post.getAuthor() != null ? post.getAuthor().getId() : null);
+        response.setAuthorRealName(post.getAuthor() != null ? post.getAuthor().getRealName() : null);
+        response.setAuthorUsername(post.getAuthor() != null ? post.getAuthor().getUsername() : null);
         response.setParentPostId(post.getParentPost() != null ? post.getParentPost().getId() : null);
         response.setContent(post.getContent());
         response.setCreatedAt(post.getCreatedAt());

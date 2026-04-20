@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import javax.validation.ConstraintViolationException;
 import java.io.IOException;
@@ -90,10 +91,17 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse("CONSTRAINT_ERROR", e.getMessage()));
     }
 
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(new ErrorResponse("BUSINESS_ERROR", "文件过大，超出上传大小限制"));
+    }
+
     @ExceptionHandler(MultipartException.class)
     public ResponseEntity<ErrorResponse> handleMultipartException(MultipartException e) {
+        log.warn("multipart exception: {}", e.getMessage());
         return ResponseEntity.badRequest()
-                .body(new ErrorResponse("BUSINESS_ERROR", "Current request is not a multipart request"));
+                .body(new ErrorResponse("BUSINESS_ERROR", "上传失败，请检查文件后重试"));
     }
 
     @ExceptionHandler(MissingServletRequestPartException.class)

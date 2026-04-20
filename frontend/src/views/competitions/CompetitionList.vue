@@ -53,6 +53,8 @@ const filters = reactive({
 
 const sourceMode = ref<"list" | "algorithm">("list")
 const topK = ref(10)
+const fallbackNotice = ref("")
+const FALLBACK_NOTICE_TEXT = "当前推荐基于通用策略，补全技能信息后将优先展示更匹配的竞赛。"
 
 const pagination = reactive({
   page: 0,
@@ -135,6 +137,7 @@ const sortRows = (data: RecommendationRow[]) => {
 const fetchList = async () => {
   loading.value = true
   errorMessage.value = ""
+  fallbackNotice.value = ""
   try {
     if (sourceMode.value === "algorithm") {
       const { items: data } = await listCompetitions({
@@ -143,19 +146,44 @@ const fetchList = async () => {
         page: 0,
         size: topK.value
       })
-      rows.value = sortRows(
-        data.map((item) => ({
+      if (data.length > 0) {
+        const hasFallbackFlag = data.some((item) => item.fallbackApplied === true)
+        const hasPersonalizedScore = data.some((item) => typeof item.matchScore === "number")
+        const hasRecommendReason = data.some((item) => Boolean(item.recommendReason))
+        rows.value = sortRows(
+          data.map((item) => ({
+            id: item.id,
+            name: item.name,
+            status: item.status,
+            startDate: item.startDate,
+            endDate: item.endDate,
+            organizer: item.organizer,
+            score: typeof item.matchScore === "number" ? item.matchScore : undefined,
+            reason: item.recommendReason,
+            source: "algorithm"
+          }))
+        )
+        if (hasFallbackFlag || (!hasPersonalizedScore && !hasRecommendReason)) {
+          fallbackNotice.value = FALLBACK_NOTICE_TEXT
+        }
+      } else {
+        const { items: fallbackData } = await listCompetitions({
+          page: 0,
+          size: topK.value
+        })
+        rows.value = fallbackData.map((item) => ({
           id: item.id,
           name: item.name,
           status: item.status,
           startDate: item.startDate,
           endDate: item.endDate,
           organizer: item.organizer,
-          score: item.matchScore,
-          reason: item.recommendReason,
-          source: "algorithm"
+          source: "list"
         }))
-      )
+        if (rows.value.length > 0) {
+          fallbackNotice.value = FALLBACK_NOTICE_TEXT
+        }
+      }
       total.value = null
     } else {
       const params: CompetitionListParams = {
@@ -183,10 +211,12 @@ const fetchList = async () => {
       if (typeof size === "number" && size !== pagination.size) {
         pagination.size = size
       }
+      fallbackNotice.value = ""
     }
   } catch (error: any) {
     rows.value = []
     total.value = null
+    fallbackNotice.value = ""
     errorMessage.value = showRequestError(error, "加载竞赛失败")
   } finally {
     loading.value = false
@@ -532,6 +562,13 @@ onBeforeUnmount(() => {
         title="算法模式仅使用推荐数量，关键词和状态不可用。"
         style="margin-bottom: 12px"
       />
+      <el-alert
+        v-if="sourceMode === 'algorithm' && fallbackNotice"
+        type="info"
+        :closable="false"
+        :title="fallbackNotice"
+        style="margin-bottom: 12px"
+      />
 
       <el-alert
         v-if="errorMessage"
@@ -563,8 +600,8 @@ onBeforeUnmount(() => {
         <el-table-column prop="organizer" label="主办方" min-width="180" />
         <el-table-column label="推荐信息" min-width="220">
           <template #default="{ row }">
-            <div v-if="row.score !== undefined || row.reason">
-              <div v-if="row.score !== undefined">匹配分：{{ row.score.toFixed(3) }}</div>
+            <div v-if="typeof row.score === 'number' || row.reason">
+              <div v-if="typeof row.score === 'number'">匹配分：{{ row.score.toFixed(3) }}</div>
               <div v-if="row.reason">原因：{{ row.reason }}</div>
             </div>
             <span v-else>-</span>

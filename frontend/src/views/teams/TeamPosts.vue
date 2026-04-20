@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { createTeamPost, listTeamPosts, type TeamDiscussionPost } from "@/api/discussions"
 import { getApiErrorMessage } from "@/utils/errorMessage"
@@ -35,6 +35,28 @@ const formatDateTime = (value?: string | null) => {
     return `${date} ${time.slice(0, 5)}`
   }
   return value
+}
+
+const pickFirstText = (values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim()
+  }
+  return ""
+}
+
+const getPostAuthorName = (post: TeamDiscussionPost) => {
+  const author = (post["author"] as Record<string, unknown> | undefined) ?? {}
+  const name = pickFirstText([
+    post["authorRealName"],
+    post["authorName"],
+    post["authorUsername"],
+    post["realName"],
+    post["username"],
+    author.realName,
+    author.username
+  ])
+  if (name) return name
+  return post.authorId ? `用户#${post.authorId}` : "-"
 }
 
 const getFallbackMessage = (status?: number) => {
@@ -177,6 +199,11 @@ onMounted(loadPosts)
           </template>
         
         </el-table-column>
+        <el-table-column label="发帖人" width="160">
+          <template #default="{ row }">
+            {{ getPostAuthorName(row) }}
+          </template>
+        </el-table-column>
         <el-table-column label="内容">
           <template #default="{ row }">
             <span class="post-content">{{ row.content || "-" }}</span>
@@ -184,7 +211,7 @@ onMounted(loadPosts)
         </el-table-column>
         <el-table-column label="操作" width="140">
           <template #default="{ row }">
-            <el-button size="small" @click="openThread(row.id)">查看线程</el-button>
+            <el-button size="small" @click="openThread(row.id)">查看详情</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -241,3 +268,4 @@ onMounted(loadPosts)
   word-break: break-word;
 }
 </style>
+

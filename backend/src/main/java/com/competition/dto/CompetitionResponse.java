@@ -25,4 +25,6 @@ public class CompetitionResponse {
     private Double matchScore;
     private Boolean recommend;
     private String recommendReason;
+    private Boolean fallbackApplied;
+    private String fallbackReason;
 }

@@ -18,6 +18,7 @@
     "baseUrl": ".",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "ignoreDeprecations": "6.0",
     // 非相对模块导入的路径映射配置，根据 baseUrl 配置进行路径计算，与 vite.config 中 alias 配置同步
     "paths": {
       "@/*": ["src/*"],
@@ -25,8 +26,6 @@
     },
     "resolveJsonModule": true,
     "types": ["vite/client", "element-plus/global"],
-    // 允许导入 .ts .mts .tsx 拓展名的文件
-    "allowImportingTsExtensions": true,
     // 允许 JS
     "allowJs": true,
     // TS 严格模式

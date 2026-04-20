@@ -1,5 +1,4 @@
 import { client } from "@/api/client"
-import { getApiProxyTarget } from "@/utils/env"
 
 export type TeamSubmission = {
   id?: number
@@ -34,12 +33,9 @@ const toError = (error: any, fallback: string) => {
 
 export async function uploadSubmission(params: { teamId: number; file: File; remark?: string }): Promise<TeamSubmission> {
   try {
-    const form = new FormData()
-    form.append("file", params.file)
-    if (params.remark?.trim()) {
-      form.append("remark", params.remark.trim())
-    }
-    const response = await client.post(`/teams/${params.teamId}/submissions`, form)
+    const payload: Record<string, string | Blob> = { file: params.file }
+    if (params.remark?.trim()) payload.remark = params.remark.trim()
+    const response = await client.postForm(`/teams/${params.teamId}/submissions`, payload)
     return unwrapData<TeamSubmission>(response?.data)
   } catch (error: any) {
     throw toError(error, "Failed to upload submission")
@@ -55,10 +51,3 @@ export async function listSubmissions(teamId: number): Promise<TeamSubmission[]>
   }
 }
 
-export const getSubmissionDownloadUrl = (item?: TeamSubmission | null): string => {
-  const fileUrl = item?.fileUrl
-  if (!fileUrl) return ""
-  if (/^https?:\/\//i.test(fileUrl)) return fileUrl
-  const base = import.meta.env.DEV ? getApiProxyTarget() : window.location.origin
-  return new URL(fileUrl, base).toString()
-}

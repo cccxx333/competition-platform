@@ -7,25 +7,25 @@ import { useRouteListener } from "@@/composables/useRouteListener"
 import { DeviceEnum } from "@@/constants/app-key"
 import { useAppStore } from "@/pinia/stores/app"
 
-/** 鍙傝€?Bootstrap 鐨勫搷搴斿紡璁捐灏嗘渶澶хЩ鍔ㄧ瀹藉害璁剧疆涓?992 */
+/** 参考 Bootstrap 响应式断点，移动端宽度阈值设为 992 */
 const MAX_MOBILE_WIDTH = 992
 
 /**
- * @name 娴忚鍣ㄥ搴﹀彉鍖?Composable
- * @description 鏍规嵁娴忚鍣ㄥ搴﹀彉鍖栵紝鍙樻崲 Layout 甯冨眬
+ * @name 浏览器宽度变化 Composable
+ * @description 根据浏览器宽度变化切换布局状态
  */
 export function useResize() {
   const appStore = useAppStore()
 
   const { listenerRouteChange } = useRouteListener()
 
-  // 鐢ㄤ簬鍒ゆ柇褰撳墠璁惧鏄惁涓虹Щ鍔ㄧ
+  // 判断当前设备是否为移动端
   const isMobile = () => {
     const rect = document.body.getBoundingClientRect()
     return rect.width - 1 < MAX_MOBILE_WIDTH
   }
 
-  // 鐢ㄤ簬澶勭悊绐楀彛澶у皬鍙樺寲浜嬩欢
+  // 处理窗口尺寸变化
   const resizeHandler = () => {
     if (!document.hidden) {
       const _isMobile = isMobile()
@@ -34,19 +34,19 @@ export function useResize() {
     }
   }
 
-  // 鐩戝惉璺敱鍙樺寲锛屾牴鎹澶囩被鍨嬭皟鏁村竷灞€
+  // 监听路由变化，在移动端自动关闭侧边栏
   listenerRouteChange(() => {
     if (appStore.device === DeviceEnum.Mobile && appStore.sidebar.opened) {
       appStore.closeSidebar(false)
     }
   })
 
-  // 鍦ㄧ粍浠舵寕杞藉墠娣诲姞绐楀彛澶у皬鍙樺寲浜嬩欢鐩戝惉鍣?
+  // 挂载前注册 resize 监听
   onBeforeMount(() => {
     window.addEventListener("resize", resizeHandler)
   })
 
-  // 鍦ㄧ粍浠舵寕杞藉悗鏍规嵁绐楀彛澶у皬鍒ゆ柇璁惧绫诲瀷骞惰皟鏁村竷灞€
+  // 挂载后根据当前窗口宽度初始化设备类型
   onMounted(() => {
     if (isMobile()) {
       appStore.toggleDevice(DeviceEnum.Mobile)
@@ -54,7 +54,7 @@ export function useResize() {
     }
   })
 
-  // 鍦ㄧ粍浠跺嵏杞藉墠绉婚櫎绐楀彛澶у皬鍙樺寲浜嬩欢鐩戝惉鍣?
+  // 卸载前移除 resize 监听
   onBeforeUnmount(() => {
     window.removeEventListener("resize", resizeHandler)
   })

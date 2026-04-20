@@ -28,7 +28,7 @@ const settingsStore = useSettingsStore()
 
 const { showNotify, showThemeSwitch, showScreenfull, showSearchMenu } = storeToRefs(settingsStore)
 
-/** 鍒囨崲渚ц竟鏍?*/
+/** 切换侧边栏 */
 function toggleSidebar() {
   appStore.toggleSidebar(false)
 }
@@ -67,7 +67,7 @@ function logout() {
               <el-dropdown-item>Gitee</el-dropdown-item>
             </a>
             <el-dropdown-item divided @click="logout">
-              閫€鍑虹櫥褰?
+              退出登录
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -95,14 +95,14 @@ function logout() {
   }
   .breadcrumb {
     flex: 1;
-    // 鍙傝€?Bootstrap 鐨勫搷搴斿紡璁捐灏嗗搴﹁缃负 576
+    // 参考 Bootstrap 响应式断点，宽度小于 576 时隐藏
     @media screen and (max-width: 576px) {
       display: none;
     }
   }
   .sidebar {
     flex: 1;
-    // 璁剧疆 min-width 鏄负浜嗚 Sidebar 閲岀殑 el-menu 瀹藉害鑷€傚簲
+    // 设定 min-width 让 Sidebar 内 el-menu 可自适应收缩
     min-width: 0px;
     :deep(.el-menu) {
       background-color: transparent;

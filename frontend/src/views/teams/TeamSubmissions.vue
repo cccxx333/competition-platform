@@ -2,7 +2,7 @@
 import { ElMessage } from "element-plus"
 import { client } from "@/api/client"
 import { getTeamDetail, type TeamDto } from "@/api/teams"
-import { getSubmissionDownloadUrl, listSubmissions, uploadSubmission, type TeamSubmission } from "@/api/submissions"
+import { listSubmissions, uploadSubmission, type TeamSubmission } from "@/api/submissions"
 import { getApiErrorMessage } from "@/utils/errorMessage"
 import { getTeamWriteBlockReason, isDisbanded } from "@/utils/teamGuards"
 
@@ -101,20 +101,6 @@ const handleFileChange = (event: Event) => {
 
 const clearFile = () => {
   selectedFile.value = null
-}
-
-const copyLink = async (item: TeamSubmission) => {
-  const url = getSubmissionDownloadUrl(item)
-  if (!url) {
-    ElMessage.warning("文件链接不可用")
-    return
-  }
-  try {
-    await navigator.clipboard.writeText(url)
-    ElMessage.success("链接已复制")
-  } catch (error) {
-    ElMessage.error("复制失败，请手动复制")
-  }
 }
 
 const downloadFile = async (item: TeamSubmission) => {
@@ -272,7 +258,6 @@ onMounted(loadSubmissions)
         <el-table-column label="操作" width="180">
           <template #default="{ row }">
             <el-button size="small" @click="downloadFile(row)">下载</el-button>
-            <el-button size="small" title="需登录态访问" @click="copyLink(row)">复制链接</el-button>
           </template>
         </el-table-column>
       </el-table>

@@ -55,7 +55,7 @@ public class TeamService {
     @Transactional(readOnly = true)
     public Team getTeamById(Long id) {
         return teamRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("闃熶紞涓嶅瓨鍦�"));
+                .orElseThrow(() -> new RuntimeException("队伍不存在"));
     }
 
     @Transactional(readOnly = true)
@@ -85,7 +85,7 @@ public class TeamService {
 
     public TeamDTO createTeam(Long userId, TeamDTO teamDTO) {
         User leader = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("鐢ㄦ埛涓嶅瓨鍦�"));
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
 
         Team team = new Team();
         team.setName(teamDTO.getName());
@@ -163,14 +163,14 @@ public class TeamService {
 
     public void leaveTeam(Long userId, Long teamId) {
         TeamMember member = teamMemberRepository.findByTeamIdAndUserId(teamId, userId)
-                .orElseThrow(() -> new RuntimeException("鎮ㄤ笉鏄闃熶紞鎴愬憳"));
+                .orElseThrow(() -> new RuntimeException("您不是该队伍成员"));
 
         Team team = member.getTeam();
         if (team.getStatus() == Team.TeamStatus.DISBANDED) {
             throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
         }
         if (team.getLeader() != null && team.getLeader().getId().equals(userId)) {
-            throw new RuntimeException("闃熼暱涓嶈兘绂诲紑闃熶紞锛岃鍏堣浆璁╅槦闀挎垨瑙ｆ暎闃熶紞");
+            throw new RuntimeException("队长不能离开队伍，请先转让队长或解散队伍");
         }
 
         teamMemberRepository.delete(member);

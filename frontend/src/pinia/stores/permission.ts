@@ -31,24 +31,24 @@ function filterDynamicRoutes(routes: RouteRecordRaw[], roles: string[]) {
 const dynamicRoutes: RouteRecordRaw[] = []
 
 export const usePermissionStore = defineStore("permission", () => {
-  // 鍙闂殑璺敱
+  // 可访问路由
   const routes = ref<RouteRecordRaw[]>([])
 
-  // 鏈夎闂潈闄愮殑鍔ㄦ€佽矾鐢?
+  // 有访问权限的动态路由
   const addRoutes = ref<RouteRecordRaw[]>([])
 
-  // 鏍规嵁瑙掕壊鐢熸垚鍙闂殑 Routes锛堝彲璁块棶鐨勮矾鐢?= 甯搁┗璺敱 + 鏈夎闂潈闄愮殑鍔ㄦ€佽矾鐢憋級
+  // 根据角色生成可访问 Routes（常量路由 + 有权限的动态路由）
   const setRoutes = (roles: string[]) => {
     const accessedRoutes = filterDynamicRoutes(dynamicRoutes, roles)
     set(accessedRoutes)
   }
 
-  // 鎵€鏈夎矾鐢?= 鎵€鏈夊父椹昏矾鐢?+ 鎵€鏈夊姩鎬佽矾鐢?
+  // 所有路由 = 常量路由 + 全部动态路由
   const setAllRoutes = () => {
     set(dynamicRoutes)
   }
 
-  // 缁熶竴璁剧疆
+  // 统一设置 routes 与 addRoutes
   const set = (accessedRoutes: RouteRecordRaw[]) => {
     routes.value = constantRoutes.concat(accessedRoutes)
     addRoutes.value = routerConfig.thirdLevelRouteCache ? flatMultiLevelRoutes(accessedRoutes) : accessedRoutes
@@ -58,8 +58,8 @@ export const usePermissionStore = defineStore("permission", () => {
 })
 
 /**
- * @description 鍦?SPA 搴旂敤涓彲鐢ㄤ簬鍦?pinia 瀹炰緥琚縺娲诲墠浣跨敤 store
- * @description 鍦?SSR 搴旂敤涓彲鐢ㄤ簬鍦?setup 澶栦娇鐢?store
+ * @description 在 SPA 中可用于 pinia 实例激活前访问 store
+ * @description 在 SSR 中可用于 setup 外访问 store
  */
 export function usePermissionStoreOutside() {
   return usePermissionStore(pinia)
