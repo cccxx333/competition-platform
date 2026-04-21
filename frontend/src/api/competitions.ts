@@ -61,6 +61,10 @@ export type CompetitionCreatePayload = {
   minTeamSize: number
   maxTeamSize: number
   description?: string
+  requiredSkills?: Array<{
+    skillId: number
+    importance?: number
+  }>
 }
 
 export type ApplyableCompetitionItem = {

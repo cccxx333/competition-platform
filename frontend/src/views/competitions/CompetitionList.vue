@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { createCompetition, listCompetitions, type CompetitionCreatePayload, type CompetitionListItem, type CompetitionListParams } from "@/api/competitions"
+import { listSkills, type Skill } from "@/api/skills"
 import StatusTag from "@@/components/StatusTag/index.vue"
 import { useAuthStore } from "@/stores/auth"
 
@@ -32,6 +33,9 @@ const isApplying = ref(false)
 const createDialogVisible = ref(false)
 const createDialogLoading = ref(false)
 const createDialogError = ref("")
+const skillsLoading = ref(false)
+const allSkills = ref<Skill[]>([])
+const requiredSkillRows = ref<Array<{ skillId: number | null; importance: number }>>([{ skillId: null, importance: 3 }])
 const createForm = ref({
   name: "",
   organizer: "",
@@ -43,6 +47,9 @@ const createForm = ref({
   maxTeamSize: 1,
   description: ""
 })
+const selectedRequiredSkillIds = computed(
+  () => new Set(requiredSkillRows.value.map((row) => row.skillId).filter((id): id is number => typeof id === "number"))
+)
 
 type StatusFilterValue = "" | "UPCOMING" | "ONGOING" | "FINISHED"
 
@@ -271,6 +278,7 @@ const formatDate = (value?: string | null) => {
 
 const openCreateDialog = () => {
   createDialogError.value = ""
+  requiredSkillRows.value = [{ skillId: null, importance: 3 }]
   createForm.value = {
     name: "",
     organizer: "",
@@ -283,12 +291,35 @@ const openCreateDialog = () => {
     description: ""
   }
   createDialogVisible.value = true
+  loadSkillsForCreate()
 }
 
 const closeCreateDialog = () => {
   if (createDialogLoading.value) return
   createDialogVisible.value = false
   createDialogError.value = ""
+}
+
+const loadSkillsForCreate = async () => {
+  if (skillsLoading.value || allSkills.value.length > 0) return
+  skillsLoading.value = true
+  try {
+    allSkills.value = await listSkills()
+  } catch (error: any) {
+    createDialogError.value = error?.message || "加载技能列表失败"
+  } finally {
+    skillsLoading.value = false
+  }
+}
+
+const addRequiredSkillRow = () => {
+  if (requiredSkillRows.value.length >= 8) return
+  requiredSkillRows.value.push({ skillId: null, importance: 3 })
+}
+
+const removeRequiredSkillRow = (index: number) => {
+  if (requiredSkillRows.value.length <= 1) return
+  requiredSkillRows.value.splice(index, 1)
 }
 
 const submitCreate = async () => {
@@ -318,6 +349,17 @@ const submitCreate = async () => {
     createDialogError.value = "最大队伍人数需大于等于最小队伍人数"
     return
   }
+  const requiredSkills = requiredSkillRows.value
+    .filter((row) => typeof row.skillId === "number")
+    .map((row) => ({
+      skillId: row.skillId as number,
+      importance: Number.isFinite(row.importance) && row.importance > 0 ? row.importance : 1
+    }))
+  if (!requiredSkills.length) {
+    createDialogError.value = "请至少添加一个竞赛技能需求"
+    return
+  }
+
   const payload: CompetitionCreatePayload = {
     name,
     organizer: form.organizer.trim() || undefined,
@@ -327,7 +369,8 @@ const submitCreate = async () => {
     registrationDeadline: form.registrationDeadline,
     minTeamSize: form.minTeamSize,
     maxTeamSize: form.maxTeamSize,
-    description: form.description.trim() || undefined
+    description: form.description.trim() || undefined,
+    requiredSkills
   }
   createDialogLoading.value = true
   createDialogError.value = ""
@@ -496,15 +539,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="page-container">
-
     <div class="page-header">
-        <h2>竞赛列表</h2>
-        <el-button v-if="isAdmin" type="primary" size="default" @click="openCreateDialog">发布竞赛</el-button>
-      </div>
+      <h2>竞赛列表</h2>
+      <el-button v-if="isAdmin" type="primary" size="default" @click="openCreateDialog">发布竞赛</el-button>
+    </div>
 
-  <el-card shadow="never" v-loading="loading" class="competition-list-page">
-    
-
+    <el-card shadow="never" v-loading="loading" class="competition-list-page">
       <el-form class="filter-bar" label-position="top" label-width="120px">
         <el-row :gutter="12">
           <el-col :span="isTeacher ? 24 : 16">
@@ -539,6 +579,7 @@ onBeforeUnmount(() => {
               </el-form-item>
             </div>
           </el-col>
+
           <el-col v-if="!isTeacher && !isAdmin" :span="8" class="filter-right">
             <div class="filter-right__inner">
               <el-form-item v-if="sourceMode === 'algorithm'" label="推荐数量">
@@ -629,13 +670,14 @@ onBeforeUnmount(() => {
     <el-dialog
       v-model="createDialogVisible"
       title="发布竞赛"
-      width="560px"
+      width="760px"
+      class="create-competition-dialog"
       append-to-body
-      top="12vh"
+      top="6vh"
       :close-on-click-modal="false"
       :before-close="closeCreateDialog"
     >
-      <el-form label-position="top">
+      <el-form label-position="top" class="create-form-grid">
         <el-form-item label="竞赛名称">
           <el-input v-model="createForm.name" placeholder="请输入竞赛名称" />
         </el-form-item>
@@ -652,13 +694,53 @@ onBeforeUnmount(() => {
           <el-date-picker v-model="createForm.endDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择结束日期" />
         </el-form-item>
         <el-form-item label="报名截止">
-          <el-date-picker v-model="createForm.registrationDeadline" type="date" value-format="YYYY-MM-DD" placeholder="请选择报名截止日期" />
+          <el-date-picker
+            v-model="createForm.registrationDeadline"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="请选择报名截止日期"
+          />
         </el-form-item>
         <el-form-item label="最小队伍人数">
           <el-input-number v-model="createForm.minTeamSize" :min="1" :controls="true" />
         </el-form-item>
         <el-form-item label="最大队伍人数">
           <el-input-number v-model="createForm.maxTeamSize" :min="1" :controls="true" />
+        </el-form-item>
+        <el-form-item label="竞赛技能需求" class="required-skills-item">
+          <div class="required-skills-editor">
+            <div
+              v-for="(row, index) in requiredSkillRows"
+              :key="`required-skill-${index}`"
+              class="required-skill-row"
+            >
+              <el-select
+                v-model="row.skillId"
+                filterable
+                clearable
+                placeholder="请选择技能"
+                :loading="skillsLoading"
+                :disabled="skillsLoading"
+                class="required-skill-select"
+              >
+                <el-option
+                  v-for="s in allSkills"
+                  :key="`skill-${s.id}`"
+                  :label="s.name || `ID:${s.id}`"
+                  :value="s.id"
+                  :disabled="typeof s.id === 'number' && row.skillId !== s.id && selectedRequiredSkillIds.has(s.id)"
+                />
+              </el-select>
+              <el-input-number v-model="row.importance" :min="1" :max="10" class="required-skill-weight" />
+              <el-button :disabled="requiredSkillRows.length <= 1" @click="removeRequiredSkillRow(index)">删除</el-button>
+            </div>
+            <div class="required-skill-actions">
+              <el-button type="primary" plain :disabled="requiredSkillRows.length >= 8" @click="addRequiredSkillRow">
+                添加技能
+              </el-button>
+              <span class="skills-inline-hint">至少 1 项，最多 8 项</span>
+            </div>
+          </div>
         </el-form-item>
         <el-form-item label="竞赛说明">
           <el-input v-model="createForm.description" type="textarea" :rows="3" placeholder="请输入竞赛说明（可选）" />
@@ -670,8 +752,8 @@ onBeforeUnmount(() => {
         <el-button type="primary" :loading="createDialogLoading" @click="submitCreate">发布</el-button>
       </template>
     </el-dialog>
-  </div></template>
-
+  </div>
+</template>
 <style scoped>
 .page-header {
   display: flex;
@@ -737,4 +819,52 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: flex-end;
 }
+
+.create-form-grid {
+  max-height: calc(76vh - 120px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.required-skills-item :deep(.el-form-item__content) {
+  display: block;
+}
+
+.required-skills-editor {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.required-skill-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px 88px;
+  gap: 8px;
+  align-items: center;
+}
+
+.required-skill-select,
+.required-skill-weight {
+  width: 100%;
+}
+
+.required-skill-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.skills-inline-hint {
+  color: #909399;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .required-skill-row {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
+
+

@@ -1,16 +1,19 @@
 package com.competition.service;
 
 import com.competition.dto.CompetitionCreateRequest;
+import com.competition.dto.CompetitionRequiredSkillDTO;
 import com.competition.dto.CompetitionResponse;
 import com.competition.dto.CompetitionUpdateRequest;
 import com.competition.dto.TeamRecommendationResponse;
 import com.competition.entity.Competition;
 import com.competition.entity.CompetitionSkill;
+import com.competition.entity.Skill;
 import com.competition.entity.Team;
 import com.competition.entity.User;
 import com.competition.exception.ApiException;
 import com.competition.repository.CompetitionRepository;
 import com.competition.repository.CompetitionSkillRepository;
+import com.competition.repository.SkillRepository;
 import com.competition.repository.TeamRepository;
 import com.competition.repository.UserRepository;
 import com.competition.utils.JwtUtils;
@@ -28,6 +31,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +47,7 @@ public class CompetitionService {
 
     private final CompetitionRepository competitionRepository;
     private final CompetitionSkillRepository competitionSkillRepository;
+    private final SkillRepository skillRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final RecommendationService recommendationService;
@@ -66,16 +71,52 @@ public class CompetitionService {
         Competition savedCompetition = competitionRepository.save(competition);
 
         // 保存竞赛技能需求
-        if (competition.getCompetitionSkills() != null) {
-            for (CompetitionSkill skill : competition.getCompetitionSkills()) {
-                skill.setCompetition(savedCompetition);
-                competitionSkillRepository.save(skill);
-            }
+        List<CompetitionSkill> requiredSkills = buildCompetitionSkills(request, savedCompetition);
+        if (!requiredSkills.isEmpty()) {
+            competitionSkillRepository.saveAll(requiredSkills);
         }
 
         return convertToResponse(savedCompetition);
     }
 
+    private List<CompetitionSkill> buildCompetitionSkills(CompetitionCreateRequest request, Competition competition) {
+        if (request == null || request.getRequiredSkills() == null || request.getRequiredSkills().isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, Integer> skillImportanceMap = new HashMap<>();
+        for (CompetitionRequiredSkillDTO dto : request.getRequiredSkills()) {
+            if (dto == null || dto.getSkillId() == null) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "requiredSkills.skillId is required");
+            }
+            int importance = dto.getImportance() != null ? dto.getImportance() : 1;
+            if (importance <= 0) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "requiredSkills.importance must be positive");
+            }
+            skillImportanceMap.merge(dto.getSkillId(), importance, Integer::max);
+        }
+
+        List<Long> skillIds = new ArrayList<>(skillImportanceMap.keySet());
+        List<Skill> skills = skillRepository.findByIdIn(skillIds);
+        if (skills.size() != skillIds.size()) {
+            Set<Long> foundIds = skills.stream().map(Skill::getId).collect(Collectors.toSet());
+            List<Long> missing = skillIds.stream()
+                    .filter(id -> !foundIds.contains(id))
+                    .sorted()
+                    .collect(Collectors.toList());
+            throw new ApiException(HttpStatus.NOT_FOUND, "skills not found: " + missing);
+        }
+
+        List<CompetitionSkill> competitionSkills = new ArrayList<>();
+        for (Skill skill : skills) {
+            CompetitionSkill competitionSkill = new CompetitionSkill();
+            competitionSkill.setCompetition(competition);
+            competitionSkill.setSkill(skill);
+            competitionSkill.setImportance(skillImportanceMap.getOrDefault(skill.getId(), 1));
+            competitionSkills.add(competitionSkill);
+        }
+        return competitionSkills;
+    }
     /**
      * 获取可用竞赛
      */

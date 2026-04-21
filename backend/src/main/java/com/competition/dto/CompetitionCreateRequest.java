@@ -2,7 +2,9 @@ package com.competition.dto;
 
 import com.competition.entity.Competition;
 import lombok.Data;
+
 import java.time.LocalDate;
+import java.util.List;
 import javax.validation.constraints.NotBlank;
 
 @Data
@@ -20,4 +22,5 @@ public class CompetitionCreateRequest {
     private String level;
     private Competition.CompetitionStatus status;
     private Long createdById;
+    private List<CompetitionRequiredSkillDTO> requiredSkills;
 }
