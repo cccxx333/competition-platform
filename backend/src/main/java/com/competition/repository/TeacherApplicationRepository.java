@@ -8,14 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-
 @Repository
 public interface TeacherApplicationRepository extends JpaRepository<TeacherApplication, Long> {
-    boolean existsByCompetitionIdAndTeacherId(Long competitionId, Long teacherId);
-
-    Optional<TeacherApplication> findByCompetitionIdAndTeacherId(Long competitionId, Long teacherId);
-
     Page<TeacherApplication> findByTeacher_Id(Long teacherId, Pageable pageable);
 
     Page<TeacherApplication> findByTeacher_IdAndStatus(Long teacherId, TeacherApplication.Status status, Pageable pageable);

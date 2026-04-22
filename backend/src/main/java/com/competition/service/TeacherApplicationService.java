@@ -78,27 +78,6 @@ public class TeacherApplicationService {
             throw new ApiException(HttpStatus.CONFLICT, "registration deadline passed");
         }
 
-        TeacherApplication existing = teacherApplicationRepository
-                .findByCompetitionIdAndTeacherId(competition.getId(), teacher.getId())
-                .orElse(null);
-        if (existing != null) {
-            if (existing.getStatus() == TeacherApplication.Status.PENDING
-                    || existing.getStatus() == TeacherApplication.Status.APPROVED) {
-                throw new ApiException(HttpStatus.CONFLICT, "application already exists");
-            }
-            if (existing.getStatus() == TeacherApplication.Status.REJECTED) {
-                existing.setStatus(TeacherApplication.Status.PENDING);
-                existing.setAppliedAt(LocalDateTime.now());
-                existing.setReviewedAt(null);
-                existing.setReviewedBy(null);
-                existing.setReviewComment(null);
-                existing.setGeneratedTeam(null);
-                applyApplicationSkills(existing, request.getSkills(), true);
-                TeacherApplication saved = teacherApplicationRepository.save(existing);
-                return toResponse(saved);
-            }
-        }
-
         TeacherApplication application = new TeacherApplication();
         application.setCompetition(competition);
         application.setTeacher(teacher);
@@ -106,7 +85,7 @@ public class TeacherApplicationService {
         application.setAppliedAt(LocalDateTime.now());
 
         TeacherApplication saved = teacherApplicationRepository.save(application);
-        applyApplicationSkills(saved, request.getSkills(), false);
+        applyApplicationSkills(saved, request.getSkills(), true);
         return toResponse(saved);
     }
 

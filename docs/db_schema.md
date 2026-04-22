@@ -162,9 +162,6 @@
 | review_comment | VARCHAR(255) | - | 审核备注或拒绝原因 |
 | generated_team_id | BIGINT | FK(teams.id) | 审核通过后生成的队伍ID |
 
-**唯一约束**
-- `uk_teacher_applications_competition_teacher (competition_id, teacher_id)`
-
 **外键**
 - `fk_teacher_applications_competition: competition_id -> competitions(id)`
 - `fk_teacher_applications_teacher: teacher_id -> users(id)`

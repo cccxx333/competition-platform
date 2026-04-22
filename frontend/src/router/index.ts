@@ -83,13 +83,13 @@ export const constantRoutes: RouteRecordRaw[] = [
         path: "teacher/applications",
         name: "TeacherApplicationList",
         component: () => import("@/views/teacher/TeacherApplicationList.vue"),
-        meta: { title: "Teacher Applications", hidden: true }
+        meta: { title: "创建队伍申请", hidden: true }
       },
       {
         path: "admin/teacher-applications",
         name: "AdminTeacherApplicationReviewList",
         component: () => import("@/views/admin/AdminTeacherApplicationReviewList.vue"),
-        meta: { title: "Teacher Applications Review", hidden: true }
+        meta: { title: "创建队伍申请审核", hidden: true }
       },
       {
         path: "admin/users",

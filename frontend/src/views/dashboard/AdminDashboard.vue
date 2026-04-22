@@ -65,7 +65,7 @@ onMounted(loadCounts)
           </div>
           <div class="stat-body">
             <div class="stat-value">{{ pendingTeacherCount }}</div>
-            <div class="stat-label">待审核教师申请</div>
+            <div class="stat-label">待审核创建队伍申请</div>
           </div>
         </div>
       </template>

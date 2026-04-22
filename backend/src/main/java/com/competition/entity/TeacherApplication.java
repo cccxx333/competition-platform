@@ -14,9 +14,7 @@ import java.util.Set;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString(onlyExplicitlyIncluded = true)
 @Entity
-@Table(name = "teacher_applications", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_teacher_applications_competition_teacher", columnNames = {"competition_id", "teacher_id"})
-})
+@Table(name = "teacher_applications")
 public class TeacherApplication {
     public enum Status {
         PENDING, APPROVED, REJECTED

@@ -92,7 +92,7 @@ export async function createTeacherApplication(
     })
     return unwrapData<TeacherApplicationItem>(response?.data)
   } catch (error: any) {
-    throw toError(error, "Failed to submit teacher application")
+    throw toError(error, "Failed to submit team-creation application")
   }
 }
 
@@ -101,7 +101,7 @@ export async function listMyTeacherApplications(params: TeacherApplicationListPa
     const response = await client.get("/teacher-applications", { params })
     return unwrapData<TeacherApplicationItem[]>(response?.data) ?? []
   } catch (error: any) {
-    throw toError(error, "Failed to load teacher applications")
+    throw toError(error, "Failed to load team-creation applications")
   }
 }
 
@@ -120,7 +120,7 @@ export async function listMyTeacherApplicationPage(params: {
     const totalPages = Array.isArray(payload) ? undefined : payload?.totalPages
     return { items, total, page, size, totalPages }
   } catch (error: any) {
-    throw toError(error, "Failed to load teacher applications")
+    throw toError(error, "Failed to load team-creation applications")
   }
 }
 
@@ -129,7 +129,7 @@ export async function adminListTeacherApplications(params: TeacherApplicationLis
     const response = await client.get("/admin/teacher-applications", { params })
     return unwrapData<TeacherApplicationItem[]>(response?.data) ?? []
   } catch (error: any) {
-    throw toError(error, "Failed to load admin applications")
+    throw toError(error, "Failed to load team-creation applications")
   }
 }
 

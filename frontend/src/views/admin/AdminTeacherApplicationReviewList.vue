@@ -160,7 +160,7 @@ onMounted(fetchList)
   <div class="page-container">
 
     <div class="page-header review-header">
-      <h2>教师申请审核</h2>
+      <h2>创建队伍申请审核</h2>
     </div>
 
   <el-card shadow="never" v-loading="loading" class="review-card">

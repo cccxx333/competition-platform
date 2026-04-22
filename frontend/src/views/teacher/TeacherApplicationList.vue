@@ -114,7 +114,7 @@ onMounted(fetchList)
   <div class="page-container">
 
     <div class="page-header">
-        <h2>我的教师申请</h2>
+        <h2>我的创建队伍申请</h2>
       </div>
 
   <el-card shadow="never" v-loading="loading">

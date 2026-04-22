@@ -34,6 +34,11 @@ public class DatabaseBootstrapInitializer {
             "team_awards",
             "award_recipients"
     };
+    private static final String TABLE_TEACHER_APPLICATIONS = "teacher_applications";
+    private static final String INDEX_TEACHER_APPLICATION_COMPETITION_TEACHER =
+            "uk_teacher_applications_competition_teacher";
+    private static final String INDEX_TEACHER_APPLICATION_COMPETITION_ID =
+            "idx_teacher_applications_competition_id";
     private static final String SCHEMA_SQL = "sql/schema_v3.sql";
     private static final String DATA_SQL = "sql/init.sql";
 
@@ -84,6 +89,7 @@ public class DatabaseBootstrapInitializer {
             boolean firstInit = !tableExists(connection, CHECK_TABLE);
             boolean schemaMissing = anyTableMissing(connection, REQUIRED_TABLES);
             if (!schemaMissing) {
+                migrateTeacherApplicationUniqueIndex(connection);
                 log.info("Database schema already initialized. Skip schema/data scripts.");
                 return;
             }
@@ -98,6 +104,7 @@ public class DatabaseBootstrapInitializer {
                 log.info("Database already has base data (table '{}' exists). Skip data script.", CHECK_TABLE);
             }
 
+            migrateTeacherApplicationUniqueIndex(connection);
             log.info("Database bootstrap completed successfully.");
         } catch (Exception e) {
             log.error("DB bootstrap failed.", e);
@@ -150,5 +157,59 @@ public class DatabaseBootstrapInitializer {
                 ScriptUtils.DEFAULT_BLOCK_COMMENT_START_DELIMITER,
                 ScriptUtils.DEFAULT_BLOCK_COMMENT_END_DELIMITER
         );
+    }
+
+    private void migrateTeacherApplicationUniqueIndex(Connection connection) {
+        if (!tableExists(connection, TABLE_TEACHER_APPLICATIONS)) {
+            return;
+        }
+        if (!indexExists(connection, TABLE_TEACHER_APPLICATIONS, INDEX_TEACHER_APPLICATION_COMPETITION_TEACHER)) {
+            return;
+        }
+        ensureTeacherApplicationCompetitionIndex(connection);
+
+        String dropIndexSql = "ALTER TABLE " + TABLE_TEACHER_APPLICATIONS +
+                " DROP INDEX " + INDEX_TEACHER_APPLICATION_COMPETITION_TEACHER;
+        try (PreparedStatement ps = connection.prepareStatement(dropIndexSql)) {
+            ps.executeUpdate();
+            log.info("Dropped legacy unique index '{}' on table '{}'.",
+                    INDEX_TEACHER_APPLICATION_COMPETITION_TEACHER, TABLE_TEACHER_APPLICATIONS);
+        } catch (Exception e) {
+            log.warn("Skip dropping legacy unique index '{}' on table '{}': {}",
+                    INDEX_TEACHER_APPLICATION_COMPETITION_TEACHER, TABLE_TEACHER_APPLICATIONS, e.getMessage());
+        }
+    }
+
+    private void ensureTeacherApplicationCompetitionIndex(Connection connection) {
+        if (indexExists(connection, TABLE_TEACHER_APPLICATIONS, INDEX_TEACHER_APPLICATION_COMPETITION_ID)) {
+            return;
+        }
+        String addIndexSql = "ALTER TABLE " + TABLE_TEACHER_APPLICATIONS +
+                " ADD INDEX " + INDEX_TEACHER_APPLICATION_COMPETITION_ID + " (competition_id)";
+        try (PreparedStatement ps = connection.prepareStatement(addIndexSql)) {
+            ps.executeUpdate();
+            log.info("Added index '{}' on table '{}'.",
+                    INDEX_TEACHER_APPLICATION_COMPETITION_ID, TABLE_TEACHER_APPLICATIONS);
+        } catch (Exception e) {
+            log.warn("Skip adding index '{}' on table '{}': {}",
+                    INDEX_TEACHER_APPLICATION_COMPETITION_ID, TABLE_TEACHER_APPLICATIONS, e.getMessage());
+        }
+    }
+
+    private boolean indexExists(Connection connection, String tableName, String indexName) {
+        String sql = "SELECT COUNT(*) FROM information_schema.statistics " +
+                "WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, tableName);
+            ps.setString(2, indexName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return false;
+                }
+                return rs.getInt(1) > 0;
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to check index existence: " + indexName, e);
+        }
     }
 }

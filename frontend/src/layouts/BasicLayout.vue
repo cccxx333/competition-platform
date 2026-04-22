@@ -56,11 +56,11 @@ const handleLogout = () => {
         </el-sub-menu>
         <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teacher/applications">
           <el-icon class="basic-layout__menu-icon"><Document /></el-icon>
-          <span>我的教师申请</span>
+          <span>我的创建队伍申请</span>
         </el-menu-item>
         <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/teacher-applications">
           <el-icon class="basic-layout__menu-icon"><Document /></el-icon>
-          <span>教师申请审核</span>
+          <span>创建队伍申请审核</span>
         </el-menu-item>
         <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/users">
           <el-icon class="basic-layout__menu-icon"><Setting /></el-icon>

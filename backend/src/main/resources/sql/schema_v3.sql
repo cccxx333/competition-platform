@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS teacher_applications (
     CONSTRAINT fk_teacher_applications_teacher FOREIGN KEY (teacher_id) REFERENCES users (id),
     CONSTRAINT fk_teacher_applications_reviewer FOREIGN KEY (reviewed_by) REFERENCES users (id),
     CONSTRAINT fk_teacher_applications_generated_team FOREIGN KEY (generated_team_id) REFERENCES teams (id),
-    UNIQUE KEY uk_teacher_applications_competition_teacher (competition_id, teacher_id)
+    KEY idx_teacher_applications_competition_id (competition_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS teacher_application_skills (
