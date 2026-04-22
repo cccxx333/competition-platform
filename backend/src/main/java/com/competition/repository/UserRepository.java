@@ -16,8 +16,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     boolean existsByUsername(String username);
+    boolean existsByUsernameAndIdNot(String username, Long id);
 
     boolean existsByEmail(String email);
+    boolean existsByEmailAndIdNot(String email, Long id);
 
     @Query("SELECT u FROM User u JOIN u.userSkills us WHERE us.skill.id = :skillId")
     List<User> findUsersBySkillId(@Param("skillId") Long skillId);
@@ -25,3 +27,4 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.school = :school")
     List<User> findBySchool(@Param("school") String school);
 }
+

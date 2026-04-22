@@ -4,6 +4,9 @@ import lombok.Data;
 
 @Data
 public class UserProfileUpdateRequest {
+    private String username;
+    private String displayName;
+    private String email;
     private String realName;
     private String phone;
     private String avatarUrl;
@@ -11,3 +14,4 @@ public class UserProfileUpdateRequest {
     private String major;
     private String grade;
 }
+

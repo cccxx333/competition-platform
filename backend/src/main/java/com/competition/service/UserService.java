@@ -34,23 +34,34 @@ public class UserService {
     private final SkillRepository skillRepository;
 
     /**
-     * 用户注册
+     * 鐢ㄦ埛娉ㄥ唽
      */
     public UserDTO registerUser(UserRegistrationDTO registrationDTO) {
-        // 检查用户名和邮箱是否已存在
-        if (userRepository.existsByUsername(registrationDTO.getUsername())) {
-            throw new RuntimeException("用户名已存在");
+        String username = normalize(registrationDTO.getUsername());
+        String email = normalize(registrationDTO.getEmail());
+        if (username == null) {
+            throw new RuntimeException("username is required");
+        }
+        if (email == null) {
+            throw new RuntimeException("email is required");
+        }
+        if (userRepository.existsByUsername(username)) {
+            throw new RuntimeException("username already exists");
         }
 
-        if (userRepository.existsByEmail(registrationDTO.getEmail())) {
-            throw new RuntimeException("邮箱已存在");
+        if (userRepository.existsByEmail(email)) {
+            throw new RuntimeException("email already exists");
         }
 
-        // 创建新用户
+        User.Role role = resolveRegistrationRole(registrationDTO.getRole());
+
         User user = new User();
-        user.setUsername(registrationDTO.getUsername());
-        user.setEmail(registrationDTO.getEmail());
+        user.setUsername(username);
+        user.setDisplayName(resolveDisplayName(registrationDTO.getDisplayName(), username));
+        user.setEmail(email);
         user.setPassword(passwordEncoder.encode(registrationDTO.getPassword()));
+        user.setRole(role);
+        user.setApprovalStatus(role == User.Role.TEACHER ? User.ApprovalStatus.PENDING : User.ApprovalStatus.APPROVED);
         user.setRealName(registrationDTO.getRealName());
         user.setSchool(registrationDTO.getSchool());
         user.setMajor(registrationDTO.getMajor());
@@ -60,40 +71,73 @@ public class UserService {
         User savedUser = userRepository.save(user);
         return convertToDTO(savedUser);
     }
-
     /**
-     * 用户登录
+     * 鐢ㄦ埛鐧诲綍
      */
     public String loginUser(String username, String password) {
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (!userOpt.isPresent()) {
-            throw new RuntimeException("用户不存在");
+            throw new RuntimeException("user not found");
         }
 
         User user = userOpt.get();
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("密码错误");
+            throw new RuntimeException("password incorrect");
+        }
+        if (user.getApprovalStatus() == User.ApprovalStatus.PENDING) {
+            throw new RuntimeException("教师账号待审核，请联系管理员");
+        }
+        if (user.getApprovalStatus() == User.ApprovalStatus.REJECTED) {
+            throw new RuntimeException("教师账号审核未通过，请联系管理员");
         }
 
         return jwtUtils.generateToken(user.getId(), user.getUsername());
     }
 
+    @Transactional(readOnly = true)
+    public String getUserRole(String username) {
+        return userRepository.findByUsername(username)
+                .map(User::getRole)
+                .map(Enum::name)
+                .orElse(null);
+    }
     /**
-     * 获取用户信息
+     * 鑾峰彇鐢ㄦ埛淇℃伅
      */
     @Transactional(readOnly = true)
     public UserDTO getUserById(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("用户不存在"));
+                .orElseThrow(() -> new RuntimeException("user not found"));
         return convertToDTO(user);
     }
 
     /**
-     * 更新用户信息
+     * 鏇存柊鐢ㄦ埛淇℃伅
      */
     public UserDTO updateUser(Long userId, UserDTO userDTO) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("用户不存在"));
+                .orElseThrow(() -> new RuntimeException("user not found"));
+
+        String username = normalize(userDTO.getUsername());
+        if (username != null && !username.equals(user.getUsername())) {
+            if (userRepository.existsByUsernameAndIdNot(username, userId)) {
+                throw new RuntimeException("username already exists");
+            }
+            user.setUsername(username);
+        }
+
+        String email = normalize(userDTO.getEmail());
+        if (email != null && !email.equals(user.getEmail())) {
+            if (userRepository.existsByEmailAndIdNot(email, userId)) {
+                throw new RuntimeException("email already exists");
+            }
+            user.setEmail(email);
+        }
+
+        String displayName = normalize(userDTO.getDisplayName());
+        if (displayName != null) {
+            user.setDisplayName(displayName);
+        }
 
         user.setRealName(userDTO.getRealName());
         user.setSchool(userDTO.getSchool());
@@ -105,18 +149,17 @@ public class UserService {
         User updatedUser = userRepository.save(user);
         return convertToDTO(updatedUser);
     }
-
     /**
-     * 更新用户技能
+     * 鏇存柊鐢ㄦ埛鎶€鑳?
      */
     public void updateUserSkills(Long userId, List<UserSkill> skills) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("用户不存在"));
+                .orElseThrow(() -> new RuntimeException("user not found"));
 
-        // 删除原有技能
+        // 鍒犻櫎鍘熸湁鎶€鑳?
         userSkillRepository.deleteByUserId(userId);
 
-        // 添加新技能
+        // 娣诲姞鏂版妧鑳?
         for (UserSkill skill : skills) {
             skill.setUser(user);
             userSkillRepository.save(skill);
@@ -124,11 +167,11 @@ public class UserService {
     }
 
     /**
-     * 根据技能搜索用户
+     * 鏍规嵁鎶€鑳芥悳绱㈢敤鎴?
      */
     @Transactional(readOnly = true)
     public List<UserDTO> searchUsersBySkills(List<Long> skillIds) {
-        List<User> users = userRepository.findUsersBySkillId(skillIds.get(0)); // 简化实现
+        List<User> users = userRepository.findUsersBySkillId(skillIds.get(0)); // 绠€鍖栧疄鐜?
         return users.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -146,7 +189,9 @@ public class UserService {
         dto.setId(user.getId());
         dto.setAccountNo(user.getAccountNo());
         dto.setRole(user.getRole() != null ? user.getRole().name() : null);
+        dto.setApprovalStatus(user.getApprovalStatus() != null ? user.getApprovalStatus().name() : null);
         dto.setUsername(user.getUsername());
+        dto.setDisplayName(user.getDisplayName());
         dto.setEmail(user.getEmail());
         dto.setRealName(user.getRealName());
         dto.setSchool(user.getSchool());
@@ -158,8 +203,35 @@ public class UserService {
         return dto;
     }
 
+    private User.Role resolveRegistrationRole(String roleValue) {
+        if (roleValue == null || roleValue.isBlank()) {
+            return User.Role.STUDENT;
+        }
+        try {
+            User.Role role = User.Role.valueOf(roleValue.trim().toUpperCase());
+            if (role == User.Role.ADMIN) {
+                throw new RuntimeException("invalid role");
+            }
+            return role;
+        } catch (IllegalArgumentException ex) {
+            throw new RuntimeException("invalid role");
+        }
+    }
+
+    private String resolveDisplayName(String displayName, String defaultName) {
+        String normalized = normalize(displayName);
+        return normalized != null ? normalized : defaultName;
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
     /**
-     * 获取用户技能列表
+     * 鑾峰彇鐢ㄦ埛鎶€鑳藉垪琛?
      */
     public List<UserSkillDTO> getUserSkills(Long userId) {
         List<UserSkill> userSkills = userSkillRepository.findByUserId(userId);
@@ -169,19 +241,19 @@ public class UserService {
     }
 
     /**
-     * 添加用户技能
+     * 娣诲姞鐢ㄦ埛鎶€鑳?
      */
     @Transactional
     public UserSkillDTO addUserSkill(Long userId, UserSkillCreateDTO skillData) {
-        // 检查是否已存在
+        // 妫€鏌ユ槸鍚﹀凡瀛樺湪
         if (userSkillRepository.existsByUserIdAndSkillId(userId, skillData.getSkillId())) {
-            throw new RuntimeException("您已经添加过这个技能了");
+            throw new RuntimeException("鎮ㄥ凡缁忔坊鍔犺繃杩欎釜鎶€鑳戒簡");
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("用户不存在"));
+                .orElseThrow(() -> new RuntimeException("user not found"));
         Skill skill = skillRepository.findById(skillData.getSkillId())
-                .orElseThrow(() -> new RuntimeException("技能不存在"));
+                .orElseThrow(() -> new RuntimeException("鎶€鑳戒笉瀛樺湪"));
 
         UserSkill userSkill = new UserSkill();
         userSkill.setUser(user);
@@ -189,50 +261,50 @@ public class UserService {
         userSkill.setProficiency(skillData.getProficiency());
 
         userSkill = userSkillRepository.save(userSkill);
-        log.info("用户 {} 添加技能 {} 成功", userId, skill.getName());
+        log.info("鐢ㄦ埛 {} 娣诲姞鎶€鑳?{} 鎴愬姛", userId, skill.getName());
 
         return convertToUserSkillDTO(userSkill);
     }
 
     /**
-     * 更新用户技能
+     * 鏇存柊鐢ㄦ埛鎶€鑳?
      */
     @Transactional
     public UserSkillDTO updateUserSkill(Long userSkillId, UserSkillCreateDTO skillData) {
         UserSkill userSkill = userSkillRepository.findById(userSkillId)
-                .orElseThrow(() -> new RuntimeException("用户技能不存在"));
+                .orElseThrow(() -> new RuntimeException("鐢ㄦ埛鎶€鑳戒笉瀛樺湪"));
 
-        // 如果技能ID发生变化，需要检查新技能是否已存在
+        // 濡傛灉鎶€鑳絀D鍙戠敓鍙樺寲锛岄渶瑕佹鏌ユ柊鎶€鑳芥槸鍚﹀凡瀛樺湪
         if (!userSkill.getSkill().getId().equals(skillData.getSkillId())) {
             if (userSkillRepository.existsByUserIdAndSkillId(userSkill.getUser().getId(), skillData.getSkillId())) {
-                throw new RuntimeException("您已经添加过这个技能了");
+                throw new RuntimeException("鎮ㄥ凡缁忔坊鍔犺繃杩欎釜鎶€鑳戒簡");
             }
 
             Skill newSkill = skillRepository.findById(skillData.getSkillId())
-                    .orElseThrow(() -> new RuntimeException("技能不存在"));
+                    .orElseThrow(() -> new RuntimeException("鎶€鑳戒笉瀛樺湪"));
             userSkill.setSkill(newSkill);
         }
 
         userSkill.setProficiency(skillData.getProficiency());
         userSkill = userSkillRepository.save(userSkill);
 
-        log.info("用户技能 {} 更新成功", userSkillId);
+        log.info("鐢ㄦ埛鎶€鑳?{} 鏇存柊鎴愬姛", userSkillId);
         return convertToUserSkillDTO(userSkill);
     }
 
     /**
-     * 删除用户技能
+     * 鍒犻櫎鐢ㄦ埛鎶€鑳?
      */
     @Transactional
     public void deleteUserSkill(Long userSkillId) {
         UserSkill userSkill = userSkillRepository.findById(userSkillId)
-                .orElseThrow(() -> new RuntimeException("用户技能不存在"));
+                .orElseThrow(() -> new RuntimeException("鐢ㄦ埛鎶€鑳戒笉瀛樺湪"));
 
         Long userId = userSkill.getUser().getId();
         String skillName = userSkill.getSkill().getName();
 
         userSkillRepository.delete(userSkill);
-        log.info("用户 {} 的技能 {} 删除成功", userId, skillName);
+        log.info("鐢ㄦ埛 {} 鐨勬妧鑳?{} 鍒犻櫎鎴愬姛", userId, skillName);
     }
 
     /**
@@ -253,7 +325,7 @@ public class UserService {
     @Transactional
     public UserSkillDTO updateUserSkillLevel(Long userId, Long skillId, Integer level) {
         UserSkill userSkill = userSkillRepository.findByUserIdAndSkillId(userId, skillId)
-                .orElseThrow(() -> new RuntimeException("技能未绑定"));
+                .orElseThrow(() -> new RuntimeException("鎶€鑳芥湭缁戝畾"));
         userSkill.setProficiency(level);
         userSkill = userSkillRepository.save(userSkill);
         log.info("User {} skill {} proficiency updated", userId, skillId);
@@ -261,20 +333,20 @@ public class UserService {
     }
 
     /**
-     * 批量添加用户技能
+     * 鎵归噺娣诲姞鐢ㄦ埛鎶€鑳?
      */
     @Transactional
     public List<UserSkillDTO> addUserSkills(Long userId, List<UserSkillCreateDTO> skillsData) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("用户不存在"));
+                .orElseThrow(() -> new RuntimeException("user not found"));
 
         List<UserSkill> userSkills = new LinkedList<>();
 
         for (UserSkillCreateDTO skillData : skillsData) {
-            // 检查是否已存在
+            // 妫€鏌ユ槸鍚﹀凡瀛樺湪
             if (!userSkillRepository.existsByUserIdAndSkillId(userId, skillData.getSkillId())) {
                 Skill skill = skillRepository.findById(skillData.getSkillId())
-                        .orElseThrow(() -> new RuntimeException("技能不存在: " + skillData.getSkillId()));
+                        .orElseThrow(() -> new RuntimeException("鎶€鑳戒笉瀛樺湪: " + skillData.getSkillId()));
 
                 UserSkill userSkill = new UserSkill();
                 userSkill.setUser(user);
@@ -287,7 +359,7 @@ public class UserService {
 
         if (!userSkills.isEmpty()) {
             userSkills = userSkillRepository.saveAll(userSkills);
-            log.info("用户 {} 批量添加 {} 个技能", userId, userSkills.size());
+            log.info("User {} added {} skills in batch", userId, userSkills.size());
         }
 
         return userSkills.stream()
@@ -296,7 +368,7 @@ public class UserService {
     }
 
     /**
-     * 获取用户在某个分类下的技能
+     * 鑾峰彇鐢ㄦ埛鍦ㄦ煇涓垎绫讳笅鐨勬妧鑳?
      */
     public List<UserSkillDTO> getUserSkillsByCategory(Long userId, String category) {
         List<UserSkill> userSkills = userSkillRepository.findByUserIdAndSkillCategory(userId, category);
@@ -306,13 +378,13 @@ public class UserService {
     }
 
     /**
-     * 获取用户技能统计
+     * 鑾峰彇鐢ㄦ埛鎶€鑳界粺璁?
      */
     public UserSkillStatsDTO getUserSkillStats(Long userId) {
         Long totalSkills = userSkillRepository.countByUserId(userId);
         Double averageProficiency = userSkillRepository.getAverageProficiencyByUserId(userId);
 
-        // 按分类统计
+        // 鎸夊垎绫荤粺璁?
         List<UserSkill> allUserSkills = userSkillRepository.findByUserId(userId);
         Map<String, Long> categoryStats = allUserSkills.stream()
                 .collect(Collectors.groupingBy(
@@ -320,7 +392,7 @@ public class UserService {
                         Collectors.counting()
                 ));
 
-        // 按熟练度统计
+        // 鎸夌啛缁冨害缁熻
         Map<Integer, Long> proficiencyStats = allUserSkills.stream()
                 .collect(Collectors.groupingBy(
                         UserSkill::getProficiency,
@@ -337,7 +409,7 @@ public class UserService {
     }
 
     /**
-     * 转换为DTO
+     * 杞崲涓篋TO
      */
     private UserSkillDTO convertToUserSkillDTO(UserSkill userSkill) {
         UserSkillDTO dto = new UserSkillDTO();
@@ -350,3 +422,5 @@ public class UserService {
         return dto;
     }
 }
+
+

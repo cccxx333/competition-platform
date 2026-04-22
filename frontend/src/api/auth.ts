@@ -11,6 +11,8 @@ type LoginResponse = {
 
 type RegisterPayload = {
   username: string
+  displayName?: string
+  role?: "STUDENT" | "TEACHER"
   email: string
   password: string
   realName?: string

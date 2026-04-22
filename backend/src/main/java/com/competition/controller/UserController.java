@@ -30,7 +30,7 @@ public class UserController {
     private final JwtUtils jwtUtils;
 
     /**
-     * 用户注册
+     * 鐢ㄦ埛娉ㄥ唽
      */
     @PostMapping("/register")
     public ResponseEntity<UserDTO> register(@Valid @RequestBody UserRegistrationDTO registrationDTO) {
@@ -39,16 +39,17 @@ public class UserController {
     }
 
     /**
-     * 用户登录
+     * 鐢ㄦ埛鐧诲綍
      */
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
         String token = userService.loginUser(loginRequest.getUsername(), loginRequest.getPassword());
-        return ResponseEntity.ok(new LoginResponse(token, "登录成功"));
+        String role = userService.getUserRole(loginRequest.getUsername());
+        return ResponseEntity.ok(new LoginResponse(token, "登录成功", role));
     }
 
     /**
-     * 获取当前用户信息
+     * 鑾峰彇褰撳墠鐢ㄦ埛淇℃伅
      */
     @GetMapping("/profile")
     public ResponseEntity<UserDTO> getProfile(HttpServletRequest request) {
@@ -58,7 +59,7 @@ public class UserController {
     }
 
     /**
-     * 更新用户信息
+     * 鏇存柊鐢ㄦ埛淇℃伅
      */
     @PutMapping("/profile")
     public ResponseEntity<UserDTO> updateProfile(
@@ -91,6 +92,9 @@ public class UserController {
         }
         Long userId = getUserIdFromToken(request);
         UserDTO updateDTO = new UserDTO();
+        updateDTO.setUsername(updateRequest.getUsername());
+        updateDTO.setDisplayName(updateRequest.getDisplayName());
+        updateDTO.setEmail(updateRequest.getEmail());
         updateDTO.setRealName(updateRequest.getRealName());
         updateDTO.setSchool(updateRequest.getSchool());
         updateDTO.setMajor(updateRequest.getMajor());
@@ -164,7 +168,7 @@ public class UserController {
     }
 
     /**
-     * 更新用户技能
+     * 鏇存柊鐢ㄦ埛鎶€鑳?
      */
     @PutMapping("/skills")
     public ResponseEntity<String> updateSkills(
@@ -172,11 +176,11 @@ public class UserController {
             @RequestBody List<UserSkill> skills) {
         Long userId = getUserIdFromToken(request);
         userService.updateUserSkills(userId, skills);
-        return ResponseEntity.ok("技能更新成功");
+        return ResponseEntity.ok("skills updated");
     }
 
     /**
-     * 搜索用户
+     * 鎼滅储鐢ㄦ埛
      */
     @GetMapping("/search")
     public ResponseEntity<List<UserDTO>> searchUsers(
@@ -186,7 +190,7 @@ public class UserController {
         if (skillIds != null && !skillIds.isEmpty()) {
             users = userService.searchUsersBySkills(skillIds);
         } else {
-            users = userService.getAllUsers(); // 需要实现这个方法
+            users = userService.getAllUsers(); // 闇€瑕佸疄鐜拌繖涓柟娉?
         }
         return ResponseEntity.ok(users);
     }
@@ -197,11 +201,11 @@ public class UserController {
             token = token.substring(7);
             return jwtUtils.getUserIdFromToken(token);
         }
-        throw new RuntimeException("无效的token");
+        throw new RuntimeException("鏃犳晥鐨則oken");
     }
 
     /**
-     * 获取用户技能
+     * 鑾峰彇鐢ㄦ埛鎶€鑳?
      */
     @GetMapping("/{userId}/skills")
     public ResponseEntity<List<UserSkillDTO>> getUserSkills(@PathVariable Long userId) {
@@ -209,13 +213,13 @@ public class UserController {
             List<UserSkillDTO> userSkills = userService.getUserSkills(userId);
             return ResponseEntity.ok(userSkills);
         } catch (Exception e) {
-            log.error("获取用户技能失败: ", e);
+            log.error("鑾峰彇鐢ㄦ埛鎶€鑳藉け璐? ", e);
             throw e;
         }
     }
 
     /**
-     * 添加用户技能
+     * 娣诲姞鐢ㄦ埛鎶€鑳?
      */
     @PostMapping("/skills")
     public ResponseEntity<UserSkillDTO> addUserSkill(
@@ -226,13 +230,13 @@ public class UserController {
             UserSkillDTO userSkill = userService.addUserSkill(userId, skillData);
             return ResponseEntity.ok(userSkill);
         } catch (Exception e) {
-            log.error("添加用户技能失败: ", e);
+            log.error("娣诲姞鐢ㄦ埛鎶€鑳藉け璐? ", e);
             throw e;
         }
     }
 
     /**
-     * 更新用户技能
+     * 鏇存柊鐢ㄦ埛鎶€鑳?
      */
     @PutMapping("/skills/{userSkillId}")
     public ResponseEntity<UserSkillDTO> updateUserSkill(
@@ -242,13 +246,13 @@ public class UserController {
             UserSkillDTO userSkill = userService.updateUserSkill(userSkillId, skillData);
             return ResponseEntity.ok(userSkill);
         } catch (Exception e) {
-            log.error("更新用户技能失败: ", e);
+            log.error("鏇存柊鐢ㄦ埛鎶€鑳藉け璐? ", e);
             throw e;
         }
     }
 
     /**
-     * 删除用户技能
+     * 鍒犻櫎鐢ㄦ埛鎶€鑳?
      */
     @DeleteMapping("/skills/{userSkillId}")
     public ResponseEntity<Void> deleteUserSkill(@PathVariable Long userSkillId) {
@@ -256,13 +260,13 @@ public class UserController {
             userService.deleteUserSkill(userSkillId);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
-            log.error("删除用户技能失败: ", e);
+            log.error("鍒犻櫎鐢ㄦ埛鎶€鑳藉け璐? ", e);
             throw e;
         }
     }
 
     /**
-     * 获取用户技能统计
+     * 鑾峰彇鐢ㄦ埛鎶€鑳界粺璁?
      */
     @GetMapping("/{userId}/skills/stats")
     public ResponseEntity<UserSkillStatsDTO> getUserSkillStats(@PathVariable Long userId) {
@@ -270,13 +274,13 @@ public class UserController {
             UserSkillStatsDTO stats = userService.getUserSkillStats(userId);
             return ResponseEntity.ok(stats);
         } catch (Exception e) {
-            log.error("获取用户技能统计失败: ", e);
+            log.error("鑾峰彇鐢ㄦ埛鎶€鑳界粺璁″け璐? ", e);
             throw e;
         }
     }
 
     /**
-     * 根据分类获取用户技能
+     * 鏍规嵁鍒嗙被鑾峰彇鐢ㄦ埛鎶€鑳?
      */
     @GetMapping("/{userId}/skills/category/{category}")
     public ResponseEntity<List<UserSkillDTO>> getUserSkillsByCategory(
@@ -286,13 +290,13 @@ public class UserController {
             List<UserSkillDTO> userSkills = userService.getUserSkillsByCategory(userId, category);
             return ResponseEntity.ok(userSkills);
         } catch (Exception e) {
-            log.error("根据分类获取用户技能失败: ", e);
+            log.error("鏍规嵁鍒嗙被鑾峰彇鐢ㄦ埛鎶€鑳藉け璐? ", e);
             throw e;
         }
     }
 
     /**
-     * 批量添加用户技能
+     * 鎵归噺娣诲姞鐢ㄦ埛鎶€鑳?
      */
     @PostMapping("/skills/batch")
     public ResponseEntity<List<UserSkillDTO>> addUserSkillsBatch(
@@ -313,7 +317,9 @@ public class UserController {
         response.setId(dto.getId());
         response.setAccountNo(dto.getAccountNo());
         response.setRole(dto.getRole());
+        response.setApprovalStatus(dto.getApprovalStatus());
         response.setUsername(dto.getUsername());
+        response.setDisplayName(dto.getDisplayName());
         response.setRealName(dto.getRealName());
         response.setEmail(dto.getEmail());
         response.setPhone(dto.getPhone());
@@ -337,7 +343,10 @@ public class UserController {
 
     private void validateSkillLevel(Integer level) {
         if (level == null || level < 1 || level > 5) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "熟练度必须为 1 到 5");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "鐔熺粌搴﹀繀椤讳负 1 鍒?5");
         }
     }
 }
+
+
+

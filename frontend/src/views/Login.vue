@@ -24,14 +24,15 @@ const registerFormRef = ref<FormInstance>()
 const registering = ref(false)
 const registerForm = reactive({
   username: "",
-  accountNo: "",
+  displayName: "",
+  role: "STUDENT" as "STUDENT" | "TEACHER",
   email: "",
   password: ""
 })
 
 const registerRules: FormRules = {
   username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
-  accountNo: [{ required: true, message: "请输入学号/工号", trigger: "blur" }],
+  role: [{ required: true, message: "请选择注册身份", trigger: "change" }],
   email: [
     { required: true, message: "请输入邮箱", trigger: "blur" },
     { type: "email", message: "请输入有效邮箱", trigger: "blur" }
@@ -78,6 +79,14 @@ const extractErrorMessage = (error: any, fallback: string) => {
   return fallback
 }
 
+const resetRegisterForm = () => {
+  registerForm.username = ""
+  registerForm.displayName = ""
+  registerForm.role = "STUDENT"
+  registerForm.email = ""
+  registerForm.password = ""
+}
+
 const handleRegister = async () => {
   const valid = await validateForm(registerFormRef.value, "请先完善注册信息")
   if (!valid) return
@@ -85,17 +94,20 @@ const handleRegister = async () => {
   registering.value = true
   try {
     await register({
-      username: registerForm.username,
-      email: registerForm.email,
+      username: registerForm.username.trim(),
+      displayName: registerForm.displayName.trim() || undefined,
+      role: registerForm.role,
+      email: registerForm.email.trim(),
       password: registerForm.password
     })
-    ElMessage.success("注册成功，请登录")
-    form.username = registerForm.username
+    if (registerForm.role === "TEACHER") {
+      ElMessage.success("教师账号已提交，等待管理员审核后可登录")
+    } else {
+      ElMessage.success("注册成功，请登录")
+      form.username = registerForm.username.trim()
+    }
     form.password = ""
-    registerForm.username = ""
-    registerForm.accountNo = ""
-    registerForm.email = ""
-    registerForm.password = ""
+    resetRegisterForm()
     registerDialogVisible.value = false
   } catch (error: any) {
     ElMessage.error(extractErrorMessage(error, "注册失败"))
@@ -110,10 +122,10 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    const result = await login(form.username, form.password)
+    const result = await login(form.username.trim(), form.password)
     authStore.setToken(result.token)
     if (result.role) {
-      authStore.setUser({ username: form.username, role: result.role })
+      authStore.setUser({ username: form.username.trim(), role: result.role })
     }
     router.replace("/dashboard")
   } catch (error: any) {
@@ -142,13 +154,20 @@ const handleLogin = async () => {
       </div>
     </el-form>
   </el-card>
+
   <el-dialog v-model="registerDialogVisible" title="注册" width="420px">
     <el-form ref="registerFormRef" :model="registerForm" :rules="registerRules" label-position="top">
       <el-form-item label="用户名" prop="username">
         <el-input v-model="registerForm.username" autocomplete="username" />
       </el-form-item>
-      <el-form-item label="学号/工号" prop="accountNo">
-        <el-input v-model="registerForm.accountNo" autocomplete="off" />
+      <el-form-item label="展示名（可选）" prop="displayName">
+        <el-input v-model="registerForm.displayName" autocomplete="off" />
+      </el-form-item>
+      <el-form-item label="身份" prop="role">
+        <el-radio-group v-model="registerForm.role">
+          <el-radio label="STUDENT">学生</el-radio>
+          <el-radio label="TEACHER">教师</el-radio>
+        </el-radio-group>
       </el-form-item>
       <el-form-item label="邮箱" prop="email">
         <el-input v-model="registerForm.email" autocomplete="email" />

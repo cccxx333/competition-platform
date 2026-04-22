@@ -8,7 +8,9 @@ public class UserDTO {
     private Long id;
     private String accountNo;
     private String role;
+    private String approvalStatus;
     private String username;
+    private String displayName;
     private String email;
     private String realName;
     private String school;
@@ -18,3 +20,4 @@ public class UserDTO {
     private String avatarUrl;
     private LocalDateTime createdAt;
 }
+

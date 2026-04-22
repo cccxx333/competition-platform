@@ -1,5 +1,6 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
+import { ArrowLeft } from "@element-plus/icons-vue"
 import { getCompetitionDetail, updateCompetitionStatus, type CompetitionDetail } from "@/api/competitions"
 import { listSkills, type Skill } from "@/api/skills"
 import { createTeacherApplication } from "@/api/teacherApplications"
@@ -34,6 +35,7 @@ const competitionId = computed(() => Number(route.params.id))
 const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
 const isTeacher = computed(() => roleUpper.value === "TEACHER")
 const isAdmin = computed(() => roleUpper.value === "ADMIN")
+
 const registrationDeadlineDate = computed(() => {
   const deadline = detail.value?.registrationDeadline
   if (!deadline) return null
@@ -42,10 +44,12 @@ const registrationDeadlineDate = computed(() => {
   if (Number.isNaN(date.getTime())) return null
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 })
+
 const todayDate = computed(() => {
   const now = new Date()
   return new Date(now.getFullYear(), now.getMonth(), now.getDate())
 })
+
 const canApplyTeacher = computed(() => {
   if (!isTeacher.value) return false
   if (!detail.value) return false
@@ -53,6 +57,7 @@ const canApplyTeacher = computed(() => {
   if (!registrationDeadlineDate.value) return false
   return todayDate.value < registrationDeadlineDate.value
 })
+
 const applyDisabledReason = computed(() => {
   if (!isTeacher.value || !detail.value) return ""
   if (detail.value.status !== "UPCOMING") return "仅未开始的竞赛可申请"
@@ -60,17 +65,26 @@ const applyDisabledReason = computed(() => {
   if (!(todayDate.value < registrationDeadlineDate.value)) return "报名截止时间已过"
   return ""
 })
-const selectedCount = computed(() => favoredSkillRows.value.filter(row => row.skillId != null).length)
-const selectedSkillIds = computed(() => new Set(favoredSkillRows.value
-  .map(row => row.skillId)
-  .filter((id): id is number => id != null)))
 
+const selectedCount = computed(() => favoredSkillRows.value.filter(row => row.skillId != null).length)
+const selectedSkillIds = computed(
+  () =>
+    new Set(
+      favoredSkillRows.value
+        .map(row => row.skillId)
+        .filter((id): id is number => id != null)
+    )
+)
+
+const statusOptions = [
+  { label: "未开始", value: "UPCOMING" },
+  { label: "进行中", value: "ONGOING" },
+  { label: "已结束", value: "FINISHED" }
+]
 
 const formatDate = (value?: string | null) => {
   if (!value) return ""
-  if (value.includes("T")) {
-    return value.split("T")[0]
-  }
+  if (value.includes("T")) return value.split("T")[0]
   return value
 }
 
@@ -82,13 +96,6 @@ const formatDateTime = (value?: string | null) => {
   }
   return value
 }
-
-const statusOptions = [
-  { label: "未开始", value: "UPCOMING" },
-  { label: "进行中", value: "ONGOING" },
-  { label: "已结束", value: "FINISHED" }
-]
-
 
 const showRequestError = (error: any, fallback: string) => {
   const status = error?.status ?? error?.response?.status
@@ -128,14 +135,14 @@ const loadDetail = async () => {
   } finally {
     loading.value = false
   }
-  }
+}
 
 const loadSkills = async () => {
   if (skillsLoading.value || allSkills.value.length) return
   skillsLoading.value = true
   try {
     allSkills.value = await listSkills()
-  } catch (error: any) {
+  } catch {
     ElMessage.error("技能列表加载失败")
   } finally {
     skillsLoading.value = false
@@ -181,8 +188,19 @@ const metaFields = computed(() => {
   ].filter(item => Boolean(item.value))
 })
 
+const backTarget = computed(() => {
+  const raw = route.query.back
+  if (typeof raw !== "string" || !raw.trim()) return "/competitions"
+  try {
+    const decoded = decodeURIComponent(raw)
+    return decoded.startsWith("/competitions") ? decoded : "/competitions"
+  } catch {
+    return "/competitions"
+  }
+})
+
 const handleBack = () => {
-  router.push("/competitions")
+  router.push(backTarget.value)
 }
 
 const openEditDialog = () => {
@@ -219,6 +237,7 @@ const submitEdit = async () => {
     editDialogLoading.value = false
   }
 }
+
 const openSubmitDialog = () => {
   submitError.value = ""
   favoredSkillRows.value = Array.from({ length: 5 }, () => ({ skillId: null, weight: 1 }))
@@ -230,6 +249,7 @@ const openSubmitDialog = () => {
   }
   submitDialogVisible.value = true
 }
+
 const closeSubmitDialog = (force = false) => {
   if (submitting.value && !force) return
   submitDialogVisible.value = false
@@ -239,7 +259,7 @@ const closeSubmitDialog = (force = false) => {
 const handleApply = async () => {
   if (submitting.value) return
   if (!Number.isFinite(competitionId.value) || competitionId.value <= 0) {
-    ElMessage.error("申请已提交")
+    ElMessage.error("申请提交失败")
     return
   }
   if (!canApplyTeacher.value) {
@@ -254,10 +274,12 @@ const handleApply = async () => {
         skillId: row.skillId as number,
         weight: row.weight ?? 1
       }))
+
     await createTeacherApplication(competitionId.value, {
       description: applyRemark.value?.trim() || undefined,
       skills: skillsPayload.length ? skillsPayload : []
     })
+
     ElMessage.success("申请已提交")
     closeSubmitDialog(true)
     router.push("/teacher/applications")
@@ -265,7 +287,11 @@ const handleApply = async () => {
     const status = error?.status ?? error?.response?.status
     const message = error?.message ?? error?.response?.data?.message
     const code = error?.response?.data?.code
-    if (status === 409 || code === "BUSINESS_ERROR" || (typeof message === "string" && message.includes("already exists"))) {
+    if (
+      status === 409 ||
+      code === "BUSINESS_ERROR" ||
+      (typeof message === "string" && message.includes("already exists"))
+    ) {
       submitError.value = message || "申请已存在"
       return
     }
@@ -274,43 +300,39 @@ const handleApply = async () => {
     submitting.value = false
   }
 }
+
 onMounted(loadDetail)
 watch(() => route.params.id, loadDetail)
-watch(submitDialogVisible, (visible) => {
-  if (visible) {
-    loadSkills()
-  }
+watch(submitDialogVisible, visible => {
+  if (visible) loadSkills()
 })
 </script>
 
 <template>
   <div class="page-container">
-
     <div class="page-header">
-        <h2>竞赛详情</h2>
-        <div class="header-actions">
-          <div v-if="isTeacher" class="apply-action">
-            <el-button
-              size="small"
-              type="primary"
-              :loading="submitting"
-              :disabled="loading || submitting || !canApplyTeacher"
-              @click="openSubmitDialog"
-            >
-              提交教师申请
-            </el-button>
-            <div v-if="!canApplyTeacher && applyDisabledReason" class="apply-hint">
-              {{ applyDisabledReason }}
-            </div>
+      <h2>竞赛详情</h2>
+      <div class="header-actions">
+        <div v-if="isTeacher" class="apply-action">
+          <el-button
+            size="small"
+            type="primary"
+            :loading="submitting"
+            :disabled="loading || submitting || !canApplyTeacher"
+            @click="openSubmitDialog"
+          >
+            提交教师申请
+          </el-button>
+          <div v-if="!canApplyTeacher && applyDisabledReason" class="apply-hint">
+            {{ applyDisabledReason }}
           </div>
-          <el-button v-if="isAdmin" size="small" type="primary" @click="openEditDialog">修改竞赛状态</el-button>
-          <el-button class="back-btn" size="small" @click="handleBack">返回</el-button>
         </div>
+        <el-button v-if="isAdmin" size="small" type="primary" @click="openEditDialog">修改竞赛状态</el-button>
+        <el-button class="back-btn" type="default" plain :icon="ArrowLeft" @click="handleBack">返回</el-button>
       </div>
+    </div>
 
-  <el-card shadow="never" v-loading="loading">
-    
-
+    <el-card shadow="never" v-loading="loading">
       <el-alert
         v-if="errorMessage"
         type="error"
@@ -386,12 +408,12 @@ watch(submitDialogVisible, (visible) => {
         <div>确认提交该竞赛的教师申请？</div>
         <div style="margin-top: 8px; color: #909399;">提交后请等待管理员审核。</div>
         <div style="margin-top: 12px;">
-          <div style="margin-bottom: 6px;">青睐技能（可选，最多 5 个）</div>
+          <div style="margin-bottom: 6px;">偏好技能（可选，最多 5 项）</div>
           <div style="display: flex; flex-direction: column; gap: 8px;">
             <div v-for="(row, idx) in favoredSkillRows" :key="idx" style="display: flex; align-items: center; gap: 12px;">
               <el-select
                 v-model="row.skillId"
-                placeholder="技能"
+                placeholder="选择技能"
                 clearable
                 filterable
                 style="flex: 0 0 72%;"
@@ -439,9 +461,7 @@ watch(submitDialogVisible, (visible) => {
         />
         <template #footer>
           <el-button :disabled="submitting" @click="closeSubmitDialog">取消</el-button>
-          <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleApply">
-            提交
-          </el-button>
+          <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleApply">提交</el-button>
         </template>
       </el-dialog>
 
@@ -468,7 +488,8 @@ watch(submitDialogVisible, (visible) => {
         </template>
       </el-dialog>
     </el-card>
-  </div></template>
+  </div>
+</template>
 
 <style scoped>
 .page-header {
@@ -481,7 +502,7 @@ watch(submitDialogVisible, (visible) => {
 .header-actions {
   display: flex;
   gap: 12px;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .apply-action {
@@ -498,10 +519,14 @@ watch(submitDialogVisible, (visible) => {
 }
 
 .back-btn {
-  margin-top: 0;
+  height: 32px;
+  padding: 0 10px;
+  border-color: #d0d5dd;
+  color: #344054;
 }
 
 .section {
   margin-bottom: 12px;
 }
 </style>
+

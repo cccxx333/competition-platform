@@ -1,10 +1,17 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import { ElMessage } from "element-plus"
-import { Avatar, Message, Postcard, PriceTag, User } from "@element-plus/icons-vue"
-import { getMyProfile } from "@/api/profile"
+import { Avatar, Edit, Message, Postcard, PriceTag, User } from "@element-plus/icons-vue"
+import { getMyProfile, updateMyProfile, type UserProfile } from "@/api/profile"
 
 const loading = ref(false)
-const profile = ref<Awaited<ReturnType<typeof getMyProfile>> | null>(null)
+const submitting = ref(false)
+const profile = ref<UserProfile | null>(null)
+const editDialogVisible = ref(false)
+const editForm = reactive({
+  username: "",
+  displayName: "",
+  email: ""
+})
 
 const roleUpper = computed(() => String(profile.value?.role ?? "").toUpperCase())
 const accountLabel = computed(() => (roleUpper.value === "STUDENT" ? "学号" : "工号"))
@@ -13,24 +20,24 @@ const accountNo = computed(() => profile.value?.accountNo ?? profile.value?.user
 const showRequestError = (error: any, fallback: string) => {
   const status = error?.status ?? error?.response?.status
   const message = error?.message
-  if (message && message != fallback) {
+  if (message && message !== fallback) {
     ElMessage.error(message)
     return
   }
-  if (status == 400) {
+  if (status === 400) {
     ElMessage.error("请求参数错误")
     return
   }
-  if (status == 403) {
+  if (status === 403) {
     ElMessage.error("无权限访问")
     return
   }
-  if (status == 404) {
+  if (status === 404) {
     ElMessage.error("资源不存在")
     return
   }
-  if (status == 409) {
-    ElMessage.error("业务冲突")
+  if (status === 409) {
+    ElMessage.error("用户名或邮箱已存在")
     return
   }
   ElMessage.error(fallback)
@@ -41,11 +48,18 @@ const infoRows = computed(() => {
   return [
     { label: accountLabel.value, value: accountNo.value, icon: Postcard },
     { label: "用户名", value: data?.username ?? "-", icon: User },
-    { label: "姓名", value: data?.realName ?? "-", icon: Avatar },
+    { label: "展示名", value: data?.displayName ?? "-", icon: Avatar },
     { label: "邮箱", value: data?.email ?? "-", icon: Message },
     { label: "角色", value: data?.role ?? "-", icon: PriceTag }
   ]
 })
+
+const openEditDialog = () => {
+  editForm.username = String(profile.value?.username ?? "")
+  editForm.displayName = String(profile.value?.displayName ?? "")
+  editForm.email = String(profile.value?.email ?? "")
+  editDialogVisible.value = true
+}
 
 const reload = async () => {
   loading.value = true
@@ -58,17 +72,45 @@ const reload = async () => {
   }
 }
 
+const submitEdit = async () => {
+  if (!editForm.username.trim()) {
+    ElMessage.warning("用户名不能为空")
+    return
+  }
+  if (!editForm.email.trim()) {
+    ElMessage.warning("邮箱不能为空")
+    return
+  }
+  submitting.value = true
+  try {
+    profile.value = await updateMyProfile({
+      username: editForm.username.trim(),
+      displayName: editForm.displayName.trim() || undefined,
+      email: editForm.email.trim()
+    })
+    ElMessage.success("个人信息已更新")
+    editDialogVisible.value = false
+  } catch (error: any) {
+    showRequestError(error, "修改个人信息失败")
+  } finally {
+    submitting.value = false
+  }
+}
+
 onMounted(reload)
 </script>
 
 <template>
   <div class="profile-page">
-    <h2 class="page-title">个人信息</h2>
+    <div class="page-head">
+      <h2 class="page-title">个人信息</h2>
+      <el-button type="primary" :icon="Edit" @click="openEditDialog">修改</el-button>
+    </div>
     <el-card class="profile-card" shadow="never" v-loading="loading">
       <div class="card-header">
         <div class="user-block">
           <div class="user-meta">
-            <div class="user-name">{{ profile?.username ?? "-" }}</div>
+            <div class="user-name">{{ profile?.displayName || profile?.username || "-" }}</div>
           </div>
         </div>
       </div>
@@ -86,6 +128,24 @@ onMounted(reload)
         </div>
       </div>
     </el-card>
+
+    <el-dialog v-model="editDialogVisible" title="修改个人信息" width="420px">
+      <el-form label-position="top">
+        <el-form-item label="用户名">
+          <el-input v-model="editForm.username" />
+        </el-form-item>
+        <el-form-item label="展示名">
+          <el-input v-model="editForm.displayName" />
+        </el-form-item>
+        <el-form-item label="邮箱">
+          <el-input v-model="editForm.email" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button :disabled="submitting" @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="submitEdit">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -96,10 +156,17 @@ onMounted(reload)
   padding: 24px 16px 40px;
 }
 
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
 .page-title {
   font-size: 20px;
   font-weight: 600;
-  margin: 0 0 16px;
+  margin: 0;
 }
 
 .profile-card {

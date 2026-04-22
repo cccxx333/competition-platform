@@ -16,12 +16,16 @@ import java.util.Set;
 @Entity
 @Table(name = "users", uniqueConstraints = {
         @UniqueConstraint(name = "uk_users_account_no", columnNames = "account_no"),
+        @UniqueConstraint(name = "uk_users_username", columnNames = "username"),
         @UniqueConstraint(name = "uk_users_email", columnNames = "email"),
         @UniqueConstraint(name = "uk_users_phone", columnNames = "phone")
 })
 public class User {
     public enum Role {
         ADMIN, TEACHER, STUDENT
+    }
+    public enum ApprovalStatus {
+        PENDING, APPROVED, REJECTED
     }
 
     @Id
@@ -43,6 +47,10 @@ public class User {
     @ToString.Include
     private String username;
 
+    @Column(name = "display_name", length = 64)
+    @ToString.Include
+    private String displayName;
+
     @Column(name = "real_name", length = 64)
     @ToString.Include
     private String realName;
@@ -53,6 +61,11 @@ public class User {
 
     @Column(length = 32)
     private String phone;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_status", nullable = false, length = 20)
+    @ToString.Include
+    private ApprovalStatus approvalStatus = ApprovalStatus.APPROVED;
 
     @Column(nullable = false, length = 255)
     private String password;
@@ -80,7 +93,7 @@ public class User {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore // 防止序列化用户技能集合
+    @JsonIgnore // 闃叉搴忓垪鍖栫敤鎴锋妧鑳介泦鍚?
     private Set<UserSkill> userSkills = new HashSet<>();
 
     @PrePersist
@@ -91,6 +104,9 @@ public class User {
         if (role == null) {
             role = Role.STUDENT;
         }
+        if (approvalStatus == null) {
+            approvalStatus = ApprovalStatus.APPROVED;
+        }
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
@@ -100,6 +116,10 @@ public class User {
         if (role == null) {
             role = Role.STUDENT;
         }
+        if (approvalStatus == null) {
+            approvalStatus = ApprovalStatus.APPROVED;
+        }
         updatedAt = LocalDateTime.now();
     }
 }
+

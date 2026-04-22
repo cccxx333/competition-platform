@@ -5,9 +5,11 @@ CREATE TABLE IF NOT EXISTS users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     account_no VARCHAR(32) NOT NULL,
     role VARCHAR(20) NOT NULL,
+    approval_status VARCHAR(20) NOT NULL DEFAULT 'APPROVED',
     password VARCHAR(255) NOT NULL,
     real_name VARCHAR(64),
     username VARCHAR(64),
+    display_name VARCHAR(64),
     email VARCHAR(128),
     phone VARCHAR(32),
     avatar_url VARCHAR(255),
@@ -17,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at DATETIME,
     updated_at DATETIME,
     UNIQUE KEY uk_users_account_no (account_no),
+    UNIQUE KEY uk_users_username (username),
     UNIQUE KEY uk_users_email (email),
     UNIQUE KEY uk_users_phone (phone)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { createCompetition, listCompetitions, type CompetitionCreatePayload, type CompetitionListItem, type CompetitionListParams } from "@/api/competitions"
 import { listSkills, type Skill } from "@/api/skills"
@@ -59,6 +59,7 @@ const filters = reactive({
 })
 
 const sourceMode = ref<"list" | "algorithm">("list")
+const isAlgorithmMode = computed(() => sourceMode.value === "algorithm")
 const topK = ref(10)
 const fallbackNotice = ref("")
 const FALLBACK_NOTICE_TEXT = "当前推荐基于通用策略，补全技能信息后将优先展示更匹配的竞赛。"
@@ -258,7 +259,12 @@ const goDetail = (row: RecommendationRow) => {
     router.push("/competitions")
     return
   }
-  router.push(`/competitions/${row.id}`)
+  router.push({
+    path: `/competitions/${row.id}`,
+    query: {
+      back: encodeURIComponent(route.fullPath)
+    }
+  })
 }
 
 const formatDateRange = (row: RecommendationRow) => {
@@ -548,14 +554,13 @@ onBeforeUnmount(() => {
       <el-form class="filter-bar" label-position="top" label-width="120px">
         <el-row :gutter="12">
           <el-col :span="isTeacher ? 24 : 16">
-            <div class="competition-filter-group">
+            <div v-if="!isAlgorithmMode" class="competition-filter-group">
               <el-form-item label="关键词">
                 <el-input
                   v-model="filters.keyword"
                   class="competition-search-input"
                   clearable
                   placeholder="关键词"
-                  :disabled="sourceMode === 'algorithm'"
                 />
               </el-form-item>
               <el-form-item label="状态">
@@ -564,7 +569,6 @@ onBeforeUnmount(() => {
                   class="competition-status-select"
                   clearable
                   placeholder="状态"
-                  :disabled="sourceMode === 'algorithm'"
                 >
                   <el-option
                     v-for="item in statusOptions"
@@ -578,13 +582,15 @@ onBeforeUnmount(() => {
                 <el-button @click="resetFilters">重置</el-button>
               </el-form-item>
             </div>
+            <div v-else class="algorithm-topk-placeholder">
+              <el-form-item label="推荐数量">
+                <el-input-number v-model="topK" :min="1" :max="50" :disabled="sourceMode !== 'algorithm'" />
+              </el-form-item>
+            </div>
           </el-col>
 
           <el-col v-if="!isTeacher && !isAdmin" :span="8" class="filter-right">
             <div class="filter-right__inner">
-              <el-form-item v-if="sourceMode === 'algorithm'" label="推荐数量">
-                <el-input-number v-model="topK" :min="1" :max="50" :disabled="sourceMode !== 'algorithm'" />
-              </el-form-item>
               <el-form-item label="来源">
                 <el-radio-group v-model="sourceMode">
                   <el-radio-button label="list">列表</el-radio-button>
@@ -595,16 +601,8 @@ onBeforeUnmount(() => {
           </el-col>
         </el-row>
       </el-form>
-
       <el-alert
-        v-if="sourceMode === 'algorithm'"
-        type="info"
-        :closable="false"
-        title="算法模式仅使用推荐数量，关键词和状态不可用。"
-        style="margin-bottom: 12px"
-      />
-      <el-alert
-        v-if="sourceMode === 'algorithm' && fallbackNotice"
+        v-if="fallbackNotice"
         type="info"
         :closable="false"
         :title="fallbackNotice"
@@ -639,12 +637,9 @@ onBeforeUnmount(() => {
           </template>
         </el-table-column>
         <el-table-column prop="organizer" label="主办方" min-width="180" />
-        <el-table-column label="推荐信息" min-width="220">
+        <el-table-column label="推荐分数" min-width="160">
           <template #default="{ row }">
-            <div v-if="typeof row.score === 'number' || row.reason">
-              <div v-if="typeof row.score === 'number'">匹配分：{{ row.score.toFixed(3) }}</div>
-              <div v-if="row.reason">原因：{{ row.reason }}</div>
-            </div>
+            <span v-if="typeof row.score === 'number'">{{ row.score.toFixed(3) }}</span>
             <span v-else>-</span>
           </template>
         </el-table-column>
@@ -773,6 +768,12 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
 }
 
+.algorithm-topk-placeholder {
+  display: flex;
+  align-items: flex-end;
+  min-height: 74px;
+}
+
 .filter-right {
   display: flex;
   justify-content: flex-end;
@@ -866,5 +867,7 @@ onBeforeUnmount(() => {
   }
 }
 </style>
+
+
 
 

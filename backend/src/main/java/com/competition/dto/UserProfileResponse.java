@@ -7,7 +7,9 @@ public class UserProfileResponse {
     private Long id;
     private String accountNo;
     private String role;
+    private String approvalStatus;
     private String username;
+    private String displayName;
     private String realName;
     private String email;
     private String phone;
@@ -16,3 +18,4 @@ public class UserProfileResponse {
     private String major;
     private String grade;
 }
+

@@ -4,13 +4,27 @@ export type UserProfile = {
   id?: number
   accountNo?: string
   username?: string
+  displayName?: string
   realName?: string
   email?: string
+  approvalStatus?: string
   school?: string
   major?: string
   grade?: string
   role?: string
   [key: string]: unknown
+}
+
+export type UserProfileUpdatePayload = {
+  username?: string
+  displayName?: string
+  email?: string
+  realName?: string
+  phone?: string
+  avatarUrl?: string
+  school?: string
+  major?: string
+  grade?: string
 }
 
 const unwrapData = <T>(payload: any): T => {
@@ -31,5 +45,14 @@ export async function getMyProfile(): Promise<UserProfile> {
     return unwrapData<UserProfile>(response?.data)
   } catch (error: any) {
     throw toError(error, "Failed to load profile")
+  }
+}
+
+export async function updateMyProfile(payload: UserProfileUpdatePayload): Promise<UserProfile> {
+  try {
+    const response = await client.put("/users/me", payload)
+    return unwrapData<UserProfile>(response?.data)
+  } catch (error: any) {
+    throw toError(error, "Failed to update profile")
   }
 }
