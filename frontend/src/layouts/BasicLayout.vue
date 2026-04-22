@@ -1,6 +1,6 @@
 ﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
-import { Avatar, Document, House, Medal, Star, Trophy, User, SwitchButton } from "@element-plus/icons-vue"
+import { Avatar, Document, House, Medal, Star, Trophy, User, SwitchButton, Setting } from "@element-plus/icons-vue"
 import { useAuthStore } from "@/stores/auth"
 
 const route = useRoute()
@@ -61,6 +61,10 @@ const handleLogout = () => {
         <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/teacher-applications">
           <el-icon class="basic-layout__menu-icon"><Document /></el-icon>
           <span>教师申请审核</span>
+        </el-menu-item>
+        <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/users">
+          <el-icon class="basic-layout__menu-icon"><Setting /></el-icon>
+          <span>用户管理</span>
         </el-menu-item>
         <el-menu-item index="/me/profile">
           <el-icon class="basic-layout__menu-icon"><User /></el-icon>

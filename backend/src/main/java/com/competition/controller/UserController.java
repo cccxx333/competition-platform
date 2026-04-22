@@ -327,6 +327,7 @@ public class UserController {
         response.setSchool(dto.getSchool());
         response.setMajor(dto.getMajor());
         response.setGrade(dto.getGrade());
+        response.setCreatedAt(dto.getCreatedAt());
         return response;
     }
 

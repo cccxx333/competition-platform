@@ -10,6 +10,9 @@ import com.competition.repository.UserSkillRepository;
 import com.competition.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import com.competition.exception.ApiException;
 
 @Service
 @RequiredArgsConstructor
@@ -184,6 +188,58 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public Page<UserDTO> listUsersForAdmin(Long adminUserId,
+                                           String keyword,
+                                           String roleValue,
+                                           String approvalStatusValue,
+                                           Pageable pageable) {
+        requireAdmin(adminUserId);
+        User.Role role = parseRole(roleValue);
+        User.ApprovalStatus approvalStatus = parseApprovalStatus(approvalStatusValue);
+        Page<User> page = userRepository.searchAdmin(normalize(keyword), role, approvalStatus, pageable);
+        return page.map(this::convertToDTO);
+    }
+
+    @Transactional(readOnly = true)
+    public UserDTO getUserByIdForAdmin(Long adminUserId, Long targetUserId) {
+        requireAdmin(adminUserId);
+        return getUserById(targetUserId);
+    }
+
+    public UserDTO updateUserByAdmin(Long adminUserId, Long targetUserId, AdminUserUpdateRequest request) {
+        if (request == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "request is required");
+        }
+        requireAdmin(adminUserId);
+
+        UserDTO dto = new UserDTO();
+        dto.setUsername(request.getUsername());
+        dto.setDisplayName(request.getDisplayName());
+        dto.setEmail(request.getEmail());
+        dto.setRealName(request.getRealName());
+        dto.setSchool(request.getSchool());
+        dto.setMajor(request.getMajor());
+        dto.setGrade(request.getGrade());
+        dto.setPhone(request.getPhone());
+        dto.setAvatarUrl(request.getAvatarUrl());
+        UserDTO updated = updateUser(targetUserId, dto);
+
+        String nextApprovalStatus = normalize(request.getApprovalStatus());
+        if (nextApprovalStatus == null) {
+            return updated;
+        }
+
+        User user = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        User.ApprovalStatus status = parseApprovalStatus(nextApprovalStatus);
+        if (status == User.ApprovalStatus.PENDING) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "approvalStatus can only be APPROVED or REJECTED");
+        }
+        user.setApprovalStatus(status);
+        return convertToDTO(userRepository.save(user));
+    }
+
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
@@ -201,6 +257,38 @@ public class UserService {
         dto.setAvatarUrl(user.getAvatarUrl());
         dto.setCreatedAt(user.getCreatedAt());
         return dto;
+    }
+
+    private void requireAdmin(Long adminUserId) {
+        User admin = userRepository.findById(adminUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        if (admin.getRole() != User.Role.ADMIN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN can operate users");
+        }
+    }
+
+    private User.Role parseRole(String roleValue) {
+        String normalized = normalize(roleValue);
+        if (normalized == null) {
+            return null;
+        }
+        try {
+            return User.Role.valueOf(normalized.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "invalid role");
+        }
+    }
+
+    private User.ApprovalStatus parseApprovalStatus(String statusValue) {
+        String normalized = normalize(statusValue);
+        if (normalized == null) {
+            return null;
+        }
+        try {
+            return User.ApprovalStatus.valueOf(normalized.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "invalid approvalStatus");
+        }
     }
 
     private User.Role resolveRegistrationRole(String roleValue) {

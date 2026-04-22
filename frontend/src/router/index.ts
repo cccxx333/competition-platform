@@ -92,6 +92,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         meta: { title: "Teacher Applications Review", hidden: true }
       },
       {
+        path: "admin/users",
+        name: "AdminUserManagement",
+        component: () => import("@/views/admin/AdminUserManagement.vue"),
+        meta: { title: "User Management" }
+      },
+      {
         path: "admin/awards/publish",
         name: "AdminAwardPublish",
         component: () => import("@/views/admin/AwardPublish.vue"),

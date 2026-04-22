@@ -207,8 +207,16 @@ public class TeacherApplicationService {
             syncTeamSkillsFromApplication(application, team);
             application.setGeneratedTeam(team);
             application.setStatus(TeacherApplication.Status.APPROVED);
+            if (application.getTeacher() != null) {
+                application.getTeacher().setApprovalStatus(User.ApprovalStatus.APPROVED);
+                userRepository.save(application.getTeacher());
+            }
         } else {
             application.setStatus(TeacherApplication.Status.REJECTED);
+            if (application.getTeacher() != null) {
+                application.getTeacher().setApprovalStatus(User.ApprovalStatus.REJECTED);
+                userRepository.save(application.getTeacher());
+            }
         }
         application.setReviewedAt(LocalDateTime.now());
         application.setReviewedBy(admin);
