@@ -20,6 +20,7 @@ public class CompetitionResponse {
     private String level;
     private Competition.CompetitionStatus status;
     private Long createdById;
+    private Long managerId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Double matchScore;

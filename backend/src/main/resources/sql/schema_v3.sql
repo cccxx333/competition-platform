@@ -59,9 +59,11 @@ CREATE TABLE IF NOT EXISTS competitions (
     level VARCHAR(64),
     status VARCHAR(20) DEFAULT 'UPCOMING',
     created_by BIGINT,
+    manager_id BIGINT,
     created_at DATETIME,
     updated_at DATETIME,
-    CONSTRAINT fk_competitions_created_by FOREIGN KEY (created_by) REFERENCES users (id)
+    CONSTRAINT fk_competitions_created_by FOREIGN KEY (created_by) REFERENCES users (id),
+    CONSTRAINT fk_competitions_manager FOREIGN KEY (manager_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS competition_skills (

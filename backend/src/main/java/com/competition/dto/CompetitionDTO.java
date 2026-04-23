@@ -20,6 +20,7 @@ public class CompetitionDTO {
     private String category;
     private String level;
     private Competition.CompetitionStatus status;
+    private Long managerId;
     private LocalDateTime createdAt;
     private List<CompetitionSkill> requiredSkills;
 }

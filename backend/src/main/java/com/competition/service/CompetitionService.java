@@ -387,12 +387,22 @@ public class CompetitionService {
                     .orElseThrow(() -> new RuntimeException("创建人不存在"));
             competition.setCreatedBy(createdBy);
         }
+        if (request.getManagerId() != null) {
+            User manager = userRepository.findById(request.getManagerId())
+                    .orElseThrow(() -> new RuntimeException("负责人不存在"));
+            competition.setManager(manager);
+        }
         return competition;
     }
 
     private void applyUpdate(Competition competition, CompetitionUpdateRequest request) {
         if (request.getStatus() != null) {
             competition.setStatus(request.getStatus());
+        }
+        if (request.getManagerId() != null) {
+            User manager = userRepository.findById(request.getManagerId())
+                    .orElseThrow(() -> new RuntimeException("负责人不存在"));
+            competition.setManager(manager);
         }
     }
 
@@ -438,6 +448,7 @@ public class CompetitionService {
         response.setLevel(competition.getLevel());
         response.setStatus(competition.getStatus());
         response.setCreatedById(competition.getCreatedBy() != null ? competition.getCreatedBy().getId() : null);
+        response.setManagerId(competition.getManager() != null ? competition.getManager().getId() : null);
         response.setCreatedAt(competition.getCreatedAt());
         response.setUpdatedAt(competition.getUpdatedAt());
         response.setMatchScore(matchScore);

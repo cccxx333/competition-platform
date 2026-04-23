@@ -74,6 +74,11 @@ public class Competition {
     @JsonIgnore
     private User createdBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manager_id")
+    @JsonIgnore
+    private User manager;
+
     @Column(name = "created_at")
     @ToString.Include
     private LocalDateTime createdAt;

@@ -18,4 +18,5 @@ public class CompetitionUpdateRequest {
     private String level;
     private Competition.CompetitionStatus status;
     private Long createdById;
+    private Long managerId;
 }
