@@ -16,6 +16,7 @@ export type ApplicationItem = {
   reviewedAt?: string
   reviewedBy?: number
   isActive?: boolean
+  awardName?: string | null
   [key: string]: unknown
 }
 

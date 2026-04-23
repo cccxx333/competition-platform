@@ -5,7 +5,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import java.util.Collection;
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface TeamAwardRepository extends JpaRepository<TeamAward, Long> {
@@ -15,6 +18,7 @@ public interface TeamAwardRepository extends JpaRepository<TeamAward, Long> {
     Page<TeamAward> findByCompetitionIdAndTeamIdOrderByPublishedAtDesc(Long competitionId, Long teamId, Pageable pageable);
     Page<TeamAward> findByCompetitionIdOrderByPublishedAtDesc(Long competitionId, Pageable pageable);
     Page<TeamAward> findByTeamIdOrderByPublishedAtDesc(Long teamId, Pageable pageable);
+    List<TeamAward> findByTeamIdInAndIsActiveOrderByTeamIdAscPublishedAtDesc(Collection<Long> teamIds, Byte isActive);
     Page<TeamAward> findAllByOrderByPublishedAtDesc(Pageable pageable);
     Optional<TeamAward> findFirstByTeamIdAndIsActiveOrderByPublishedAtDesc(Long teamId, Byte isActive);
     Optional<TeamAward> findByIdAndIsActive(Long id, Byte isActive);

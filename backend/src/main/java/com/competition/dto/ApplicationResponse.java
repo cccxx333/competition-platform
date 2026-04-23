@@ -22,4 +22,5 @@ public class ApplicationResponse {
     private LocalDateTime removedAt;
     private Long removedBy;
     private String reason;
+    private String awardName;
 }

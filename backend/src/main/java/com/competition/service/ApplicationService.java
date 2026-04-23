@@ -7,10 +7,12 @@ import com.competition.entity.Application;
 import com.competition.entity.Competition;
 import com.competition.entity.Team;
 import com.competition.entity.TeamMember;
+import com.competition.entity.TeamAward;
 import com.competition.entity.User;
 import com.competition.exception.ApiException;
 import com.competition.repository.ApplicationRepository;
 import com.competition.repository.CompetitionRepository;
+import com.competition.repository.TeamAwardRepository;
 import com.competition.repository.TeamMemberRepository;
 import com.competition.repository.TeamRepository;
 import com.competition.repository.UserRepository;
@@ -22,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -36,6 +40,7 @@ public class ApplicationService {
     private final CompetitionRepository competitionRepository;
     private final TeamRepository teamRepository;
     private final TeamMemberRepository teamMemberRepository;
+    private final TeamAwardRepository teamAwardRepository;
     private final UserBehaviorService userBehaviorService;
 
     public ApplicationResponse createApplication(Long currentUserId, ApplicationCreateRequest req) {
@@ -123,8 +128,13 @@ public class ApplicationService {
             applications = applicationRepository.findByStudent_IdOrderByAppliedAtDesc(student.getId());
         }
 
+        Map<Long, String> awardNameByTeamId = buildAwardNameByTeamId(applications);
         return applications.stream()
-                .map(this::toResponse)
+                .map(application -> {
+                    ApplicationResponse response = toResponse(application);
+                    response.setAwardName(awardNameByTeamId.get(response.getTeamId()));
+                    return response;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -274,5 +284,28 @@ public class ApplicationService {
         response.setRemovedBy(application.getRemovedBy() != null ? application.getRemovedBy().getId() : null);
         response.setReason(application.getReason());
         return response;
+    }
+
+    private Map<Long, String> buildAwardNameByTeamId(List<Application> applications) {
+        List<Long> teamIds = applications.stream()
+                .map(Application::getTeam)
+                .filter(team -> team != null && team.getId() != null)
+                .map(team -> team.getId())
+                .distinct()
+                .collect(Collectors.toList());
+        if (teamIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<TeamAward> awards = teamAwardRepository
+                .findByTeamIdInAndIsActiveOrderByTeamIdAscPublishedAtDesc(teamIds, (byte) 1);
+        Map<Long, String> awardNameByTeamId = new LinkedHashMap<>();
+        for (TeamAward award : awards) {
+            if (award.getTeamId() == null || awardNameByTeamId.containsKey(award.getTeamId())) {
+                continue;
+            }
+            awardNameByTeamId.put(award.getTeamId(), award.getAwardName());
+        }
+        return awardNameByTeamId;
     }
 }
