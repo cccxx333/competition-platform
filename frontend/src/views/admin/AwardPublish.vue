@@ -7,6 +7,11 @@ import { useAuthStore } from "@/stores/auth"
 import { toYmd } from "@/common/utils/datetime"
 import { getApiErrorMessage } from "@/utils/errorMessage"
 
+type TeacherOption = {
+  id: number
+  name: string
+}
+
 const authStore = useAuthStore()
 const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
 const isAdmin = computed(() => roleUpper.value === "ADMIN")
@@ -18,6 +23,7 @@ const loadingTeams = ref(false)
 
 const form = reactive({
   competitionId: null as number | null,
+  teacherId: null as number | null,
   teamId: null as number | null,
   awardName: ""
 })
@@ -29,17 +35,40 @@ const errorDialogMessage = ref("")
 const competitionNameMap = ref<Record<number, string>>({})
 
 const finishedCompetitions = ref<CompetitionListItem[]>([])
-const competitionTeams = ref<TeamDto[]>([])
+const allCompetitionTeams = ref<TeamDto[]>([])
+
 const finishedCompetitionOptions = computed(
   () => finishedCompetitions.value.filter((item): item is CompetitionListItem & { id: number } => typeof item.id === "number")
 )
-const teamOptions = computed(
-  () => competitionTeams.value.filter((team): team is TeamDto & { id: number } => typeof team.id === "number")
-)
+
+const teacherOptions = computed<TeacherOption[]>(() => {
+  const map = new Map<number, string>()
+  allCompetitionTeams.value.forEach((team) => {
+    const leaderId = team.leader?.id
+    if (typeof leaderId !== "number") return
+    const name = team.leader?.realName?.trim() || team.leader?.username?.trim() || `教师 ${leaderId}`
+    if (!map.has(leaderId)) {
+      map.set(leaderId, name)
+    }
+  })
+  return Array.from(map.entries())
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name, "zh-CN"))
+})
+
+const teamOptions = computed(() => {
+  const teacherId = form.teacherId
+  return allCompetitionTeams.value
+    .filter((team): team is TeamDto & { id: number } => typeof team.id === "number")
+    .filter((team) => {
+      if (typeof teacherId !== "number") return false
+      return team.leader?.id === teacherId
+    })
+})
 
 const publishDisabled = computed(() => {
   if (!isAdmin.value || submitting.value) return true
-  return !(form.competitionId && form.teamId && form.awardName.trim())
+  return !(form.competitionId && form.teacherId && form.teamId && form.awardName.trim())
 })
 
 const resetResult = () => {
@@ -52,11 +81,11 @@ const showError = (message: string) => {
 }
 
 const getFallbackMessage = (status?: number) => {
-  if (status === 400) return "请求无效"
+  if (status === 400) return "请求参数无效"
   if (status === 401) return "会话已过期，请重新登录"
   if (status === 403) return "无权限（仅管理员）"
   if (status === 404) return "竞赛或队伍不存在"
-  if (status === 409) return "业务冲突"
+  if (status === 409) return "业务冲突，请检查竞赛状态和队伍状态"
   return "发布奖项失败"
 }
 
@@ -91,8 +120,9 @@ const loadFinishedCompetitions = async () => {
     finishedCompetitions.value = (items ?? []).slice()
     if (!finishedCompetitions.value.some((item) => item.id === form.competitionId)) {
       form.competitionId = null
+      form.teacherId = null
       form.teamId = null
-      competitionTeams.value = []
+      allCompetitionTeams.value = []
     }
   } catch (error: any) {
     const status = error?.status ?? error?.response?.status
@@ -107,12 +137,16 @@ const loadTeamsForCompetition = async (competitionId: number) => {
   loadingTeams.value = true
   try {
     const { items } = await listTeams({ page: 0, size: 1000 })
-    competitionTeams.value = (items ?? []).filter((team) => team.competition?.id === competitionId)
-    if (!competitionTeams.value.some((team) => team.id === form.teamId)) {
+    allCompetitionTeams.value = (items ?? []).filter((team) => team.competition?.id === competitionId)
+    if (!teacherOptions.value.some((teacher) => teacher.id === form.teacherId)) {
+      form.teacherId = null
+    }
+    if (!teamOptions.value.some((team) => team.id === form.teamId)) {
       form.teamId = null
     }
   } catch (error: any) {
-    competitionTeams.value = []
+    allCompetitionTeams.value = []
+    form.teacherId = null
     form.teamId = null
     const status = error?.status ?? error?.response?.status
     const fallback = getFallbackMessage(status)
@@ -125,10 +159,20 @@ const loadTeamsForCompetition = async (competitionId: number) => {
 watch(
   () => form.competitionId,
   (competitionId) => {
+    form.teacherId = null
     form.teamId = null
-    competitionTeams.value = []
+    allCompetitionTeams.value = []
     if (typeof competitionId === "number" && competitionId > 0) {
       void loadTeamsForCompetition(competitionId)
+    }
+  }
+)
+
+watch(
+  () => form.teacherId,
+  () => {
+    if (!teamOptions.value.some((team) => team.id === form.teamId)) {
+      form.teamId = null
     }
   }
 )
@@ -140,6 +184,10 @@ const handleSubmit = async () => {
   }
   if (!form.competitionId) {
     showError("请选择已结束竞赛")
+    return
+  }
+  if (!form.teacherId) {
+    showError("请选择教师")
     return
   }
   if (!form.teamId) {
@@ -174,20 +222,20 @@ const handleSubmit = async () => {
 }
 
 const loadCompetitionNames = async (list: AwardRecordItem[]) => {
-  const ids = Array.from(new Set(
-    list
-      .map(item => item.competitionId)
-      .filter((id): id is number => typeof id === "number" && id > 0)
-  ))
+  const ids = Array.from(
+    new Set(list.map((item) => item.competitionId).filter((id): id is number => typeof id === "number" && id > 0))
+  )
   if (!ids.length) {
     competitionNameMap.value = {}
     return
   }
   try {
-    const pairs = await Promise.all(ids.map(async (id) => {
-      const detail = await getCompetitionDetail(id)
-      return [id, detail?.name ?? "-"] as const
-    }))
+    const pairs = await Promise.all(
+      ids.map(async (id) => {
+        const detail = await getCompetitionDetail(id)
+        return [id, detail?.name ?? "-"] as const
+      })
+    )
     const next: Record<number, string> = {}
     for (const [id, name] of pairs) {
       next[id] = name
@@ -221,9 +269,10 @@ const loadRecords = async (useFilters = false) => {
 
 const resetSelection = () => {
   form.competitionId = null
+  form.teacherId = null
   form.teamId = null
   form.awardName = ""
-  competitionTeams.value = []
+  allCompetitionTeams.value = []
   resetResult()
 }
 
@@ -241,13 +290,7 @@ onMounted(async () => {
 
     <div class="admin-content-shell">
       <el-card shadow="never" class="publish-card">
-        <el-alert
-          v-if="!isAdmin"
-          type="warning"
-          show-icon
-          title="仅管理员可发布奖项"
-          class="status-alert"
-        />
+        <el-alert v-if="!isAdmin" type="warning" show-icon title="仅管理员可发布奖项" class="status-alert" />
 
         <el-form label-position="top" class="publish-form">
           <el-form-item label="已结束竞赛" required>
@@ -267,14 +310,32 @@ onMounted(async () => {
               />
             </el-select>
           </el-form-item>
+
+          <el-form-item label="教师" required>
+            <el-select
+              v-model="form.teacherId"
+              filterable
+              clearable
+              placeholder="请先选择竞赛"
+              :disabled="submitting || !form.competitionId"
+            >
+              <el-option
+                v-for="teacher in teacherOptions"
+                :key="`teacher-${teacher.id}`"
+                :label="teacher.name"
+                :value="teacher.id"
+              />
+            </el-select>
+          </el-form-item>
+
           <el-form-item label="竞赛队伍" required>
             <el-select
               v-model="form.teamId"
               filterable
               clearable
-              placeholder="请先选择竞赛"
+              placeholder="请先选择教师"
               :loading="loadingTeams"
-              :disabled="submitting || !form.competitionId"
+              :disabled="submitting || !form.competitionId || !form.teacherId"
             >
               <el-option
                 v-for="team in teamOptions"
@@ -284,6 +345,7 @@ onMounted(async () => {
               />
             </el-select>
           </el-form-item>
+
           <el-form-item label="奖项名称" required>
             <el-input
               v-model="form.awardName"
@@ -292,14 +354,13 @@ onMounted(async () => {
               placeholder="例如：一等奖"
               :disabled="submitting"
             />
-        </el-form-item>
-        <div class="publish-actions">
-          <el-button type="primary" :loading="submitting" :disabled="publishDisabled" @click="handleSubmit">
-            发布
-          </el-button>
-          <el-button :disabled="submitting" @click="resetSelection">重置</el-button>
-        </div>
-      </el-form>
+          </el-form-item>
+
+          <div class="publish-actions">
+            <el-button type="primary" :loading="submitting" :disabled="publishDisabled" @click="handleSubmit">发布</el-button>
+            <el-button :disabled="submitting" @click="resetSelection">重置</el-button>
+          </div>
+        </el-form>
 
         <el-card v-if="lastResult" shadow="never" class="result-card">
           <h3>发布结果</h3>
@@ -313,7 +374,7 @@ onMounted(async () => {
               {{ lastResult.recipientUserIds?.length ? lastResult.recipientUserIds.join(", ") : "-" }}
             </el-descriptions-item>
           </el-descriptions>
-          <div class="result-hint">可使用获奖成员账号验证荣誉页。</div>
+          <div class="result-hint">可使用获奖成员账号验证荣誉页面。</div>
         </el-card>
       </el-card>
     </div>

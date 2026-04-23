@@ -105,7 +105,7 @@ public class User {
             role = Role.STUDENT;
         }
         if (approvalStatus == null) {
-            approvalStatus = ApprovalStatus.APPROVED;
+            approvalStatus = role == Role.TEACHER ? ApprovalStatus.PENDING : ApprovalStatus.APPROVED;
         }
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
@@ -117,7 +117,7 @@ public class User {
             role = Role.STUDENT;
         }
         if (approvalStatus == null) {
-            approvalStatus = ApprovalStatus.APPROVED;
+            approvalStatus = role == Role.TEACHER ? ApprovalStatus.PENDING : ApprovalStatus.APPROVED;
         }
         updatedAt = LocalDateTime.now();
     }

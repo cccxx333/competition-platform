@@ -37,6 +37,8 @@ public class CompetitionController {
             HttpServletRequest request,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Competition.CompetitionStatus status,
+            @RequestParam(required = false) Long managerId,
+            @RequestParam(defaultValue = "false") boolean managedOnly,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "false") boolean recommend,
             @RequestParam(defaultValue = "false") boolean applyable,
@@ -55,8 +57,15 @@ public class CompetitionController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Long userId = recommend ? tryGetUserId(request) : null;
+        Long managerFilterId = managerId;
+        if (managedOnly) {
+            managerFilterId = tryGetUserId(request);
+            if (managerFilterId == null) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "无权限：仅登录用户可查看负责竞赛");
+            }
+        }
         Page<CompetitionResponse> competitions = competitionService.getCompetitions(
-                pageable, name, status, keyword, recommend, applyable, userId, topK);
+                pageable, name, status, keyword, recommend, applyable, userId, topK, managerFilterId);
         return ResponseEntity.ok(competitions);
     }
 

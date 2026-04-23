@@ -27,4 +27,14 @@ public interface CompetitionRepository extends JpaRepository<Competition, Long> 
 
     @Query("SELECT c FROM Competition c JOIN c.competitionSkills cs WHERE cs.skill.id IN :skillIds")
     List<Competition> findBySkillIds(@Param("skillIds") List<Long> skillIds);
+
+    long countByStatus(Competition.CompetitionStatus status);
+
+    @Query("SELECT COUNT(c) FROM Competition c " +
+            "WHERE c.status = :status " +
+            "AND NOT EXISTS (" +
+            "  SELECT ta.id FROM TeamAward ta " +
+            "  WHERE ta.competitionId = c.id AND ta.isActive = 1" +
+            ")")
+    long countByStatusAndWithoutActiveAward(@Param("status") Competition.CompetitionStatus status);
 }

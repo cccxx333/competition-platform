@@ -1,29 +1,33 @@
 ﻿<script lang="ts" setup>
-import { Document, User } from "@element-plus/icons-vue"
+import { Document, Trophy, User } from "@element-plus/icons-vue"
+import { listCompetitions } from "@/api/competitions"
 import DashboardLayout from "@/components/Dashboard/DashboardLayout.vue"
 import OngoingCompetitionsPanel from "@/components/Dashboard/OngoingCompetitionsPanel.vue"
-import QuickLinksPanel from "@/components/Dashboard/QuickLinksPanel.vue"
 import { listPendingApplications } from "@/api/teamApplications"
-import { listMyTeacherApplicationPage } from "@/api/teacherApplications"
+import { adminListTeacherApplicationPage, listMyTeacherApplicationPage } from "@/api/teacherApplications"
 import { useAuthStore } from "@/stores/auth"
 
 const authStore = useAuthStore()
 const loading = ref(false)
 const appliedCompetitionCount = ref(0)
-const pendingTeamApplicationCount = ref(0)
+const managedCompetitionCount = ref(0)
+const pendingBuildApplicationCount = ref(0)
+const pendingJoinApplicationCount = ref(0)
 const username = computed(() => authStore.user?.username?.trim() || "老师")
-const quickLinks = [
-  { label: "竞赛列表", path: "/competitions" },
-  { label: "建队申请", path: "/teacher/applications" },
-  { label: "学生入队申请审核", path: "/teams/review" },
-  { label: "负责竞赛建队审核", path: "/teacher/managed-applications" }
-]
+
+const countManagedCompetitions = async () => {
+  const { total, items } = await listCompetitions({ managedOnly: true, page: 0, size: 1 })
+  if (typeof total === "number") return total
+  return items.length
+}
 
 const loadCounts = async () => {
   loading.value = true
   try {
-    const [applicationsResult, pendingResult] = await Promise.allSettled([
+    const [applicationsResult, managedCompetitionResult, pendingBuildResult, pendingJoinResult] = await Promise.allSettled([
       listMyTeacherApplicationPage({ page: 0, size: 1 }),
+      countManagedCompetitions(),
+      adminListTeacherApplicationPage({ status: "PENDING", page: 0, size: 1 }),
       listPendingApplications({ status: "PENDING" })
     ])
     if (applicationsResult.status === "fulfilled") {
@@ -33,8 +37,18 @@ const loadCounts = async () => {
     } else {
       appliedCompetitionCount.value = 0
     }
-    pendingTeamApplicationCount.value =
-      pendingResult.status === "fulfilled" ? pendingResult.value?.length ?? 0 : 0
+
+    managedCompetitionCount.value = managedCompetitionResult.status === "fulfilled" ? managedCompetitionResult.value : 0
+
+    if (pendingBuildResult.status === "fulfilled") {
+      const total = pendingBuildResult.value?.total
+      pendingBuildApplicationCount.value =
+        typeof total === "number" ? total : pendingBuildResult.value?.items?.length ?? 0
+    } else {
+      pendingBuildApplicationCount.value = 0
+    }
+
+    pendingJoinApplicationCount.value = pendingJoinResult.status === "fulfilled" ? pendingJoinResult.value?.length ?? 0 : 0
   } finally {
     loading.value = false
   }
@@ -60,22 +74,41 @@ onMounted(loadCounts)
           </div>
         </div>
       </template>
+      <template #topMidLeft>
+        <div class="stat-card" v-loading="loading">
+          <div class="stat-icon">
+            <el-icon :size="20"><Trophy /></el-icon>
+          </div>
+          <div class="stat-body">
+            <div class="stat-value">{{ managedCompetitionCount }}</div>
+            <div class="stat-label">已负责竞赛</div>
+          </div>
+        </div>
+      </template>
+      <template #topCenter>
+        <div class="stat-card" v-loading="loading">
+          <div class="stat-icon">
+            <el-icon :size="20"><Document /></el-icon>
+          </div>
+          <div class="stat-body">
+            <div class="stat-value">{{ pendingBuildApplicationCount }}</div>
+            <div class="stat-label">待审核建队申请</div>
+          </div>
+        </div>
+      </template>
       <template #topRight>
         <div class="stat-card" v-loading="loading">
           <div class="stat-icon">
             <el-icon :size="20"><User /></el-icon>
           </div>
           <div class="stat-body">
-            <div class="stat-value">{{ pendingTeamApplicationCount }}</div>
-            <div class="stat-label">入队待审核</div>
+            <div class="stat-value">{{ pendingJoinApplicationCount }}</div>
+            <div class="stat-label">待审核入队申请</div>
           </div>
         </div>
       </template>
       <template #bottom>
-        <div class="dashboard-bottom-stack">
-          <QuickLinksPanel :items="quickLinks" />
-          <OngoingCompetitionsPanel />
-        </div>
+        <OngoingCompetitionsPanel />
       </template>
     </DashboardLayout>
   </div>
@@ -85,7 +118,7 @@ onMounted(loadCounts)
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: 20px;
   width: 100%;
 }
 
@@ -123,9 +156,4 @@ onMounted(loadCounts)
   margin-top: 8px;
 }
 
-.dashboard-bottom-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
 </style>

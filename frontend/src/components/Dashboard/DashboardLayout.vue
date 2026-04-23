@@ -1,15 +1,22 @@
 <script lang="ts" setup>
+import { computed, useSlots } from "vue"
 import OngoingCompetitionsPanel from "./OngoingCompetitionsPanel.vue"
+
+const slots = useSlots()
+const topSlotNames = computed(() => ["topLeft", "topMidLeft", "topCenter", "topRight"].filter((name) => !!slots[name]))
 </script>
 
 <template>
   <div class="dashboard-layout">
-    <div class="dashboard-grid">
-      <el-card shadow="never" class="cp-card dashboard-card">
-        <slot name="topLeft" />
-      </el-card>
-      <el-card shadow="never" class="cp-card dashboard-card">
-        <slot name="topRight" />
+    <div
+      class="dashboard-grid"
+      :class="{
+        'dashboard-grid--three': topSlotNames.length === 3,
+        'dashboard-grid--four': topSlotNames.length === 4
+      }"
+    >
+      <el-card v-for="slotName in topSlotNames" :key="slotName" shadow="never" class="cp-card dashboard-card">
+        <slot :name="slotName" />
       </el-card>
     </div>
     <div class="dashboard-section">
@@ -31,6 +38,14 @@ import OngoingCompetitionsPanel from "./OngoingCompetitionsPanel.vue"
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+.dashboard-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dashboard-grid--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .dashboard-card {

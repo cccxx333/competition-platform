@@ -1139,8 +1139,17 @@ onBeforeUnmount(() => {
       </el-form>
       <el-alert v-if="teacherApplyDialogError" type="error" :closable="false" :title="teacherApplyDialogError" />
       <template #footer>
-        <el-button :disabled="teacherApplyDialogLoading" @click="closeTeacherApplyDialog">取消</el-button>
-        <el-button type="primary" :loading="teacherApplyDialogLoading" @click="submitTeacherApply">提交</el-button>
+        <el-button class="teacher-apply-dialog__cancel-btn" :disabled="teacherApplyDialogLoading" @click="closeTeacherApplyDialog">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          class="teacher-apply-dialog__submit-btn"
+          :loading="teacherApplyDialogLoading"
+          @click="submitTeacherApply"
+        >
+          提交
+        </el-button>
       </template>
     </el-dialog>
 
@@ -1371,6 +1380,30 @@ onBeforeUnmount(() => {
 .teacher-apply-dialog :deep(.el-dialog__footer) {
   padding: 12px 20px 18px;
   border-top: 1px solid #edf1f7;
+}
+
+.teacher-apply-dialog :deep(.teacher-apply-dialog__submit-btn) {
+  --el-button-bg-color: #111111;
+  --el-button-border-color: #111111;
+  --el-button-text-color: #ffffff;
+  --el-button-hover-bg-color: #000000;
+  --el-button-hover-border-color: #000000;
+  --el-button-hover-text-color: #ffffff;
+  --el-button-active-bg-color: #000000;
+  --el-button-active-border-color: #000000;
+  --el-button-active-text-color: #ffffff;
+}
+
+.teacher-apply-dialog :deep(.teacher-apply-dialog__cancel-btn) {
+  --el-button-bg-color: #ffffff;
+  --el-button-border-color: #d0d5dd;
+  --el-button-text-color: #303133;
+  --el-button-hover-bg-color: #f8f9fb;
+  --el-button-hover-border-color: #c7ccd4;
+  --el-button-hover-text-color: #303133;
+  --el-button-active-bg-color: #f3f4f6;
+  --el-button-active-border-color: #c0c4cc;
+  --el-button-active-text-color: #303133;
 }
 
 .teacher-apply-dialog__header {

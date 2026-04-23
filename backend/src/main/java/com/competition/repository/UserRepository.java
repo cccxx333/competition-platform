@@ -42,5 +42,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
                            @Param("role") User.Role role,
                            @Param("approvalStatus") User.ApprovalStatus approvalStatus,
                            Pageable pageable);
+
+    long countByRoleAndApprovalStatus(User.Role role, User.ApprovalStatus approvalStatus);
 }
 

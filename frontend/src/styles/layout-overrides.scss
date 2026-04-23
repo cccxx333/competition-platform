@@ -163,3 +163,58 @@ body {
   margin: 0 0 16px;
   padding-left: 32px;
 }
+
+/* Global action button rules:
+   - single button: black
+   - parallel buttons: first black, following buttons white */
+.el-button:not(.is-link):not(.el-button--text):not(.is-circle):not(.el-button--danger):not(.el-button--success) {
+  --el-button-bg-color: #111111;
+  --el-button-border-color: #111111;
+  --el-button-text-color: #ffffff;
+  --el-button-hover-bg-color: #000000;
+  --el-button-hover-border-color: #000000;
+  --el-button-hover-text-color: #ffffff;
+  --el-button-active-bg-color: #000000;
+  --el-button-active-border-color: #000000;
+  --el-button-active-text-color: #ffffff;
+  --el-button-disabled-bg-color: #f2f3f5;
+  --el-button-disabled-border-color: #e4e7ed;
+  --el-button-disabled-text-color: #a8abb2;
+}
+
+.el-button:not(.is-link):not(.el-button--text):not(.is-circle):not(.el-button--danger):not(.el-button--success)
+  + .el-button:not(.is-link):not(.el-button--text):not(.is-circle):not(.el-button--danger):not(.el-button--success) {
+  --el-button-bg-color: #ffffff;
+  --el-button-border-color: #d0d5dd;
+  --el-button-text-color: #303133;
+  --el-button-hover-bg-color: #f8f9fb;
+  --el-button-hover-border-color: #c7ccd4;
+  --el-button-hover-text-color: #303133;
+  --el-button-active-bg-color: #f3f4f6;
+  --el-button-active-border-color: #c0c4cc;
+  --el-button-active-text-color: #303133;
+}
+
+.el-button.el-button--danger:not(.is-link):not(.el-button--text):not(.is-circle) {
+  --el-button-bg-color: #dc2626;
+  --el-button-border-color: #dc2626;
+  --el-button-text-color: #ffffff;
+  --el-button-hover-bg-color: #b91c1c;
+  --el-button-hover-border-color: #b91c1c;
+  --el-button-hover-text-color: #ffffff;
+  --el-button-active-bg-color: #991b1b;
+  --el-button-active-border-color: #991b1b;
+  --el-button-active-text-color: #ffffff;
+}
+
+.el-button.el-button--success:not(.is-link):not(.el-button--text):not(.is-circle) {
+  --el-button-bg-color: #16a34a;
+  --el-button-border-color: #16a34a;
+  --el-button-text-color: #ffffff;
+  --el-button-hover-bg-color: #15803d;
+  --el-button-hover-border-color: #15803d;
+  --el-button-hover-text-color: #ffffff;
+  --el-button-active-bg-color: #166534;
+  --el-button-active-border-color: #166534;
+  --el-button-active-text-color: #ffffff;
+}

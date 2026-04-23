@@ -43,6 +43,8 @@ type CompetitionPage = {
 export type CompetitionListParams = {
   keyword?: string
   status?: CompetitionListItem["status"]
+  managerId?: number
+  managedOnly?: boolean
   page?: number
   size?: number
   recommend?: boolean

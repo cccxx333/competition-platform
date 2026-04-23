@@ -76,4 +76,17 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             @Param("studentId") Long studentId,
             @Param("competitionId") Long competitionId
     );
+
+    long countByStudent_IdAndStatusAndIsActive(Long studentId, Application.Status status, Boolean isActive);
+
+    @Query("SELECT COUNT(DISTINCT a.competition.id) FROM Application a " +
+            "WHERE a.student.id = :studentId " +
+            "AND a.status = :applicationStatus " +
+            "AND a.isActive = true " +
+            "AND a.competition.status = :competitionStatus")
+    long countDistinctCompetitionByStudentAndStatuses(
+            @Param("studentId") Long studentId,
+            @Param("applicationStatus") Application.Status applicationStatus,
+            @Param("competitionStatus") com.competition.entity.Competition.CompetitionStatus competitionStatus
+    );
 }

@@ -86,6 +86,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         meta: { title: "建队申请", hidden: true }
       },
       {
+        path: "teacher/managed-competitions",
+        name: "TeacherManagedCompetitions",
+        component: () => import("@/views/teacher/ManagedCompetitions.vue"),
+        meta: { title: "负责竞赛", roles: ["TEACHER"] }
+      },
+      {
         path: "teacher/applications/create/:competitionId",
         name: "TeacherApplicationCreate",
         component: () => import("@/views/teacher/TeacherApplyCreate.vue"),

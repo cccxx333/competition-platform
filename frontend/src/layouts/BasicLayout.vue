@@ -41,6 +41,7 @@ const handleLogout = () => {
           <el-menu-item index="/competitions">竞赛列表</el-menu-item>
           <el-menu-item v-if="roleUpper === 'STUDENT'" index="/competitions/apply">竞赛报名</el-menu-item>
           <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teacher/applications">建队申请</el-menu-item>
+          <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teacher/managed-competitions">负责竞赛</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="/teams">
           <template #title>

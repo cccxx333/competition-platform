@@ -152,7 +152,8 @@ public class CompetitionService {
                                                      boolean recommend,
                                                      boolean applyable,
                                                      Long userId,
-                                                     Integer topK) {
+                                                     Integer topK,
+                                                     Long managerId) {
         Competition.CompetitionStatus effectiveStatus =
                 recommend ? Competition.CompetitionStatus.UPCOMING : status;
         int effectiveTopK = calculateEffectiveTopK(topK);
@@ -167,10 +168,10 @@ public class CompetitionService {
 
         if (!recommend || fallbackReason != null) {
             return getCompetitionsDefault(
-                    pageable, name, effectiveStatus, keyword, applyable, recommend && fallbackReason != null, fallbackReason);
+                    pageable, name, effectiveStatus, keyword, applyable, recommend && fallbackReason != null, fallbackReason, managerId);
         }
 
-        List<Competition> candidates = getCandidateCompetitions(name, effectiveStatus, keyword, applyable);
+        List<Competition> candidates = getCandidateCompetitions(name, effectiveStatus, keyword, applyable, managerId);
         if (candidates.isEmpty()) {
             return new PageImpl<>(new ArrayList<>(), pageable, 0);
         }
@@ -186,7 +187,7 @@ public class CompetitionService {
                 hybridResult.getContentCandidateCount(),
                 hybridResult.getCfCandidateCount());
         if (matchScores.isEmpty()) {
-            return getCompetitionsDefault(pageable, name, effectiveStatus, keyword, applyable, true, "EMPTY_SCORES");
+            return getCompetitionsDefault(pageable, name, effectiveStatus, keyword, applyable, true, "EMPTY_SCORES", managerId);
         }
 
         Comparator<Competition> baseComparator = buildSortComparator(pageable.getSort());
@@ -489,11 +490,13 @@ public class CompetitionService {
                                                              String keyword,
                                                              boolean applyable,
                                                              boolean fallbackApplied,
-                                                             String fallbackReason) {
+                                                             String fallbackReason,
+                                                             Long managerId) {
         if (keyword != null && !keyword.isBlank()) {
             List<Competition> results = competitionRepository.findByKeyword(keyword);
             results = filterByNameAndStatus(results, name, status);
             results = filterByApplyable(results, applyable);
+            results = filterByManagerId(results, managerId);
             List<Competition> sorted = sortCompetitions(results, pageable.getSort());
             return applyFallbackMetadata(toResponsePage(sorted, pageable), fallbackApplied, fallbackReason);
         }
@@ -501,29 +504,33 @@ public class CompetitionService {
         if (name != null && status != null) {
             List<Competition> results = competitionRepository.findByNameContainingIgnoreCaseAndStatus(name, status);
             results = filterByApplyable(results, applyable);
+            results = filterByManagerId(results, managerId);
             List<Competition> sorted = sortCompetitions(results, pageable.getSort());
             return applyFallbackMetadata(toResponsePage(sorted, pageable), fallbackApplied, fallbackReason);
         }
         if (name != null) {
             List<Competition> results = competitionRepository.findByNameContainingIgnoreCase(name);
             results = filterByApplyable(results, applyable);
+            results = filterByManagerId(results, managerId);
             List<Competition> sorted = sortCompetitions(results, pageable.getSort());
             return applyFallbackMetadata(toResponsePage(sorted, pageable), fallbackApplied, fallbackReason);
         }
         if (status != null) {
             List<Competition> results = competitionRepository.findByStatus(status);
             results = filterByApplyable(results, applyable);
+            results = filterByManagerId(results, managerId);
             List<Competition> sorted = sortCompetitions(results, pageable.getSort());
             return applyFallbackMetadata(toResponsePage(sorted, pageable), fallbackApplied, fallbackReason);
         }
 
-        if (!applyable) {
+        if (!applyable && managerId == null) {
             Page<CompetitionResponse> page = competitionRepository.findAll(pageable).map(this::convertToResponse);
             return applyFallbackMetadata(page, fallbackApplied, fallbackReason);
         }
 
         List<Competition> results = competitionRepository.findAll();
-        results = filterByApplyable(results, true);
+        results = filterByApplyable(results, applyable);
+        results = filterByManagerId(results, managerId);
         List<Competition> sorted = sortCompetitions(results, pageable.getSort());
         return applyFallbackMetadata(toResponsePage(sorted, pageable), fallbackApplied, fallbackReason);
     }
@@ -544,22 +551,28 @@ public class CompetitionService {
     private List<Competition> getCandidateCompetitions(String name,
                                                        Competition.CompetitionStatus status,
                                                        String keyword,
-                                                       boolean applyable) {
+                                                       boolean applyable,
+                                                       Long managerId) {
         if (keyword != null && !keyword.isBlank()) {
             List<Competition> results = competitionRepository.findByKeyword(keyword);
             results = filterByNameAndStatus(results, name, status);
-            return filterByApplyable(results, applyable);
+            results = filterByApplyable(results, applyable);
+            return filterByManagerId(results, managerId);
         }
         if (name != null && status != null) {
-            return filterByApplyable(competitionRepository.findByNameContainingIgnoreCaseAndStatus(name, status), applyable);
+            List<Competition> results = filterByApplyable(competitionRepository.findByNameContainingIgnoreCaseAndStatus(name, status), applyable);
+            return filterByManagerId(results, managerId);
         }
         if (name != null) {
-            return filterByApplyable(competitionRepository.findByNameContainingIgnoreCase(name), applyable);
+            List<Competition> results = filterByApplyable(competitionRepository.findByNameContainingIgnoreCase(name), applyable);
+            return filterByManagerId(results, managerId);
         }
         if (status != null) {
-            return filterByApplyable(competitionRepository.findByStatus(status), applyable);
+            List<Competition> results = filterByApplyable(competitionRepository.findByStatus(status), applyable);
+            return filterByManagerId(results, managerId);
         }
-        return filterByApplyable(competitionRepository.findAll(), applyable);
+        List<Competition> results = filterByApplyable(competitionRepository.findAll(), applyable);
+        return filterByManagerId(results, managerId);
     }
 
     private List<Competition> filterByNameAndStatus(List<Competition> competitions,
@@ -597,6 +610,15 @@ public class CompetitionService {
                     LocalDate deadline = competition.getRegistrationDeadline();
                     return deadline != null && !deadline.isBefore(today);
                 })
+                .collect(Collectors.toList());
+    }
+
+    private List<Competition> filterByManagerId(List<Competition> competitions, Long managerId) {
+        if (managerId == null) {
+            return competitions;
+        }
+        return competitions.stream()
+                .filter(competition -> competition.getManager() != null && managerId.equals(competition.getManager().getId()))
                 .collect(Collectors.toList());
     }
 
