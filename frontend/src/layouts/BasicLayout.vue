@@ -1,4 +1,4 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { Avatar, Document, House, Medal, Star, Trophy, User, SwitchButton, Setting } from "@element-plus/icons-vue"
 import { useAuthStore } from "@/stores/auth"
@@ -53,15 +53,17 @@ const handleLogout = () => {
           </el-menu-item>
           <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teams/review">审核</el-menu-item>
           <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/awards/publish">奖项发布</el-menu-item>
+          <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/teacher-applications">申请审核</el-menu-item>
         </el-sub-menu>
         <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teacher/applications">
           <el-icon class="basic-layout__menu-icon"><Document /></el-icon>
           <span>创建队伍申请</span>
         </el-menu-item>
-        <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/teacher-applications">
+        <el-menu-item v-if="roleUpper === 'TEACHER'" index="/teacher/managed-applications">
           <el-icon class="basic-layout__menu-icon"><Document /></el-icon>
-          <span>创建队伍申请审核</span>
+          <span>审核负责的竞赛</span>
         </el-menu-item>
+
         <el-menu-item v-if="roleUpper === 'ADMIN'" index="/admin/users">
           <el-icon class="basic-layout__menu-icon"><Setting /></el-icon>
           <span>用户管理</span>

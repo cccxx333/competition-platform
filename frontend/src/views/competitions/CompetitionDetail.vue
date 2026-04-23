@@ -1,7 +1,8 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { ArrowLeft } from "@element-plus/icons-vue"
-import { getCompetitionDetail, updateCompetitionStatus, type CompetitionDetail } from "@/api/competitions"
+import { getCompetitionDetail, type CompetitionDetail } from "@/api/competitions"
+import { listAdminUsersPage, type AdminUserProfile } from "@/api/adminUsers"
 import { useAuthStore } from "@/stores/auth"
 import StatusTag from "@@/components/StatusTag/index.vue"
 import { getApiErrorMessage } from "@/utils/errorMessage"
@@ -13,12 +14,6 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const errorMessage = ref("")
 const detail = ref<CompetitionDetail | null>(null)
-const editDialogVisible = ref(false)
-const editDialogLoading = ref(false)
-const editDialogError = ref("")
-const editForm = ref({
-  status: "" as CompetitionDetail["status"] | ""
-})
 
 const competitionId = computed(() => Number(route.params.id))
 const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
@@ -144,41 +139,6 @@ const handleBack = () => {
   router.push(backTarget.value)
 }
 
-const openEditDialog = () => {
-  if (!detail.value) return
-  editDialogError.value = ""
-  editForm.value = {
-    status: detail.value.status ?? ""
-  }
-  editDialogVisible.value = true
-}
-
-const closeEditDialog = () => {
-  if (editDialogLoading.value) return
-  editDialogVisible.value = false
-  editDialogError.value = ""
-}
-
-const submitEdit = async () => {
-  if (!detail.value?.id) return
-  editDialogError.value = ""
-  if (!editForm.value.status) {
-    editDialogError.value = "请选择竞赛状态"
-    return
-  }
-  editDialogLoading.value = true
-  try {
-    await updateCompetitionStatus(detail.value.id, editForm.value.status)
-    ElMessage.success("竞赛状态已更新")
-    editDialogVisible.value = false
-    await loadDetail()
-  } catch (error: any) {
-    editDialogError.value = getApiErrorMessage(error, "更新竞赛失败")
-  } finally {
-    editDialogLoading.value = false
-  }
-}
-
 onMounted(loadDetail)
 watch(() => route.params.id, loadDetail)
 </script>
@@ -188,7 +148,6 @@ watch(() => route.params.id, loadDetail)
     <div class="page-header">
       <h2>竞赛详情</h2>
       <div class="header-actions">
-        <el-button v-if="isAdmin" size="small" type="primary" @click="openEditDialog">修改竞赛状态</el-button>
         <el-button class="back-btn" type="default" plain :icon="ArrowLeft" @click="handleBack">返回</el-button>
       </div>
     </div>
@@ -251,6 +210,22 @@ watch(() => route.params.id, loadDetail)
           <div v-else>暂无信息</div>
         </el-card>
 
+        <el-card v-if="detail.requiredSkills && detail.requiredSkills.length" shadow="never" class="section">
+          <h3>技能需求</h3>
+          <div class="skills-container">
+            <el-tag
+              v-for="skill in detail.requiredSkills"
+              :key="skill.skillId"
+              :type="skill.importance && skill.importance >= 7 ? 'danger' : (skill.importance && skill.importance >= 4 ? 'warning' : 'info')"
+              class="skill-tag"
+              effect="light"
+            >
+              {{ skill.skillName }}
+              <span class="skill-importance">(权重: {{ skill.importance }})</span>
+            </el-tag>
+          </div>
+        </el-card>
+
         <el-card v-if="detail.description" shadow="never" class="section">
           <el-collapse>
             <el-collapse-item title="描述" name="description">
@@ -260,28 +235,7 @@ watch(() => route.params.id, loadDetail)
         </el-card>
       </div>
 
-      <el-dialog
-        v-model="editDialogVisible"
-        title="修改竞赛状态"
-        width="520px"
-        append-to-body
-        top="12vh"
-        :close-on-click-modal="false"
-        :before-close="closeEditDialog"
-      >
-        <el-form label-position="top">
-          <el-form-item label="状态">
-            <el-select v-model="editForm.status" placeholder="请选择状态" clearable>
-              <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-            </el-select>
-          </el-form-item>
-        </el-form>
-        <el-alert v-if="editDialogError" type="error" :closable="false" :title="editDialogError" />
-        <template #footer>
-          <el-button :disabled="editDialogLoading" @click="closeEditDialog">取消</el-button>
-          <el-button type="primary" :loading="editDialogLoading" @click="submitEdit">保存</el-button>
-        </template>
-      </el-dialog>
+
     </el-card>
   </div>
 </template>
@@ -310,5 +264,33 @@ watch(() => route.params.id, loadDetail)
 .section {
   margin-bottom: 12px;
 }
+
+.skills-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.skill-tag {
+  height: 32px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.skill-importance {
+  margin-left: 4px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  margin: 0;
+  color: #606266;
+}
+
 </style>
 

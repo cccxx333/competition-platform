@@ -13,6 +13,7 @@ export type CompetitionListItem = {
   category?: string
   level?: string
   status?: "UPCOMING" | "ONGOING" | "FINISHED"
+  managerId?: number
   createdById?: number
   createdAt?: string
   updatedAt?: string
@@ -21,6 +22,11 @@ export type CompetitionListItem = {
   recommendReason?: string
   fallbackApplied?: boolean
   fallbackReason?: string
+  requiredSkills?: Array<{
+    skillId: number
+    skillName?: string
+    importance?: number
+  }>
   [key: string]: unknown
 }
 
@@ -44,11 +50,19 @@ export type CompetitionListParams = {
 }
 
 export type CompetitionAdminUpdatePayload = {
+  name?: string
   status?: CompetitionListItem["status"]
   startDate?: string
   endDate?: string
   registrationDeadline?: string
+  minTeamSize?: number
+  maxTeamSize?: number
   description?: string
+  managerId?: number | null
+  requiredSkills?: Array<{
+    skillId: number
+    importance?: number
+  }>
 }
 
 export type CompetitionCreatePayload = {
@@ -61,6 +75,7 @@ export type CompetitionCreatePayload = {
   minTeamSize: number
   maxTeamSize: number
   description?: string
+  managerId?: number | null
   requiredSkills?: Array<{
     skillId: number
     importance?: number
@@ -195,4 +210,12 @@ export async function updateCompetitionStatus(
   status: CompetitionListItem["status"]
 ): Promise<CompetitionDetail> {
   return updateCompetition(id, { status })
+}
+
+export async function deleteCompetition(id: number): Promise<void> {
+  try {
+    await client.delete(`/admin/competitions/${id}`)
+  } catch (error: any) {
+    throw toError(error, "删除竞赛失败")
+  }
 }

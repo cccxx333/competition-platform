@@ -1,9 +1,10 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { Document } from "@element-plus/icons-vue"
-import { createCompetition, listCompetitions, type CompetitionCreatePayload, type CompetitionListItem, type CompetitionListParams } from "@/api/competitions"
+import { createCompetition, listCompetitions, updateCompetitionAdmin, deleteCompetition, type CompetitionCreatePayload, type CompetitionAdminUpdatePayload, type CompetitionListItem, type CompetitionListParams } from "@/api/competitions"
 import { listSkills, type Skill } from "@/api/skills"
 import { createTeacherApplication, type TeacherApplicationCreatePayload } from "@/api/teacherApplications"
+import { listAdminUsersPage, type AdminUserProfile } from "@/api/adminUsers"
 import StatusTag from "@@/components/StatusTag/index.vue"
 import { useAuthStore } from "@/stores/auth"
 
@@ -26,9 +27,31 @@ type RecommendationRow = {
   score?: number
   reason?: string
   source: "list" | "algorithm"
+  managerId?: number
+  managerName?: string
+  minTeamSize?: number
+  maxTeamSize?: number
+  description?: string
 }
 
 const rows = ref<RecommendationRow[]>([])
+const editDialogVisible = ref(false)
+const editDialogLoading = ref(false)
+const editDialogError = ref("")
+const editForm = ref<CompetitionAdminUpdatePayload & { id?: number }>({
+  id: undefined,
+  name: "",
+  status: "UPCOMING",
+  startDate: "",
+  endDate: "",
+  registrationDeadline: "",
+  minTeamSize: 1,
+  maxTeamSize: 1,
+  description: "",
+  managerId: null,
+  requiredSkills: []
+})
+const editRequiredSkillRows = ref<Array<{ skillId: number | null; importance: number }>>([{ skillId: null, importance: 3 }])
 const loading = ref(false)
 const errorMessage = ref("")
 const total = ref<number | null>(null)
@@ -47,6 +70,8 @@ const skillsLoading = ref(false)
 const allSkills = ref<Skill[]>([])
 const requiredSkillRows = ref<Array<{ skillId: number | null; importance: number }>>([{ skillId: null, importance: 3 }])
 const teacherApplySkillRows = ref<Array<{ skillId: number | null; weight: number }>>([{ skillId: null, weight: 3 }])
+const teachersLoading = ref(false)
+const allTeachers = ref<AdminUserProfile[]>([])
 const createForm = ref({
   name: "",
   organizer: "",
@@ -56,7 +81,8 @@ const createForm = ref({
   registrationDeadline: "",
   minTeamSize: 1,
   maxTeamSize: 1,
-  description: ""
+  description: "",
+  managerId: null as number | null
 })
 const selectedRequiredSkillIds = computed(
   () => new Set(requiredSkillRows.value.map((row) => row.skillId).filter((id): id is number => typeof id === "number"))
@@ -210,7 +236,13 @@ const fetchList = async () => {
         endDate: item.endDate,
         registrationDeadline: item.registrationDeadline,
         organizer: item.organizer,
-        source: "list"
+        source: "list",
+        managerId: item.managerId,
+        managerName: item.managerName,
+        minTeamSize: item.minTeamSize,
+        maxTeamSize: item.maxTeamSize,
+        description: item.description,
+        requiredSkills: item.requiredSkills
       }))
       total.value = typeof totalElements === "number" ? totalElements : null
       if (typeof page === "number" && page !== pagination.page) {
@@ -414,10 +446,14 @@ const closeCreateDialog = () => {
 }
 
 const loadSkillsForCreate = async () => {
-  if (skillsLoading.value || allSkills.value.length > 0) return
+  if (skillsLoading.value || (allSkills.value.length > 0 && allTeachers.value.length > 0)) return
   skillsLoading.value = true
   try {
     allSkills.value = await listSkills()
+    if (isAdmin.value && allTeachers.value.length === 0) {
+      const res = await listAdminUsersPage({ role: 'TEACHER', size: 1000 })
+      allTeachers.value = res.items || []
+    }
   } catch (error: any) {
     createDialogError.value = error?.message || "加载技能列表失败"
   } finally {
@@ -483,6 +519,7 @@ const submitCreate = async () => {
     minTeamSize: form.minTeamSize,
     maxTeamSize: form.maxTeamSize,
     description: form.description.trim() || undefined,
+    managerId: form.managerId || null,
     requiredSkills
   }
   createDialogLoading.value = true
@@ -497,6 +534,103 @@ const submitCreate = async () => {
   } finally {
     createDialogLoading.value = false
   }
+}
+
+const openEditDialog = (row: RecommendationRow) => {
+  if (!row.id) return
+  editForm.value = {
+    id: row.id,
+    name: row.name || "",
+    status: (row.status as any) || "UPCOMING",
+    startDate: formatDate(row.startDate),
+    endDate: formatDate(row.endDate),
+    registrationDeadline: formatDate(row.registrationDeadline),
+    minTeamSize: row.minTeamSize || 1,
+    maxTeamSize: row.maxTeamSize || 1,
+    description: row.description || "",
+    managerId: row.managerId || null
+  }
+  if (row.requiredSkills && row.requiredSkills.length > 0) {
+    editRequiredSkillRows.value = row.requiredSkills.map(s => ({
+      skillId: s.skillId,
+      importance: s.importance || 3
+    }))
+  } else {
+    editRequiredSkillRows.value = [{ skillId: null, importance: 3 }]
+  }
+  editDialogError.value = ""
+  editDialogVisible.value = true
+  loadSkillsForCreate() // Reusing to load teachers
+}
+
+const submitEdit = async () => {
+  if (!editForm.value.id) return
+  const form = editForm.value
+  if (!form.name?.trim()) {
+    editDialogError.value = "请填写竞赛名称"
+    return
+  }
+  if (!form.startDate || !form.endDate || !form.registrationDeadline) {
+    editDialogError.value = "请完整填写日期"
+    return
+  }
+  const requiredSkills = editRequiredSkillRows.value
+    .filter((row) => typeof row.skillId === "number")
+    .map((row) => ({
+      skillId: row.skillId as number,
+      importance: Number.isFinite(row.importance) && row.importance > 0 ? row.importance : 1
+    }))
+  if (!requiredSkills.length) {
+    editDialogError.value = "请至少添加一个竞赛技能需求"
+    return
+  }
+  
+  editDialogLoading.value = true
+  editDialogError.value = ""
+  try {
+    const payload: CompetitionAdminUpdatePayload = {
+      name: form.name.trim(),
+      status: form.status,
+      startDate: form.startDate,
+      endDate: form.endDate,
+      registrationDeadline: form.registrationDeadline,
+      minTeamSize: form.minTeamSize,
+      maxTeamSize: form.maxTeamSize,
+      description: form.description?.trim(),
+      managerId: form.managerId,
+      requiredSkills
+    }
+    await updateCompetitionAdmin(editForm.value.id, payload)
+    ElMessage.success("修改成功")
+    editDialogVisible.value = false
+    fetchList()
+  } catch (error: any) {
+    editDialogError.value = error?.message || "修改失败"
+  } finally {
+    editDialogLoading.value = false
+  }
+}
+
+const handleDelete = async (row: RecommendationRow | { id?: number }) => {
+  if (!row.id) return
+  try {
+    await deleteCompetition(row.id)
+    ElMessage.success("删除成功")
+    editDialogVisible.value = false
+    fetchList()
+  } catch (error: any) {
+    showRequestError(error, "删除失败")
+  }
+}
+
+const addEditRequiredSkillRow = () => {
+  if (editRequiredSkillRows.value.length >= 8) return
+  editRequiredSkillRows.value.push({ skillId: null, importance: 3 })
+}
+
+const removeEditRequiredSkillRow = (index: number) => {
+  if (editRequiredSkillRows.value.length <= 1) return
+  editRequiredSkillRows.value.splice(index, 1)
 }
 
 const parseNumber = (value: unknown, fallback: number) => {
@@ -732,8 +866,13 @@ onBeforeUnmount(() => {
         highlight-current-row
       >
         <el-table-column prop="name" label="名称" min-width="180" />
-        <el-table-column prop="id" label="竞赛 ID" width="120" />
-        <el-table-column label="状态" width="140">
+        <el-table-column label="负责人" width="120">
+          <template #default="{ row }">
+            <span v-if="row.managerName">{{ row.managerName }}</span>
+            <span v-else style="color: #999">未指定</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="120">
           <template #default="{ row }">
             <StatusTag :status="row.status" kind="competition" />
           </template>
@@ -757,11 +896,19 @@ onBeforeUnmount(() => {
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column v-if="isStudent || isTeacher" label="操作" width="88" align="center">
+        <el-table-column v-if="isStudent || isTeacher || isAdmin" label="操作" width="180" align="center">
           <template #default="{ row }">
-            <el-button type="primary" link @click.stop="handleEnrollAction(row)">
-              申请
-            </el-button>
+            <div @click.stop>
+              <template v-if="isAdmin">
+                <el-button type="primary" link @click="goDetail(row)">详情</el-button>
+                <el-button type="primary" link @click="openEditDialog(row)">编辑</el-button>
+              </template>
+              <template v-else>
+                <el-button type="primary" link @click="handleEnrollAction(row)">
+                  申请
+                </el-button>
+              </template>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -796,6 +943,16 @@ onBeforeUnmount(() => {
       <el-form label-position="top" class="create-form-grid">
         <el-form-item label="竞赛名称">
           <el-input v-model="createForm.name" placeholder="请输入竞赛名称" />
+        </el-form-item>
+        <el-form-item label="竞赛负责人">
+          <el-select v-model="createForm.managerId" placeholder="请选择竞赛负责人（可选）" clearable :loading="teachersLoading">
+            <el-option
+              v-for="teacher in allTeachers"
+              :key="teacher.id"
+              :label="teacher.realName || teacher.username"
+              :value="teacher.id"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="主办方">
           <el-input v-model="createForm.organizer" placeholder="请输入主办方（可选）" />
@@ -946,6 +1103,135 @@ onBeforeUnmount(() => {
         <el-button type="primary" :loading="teacherApplyDialogLoading" @click="submitTeacherApply">提交</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="editDialogVisible"
+      title="编辑竞赛信息"
+      width="760px"
+      class="edit-competition-dialog"
+      append-to-body
+      top="6vh"
+      :close-on-click-modal="false"
+    >
+      <el-form label-position="top" class="create-form-grid">
+        <el-divider content-position="left">状态与负责人</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="竞赛状态">
+              <el-select v-model="editForm.status" placeholder="请选择状态" style="width: 100%">
+                <el-option label="未开始" value="UPCOMING" />
+                <el-option label="进行中" value="ONGOING" />
+                <el-option label="已结束" value="FINISHED" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="竞赛负责人">
+              <el-select v-model="editForm.managerId" placeholder="请选择竞赛负责人（可选）" clearable :loading="teachersLoading" style="width: 100%">
+                <el-option
+                  v-for="teacher in allTeachers"
+                  :key="teacher.id"
+                  :label="teacher.realName || teacher.username"
+                  :value="teacher.id"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-divider content-position="left">详细信息</el-divider>
+        <el-form-item label="竞赛名称">
+          <el-input v-model="editForm.name" placeholder="请输入竞赛名称" />
+        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="开始日期">
+              <el-date-picker v-model="editForm.startDate" type="date" value-format="YYYY-MM-DD" placeholder="开始日期" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="结束日期">
+              <el-date-picker v-model="editForm.endDate" type="date" value-format="YYYY-MM-DD" placeholder="结束日期" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="报名截止">
+              <el-date-picker
+                v-model="editForm.registrationDeadline"
+                type="date"
+                value-format="YYYY-MM-DD"
+                placeholder="截止日期"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="最小队伍人数">
+              <el-input-number v-model="editForm.minTeamSize" :min="1" :controls="true" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="最大队伍人数">
+              <el-input-number v-model="editForm.maxTeamSize" :min="1" :controls="true" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="竞赛技能需求" class="required-skills-item">
+          <div class="required-skills-editor">
+            <div
+              v-for="(row, index) in editRequiredSkillRows"
+              :key="`edit-required-skill-${index}`"
+              class="required-skill-row"
+            >
+              <el-select
+                v-model="row.skillId"
+                filterable
+                clearable
+                placeholder="请选择技能"
+                :loading="skillsLoading"
+                :disabled="skillsLoading"
+                class="required-skill-select"
+              >
+                <el-option
+                  v-for="s in allSkills"
+                  :key="`edit-skill-${s.id}`"
+                  :label="s.name || `ID:${s.id}`"
+                  :value="s.id"
+                  :disabled="typeof s.id === 'number' && row.skillId !== s.id && editRequiredSkillRows.some(r => r.skillId === s.id)"
+                />
+              </el-select>
+              <el-input-number v-model="row.importance" :min="1" :max="10" class="required-skill-weight" />
+              <el-button :disabled="editRequiredSkillRows.length <= 1" @click="removeEditRequiredSkillRow(index)">删除</el-button>
+            </div>
+            <div class="required-skill-actions">
+              <el-button type="primary" plain :disabled="editRequiredSkillRows.length >= 8" @click="addEditRequiredSkillRow">
+                添加技能
+              </el-button>
+              <span class="skills-inline-hint">至少 1 项，最多 8 项</span>
+            </div>
+          </div>
+        </el-form-item>
+        <el-form-item label="竞赛说明">
+          <el-input v-model="editForm.description" type="textarea" :rows="3" placeholder="请输入竞赛说明（可选）" />
+        </el-form-item>
+      </el-form>
+      <el-alert v-if="editDialogError" type="error" :closable="false" :title="editDialogError" />
+      <template #footer>
+        <div class="edit-dialog-footer">
+          <el-popconfirm title="确定要删除该竞赛吗？此操作不可撤销。" @confirm="handleDelete(editForm)">
+            <template #reference>
+              <el-button type="danger" plain :loading="editDialogLoading">删除竞赛</el-button>
+            </template>
+          </el-popconfirm>
+          <div class="footer-right">
+            <el-button :disabled="editDialogLoading" @click="editDialogVisible = false">取消</el-button>
+            <el-button type="primary" :loading="editDialogLoading" @click="submitEdit">保存修改</el-button>
+          </div>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 <style scoped>
@@ -971,6 +1257,18 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: flex-end;
   min-height: 74px;
+}
+
+.edit-dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.footer-right {
+  display: flex;
+  gap: 12px;
 }
 
 .filter-right {

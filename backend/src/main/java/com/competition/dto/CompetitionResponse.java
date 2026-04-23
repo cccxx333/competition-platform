@@ -21,6 +21,7 @@ public class CompetitionResponse {
     private Competition.CompetitionStatus status;
     private Long createdById;
     private Long managerId;
+    private String managerName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Double matchScore;
@@ -28,4 +29,5 @@ public class CompetitionResponse {
     private String recommendReason;
     private Boolean fallbackApplied;
     private String fallbackReason;
+    private java.util.List<CompetitionRequiredSkillDTO> requiredSkills;
 }

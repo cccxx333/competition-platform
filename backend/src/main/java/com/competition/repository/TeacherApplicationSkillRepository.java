@@ -11,4 +11,6 @@ public interface TeacherApplicationSkillRepository extends JpaRepository<Teacher
     void deleteByTeacherApplication_Id(Long applicationId);
 
     List<TeacherApplicationSkill> findByTeacherApplication_IdIn(List<Long> applicationIds);
+
+    void deleteByTeacherApplication_IdIn(List<Long> applicationIds);
 }

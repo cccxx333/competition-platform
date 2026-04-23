@@ -1,4 +1,4 @@
-﻿import type { RouteRecordRaw } from "vue-router"
+import type { RouteRecordRaw } from "vue-router"
 import { createRouter } from "vue-router"
 import { routerConfig } from "@/router/config"
 import { registerNavigationGuard } from "@/router/guard"
@@ -96,6 +96,12 @@ export const constantRoutes: RouteRecordRaw[] = [
         name: "AdminTeacherApplicationReviewList",
         component: () => import("@/views/admin/AdminTeacherApplicationReviewList.vue"),
         meta: { title: "创建队伍申请审核", hidden: true }
+      },
+      {
+        path: "teacher/managed-applications",
+        name: "TeacherManagedApplicationReview",
+        component: () => import("@/views/admin/AdminTeacherApplicationReviewList.vue"),
+        meta: { title: "审核负责的竞赛", roles: ["TEACHER"] }
       },
       {
         path: "admin/users",

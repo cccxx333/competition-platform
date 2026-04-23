@@ -448,7 +448,12 @@ public class CompetitionService {
         response.setLevel(competition.getLevel());
         response.setStatus(competition.getStatus());
         response.setCreatedById(competition.getCreatedBy() != null ? competition.getCreatedBy().getId() : null);
-        response.setManagerId(competition.getManager() != null ? competition.getManager().getId() : null);
+        if (competition.getManager() != null) {
+            response.setManagerId(competition.getManager().getId());
+            response.setManagerName(competition.getManager().getRealName() != null
+                    ? competition.getManager().getRealName()
+                    : competition.getManager().getUsername());
+        }
         response.setCreatedAt(competition.getCreatedAt());
         response.setUpdatedAt(competition.getUpdatedAt());
         response.setMatchScore(matchScore);
@@ -456,6 +461,17 @@ public class CompetitionService {
         response.setRecommendReason(recommendReason);
         response.setFallbackApplied(fallbackApplied);
         response.setFallbackReason(fallbackReason);
+        if (competition.getCompetitionSkills() != null) {
+            response.setRequiredSkills(competition.getCompetitionSkills().stream()
+                    .map(cs -> {
+                        CompetitionRequiredSkillDTO dto = new CompetitionRequiredSkillDTO();
+                        dto.setSkillId(cs.getSkill().getId());
+                        dto.setSkillName(cs.getSkill().getName());
+                        dto.setImportance(cs.getImportance());
+                        return dto;
+                    })
+                    .collect(java.util.stream.Collectors.toList()));
+        }
         return response;
     }
 

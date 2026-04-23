@@ -30,4 +30,6 @@ public interface TeacherApplicationRepository extends JpaRepository<TeacherAppli
             @Param("keyword") String keyword,
             @Param("managerId") Long managerId,
             Pageable pageable);
+
+    void deleteByCompetition_Id(Long competitionId);
 }

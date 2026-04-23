@@ -8,5 +8,6 @@ import javax.validation.constraints.NotNull;
 public class CompetitionRequiredSkillDTO {
     @NotNull
     private Long skillId;
+    private String skillName;
     private Integer importance;
 }

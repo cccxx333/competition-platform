@@ -8,6 +8,7 @@ import com.competition.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,6 +36,15 @@ public class AdminCompetitionController {
         return ResponseEntity.ok(toResponse(updated));
     }
 
+    @DeleteMapping("/{competitionId}")
+    public ResponseEntity<Void> deleteCompetition(
+            HttpServletRequest request,
+            @PathVariable Long competitionId) {
+        Long userId = getUserIdFromToken(request);
+        adminCompetitionService.deleteCompetition(userId, competitionId);
+        return ResponseEntity.noContent().build();
+    }
+
     private Long getUserIdFromToken(HttpServletRequest request) {
         String token = request.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer ")) {
@@ -59,6 +69,12 @@ public class AdminCompetitionController {
         response.setLevel(competition.getLevel());
         response.setStatus(competition.getStatus());
         response.setCreatedById(competition.getCreatedBy() != null ? competition.getCreatedBy().getId() : null);
+        if (competition.getManager() != null) {
+            response.setManagerId(competition.getManager().getId());
+            response.setManagerName(competition.getManager().getRealName() != null
+                    ? competition.getManager().getRealName()
+                    : competition.getManager().getUsername());
+        }
         response.setCreatedAt(competition.getCreatedAt());
         response.setUpdatedAt(competition.getUpdatedAt());
         return response;
