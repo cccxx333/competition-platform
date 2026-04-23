@@ -20,6 +20,14 @@ export function registerNavigationGuard(router: Router) {
         return LOGIN_PATH
       }
     }
+    const routeRoles = (to.meta?.roles as string[] | undefined) ?? []
+    if (routeRoles.length > 0) {
+      const currentRole = String(authStore.user?.role ?? "").toUpperCase()
+      const allowed = routeRoles.map((role) => String(role).toUpperCase())
+      if (!allowed.includes(currentRole)) {
+        return DASHBOARD_PATH
+      }
+    }
     return true
   })
 }

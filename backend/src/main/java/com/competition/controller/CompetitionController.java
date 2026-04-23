@@ -94,8 +94,10 @@ public class CompetitionController {
      */
     @PostMapping
     public ResponseEntity<CompetitionResponse> createCompetition(
+            HttpServletRequest httpRequest,
             @Valid @RequestBody CompetitionCreateRequest request) {
-        CompetitionResponse created = competitionService.createCompetition(request);
+        Long userId = getAdminUserIdFromToken(httpRequest);
+        CompetitionResponse created = competitionService.createCompetition(userId, request);
         return ResponseEntity.ok(created);
     }
 

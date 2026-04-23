@@ -78,7 +78,7 @@ public class TeacherApplicationService {
         if (competition.getRegistrationDeadline() == null) {
             throw new ApiException(HttpStatus.CONFLICT, "registration deadline unavailable");
         }
-        if (!LocalDate.now().isBefore(competition.getRegistrationDeadline())) {
+        if (LocalDate.now().isAfter(competition.getRegistrationDeadline())) {
             throw new ApiException(HttpStatus.CONFLICT, "registration deadline passed");
         }
 

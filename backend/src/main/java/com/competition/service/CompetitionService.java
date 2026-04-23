@@ -59,7 +59,12 @@ public class CompetitionService {
     /**
      * 创建竞赛
      */
-    public CompetitionResponse createCompetition(CompetitionCreateRequest request) {
+    public CompetitionResponse createCompetition(Long currentUserId, CompetitionCreateRequest request) {
+        User admin = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        if (admin.getRole() != User.Role.ADMIN) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN can create competition");
+        }
         validateCompetitionDates(
                 request.getRegistrationDeadline(),
                 request.getStartDate(),
@@ -67,7 +72,7 @@ public class CompetitionService {
                 request.getMinTeamSize(),
                 request.getMaxTeamSize()
         );
-        Competition competition = convertToEntity(request);
+        Competition competition = convertToEntity(request, admin);
         Competition savedCompetition = competitionRepository.save(competition);
 
         // 保存竞赛技能需求
@@ -369,7 +374,7 @@ public class CompetitionService {
         return convertToResponse(savedCompetition);
     }
 
-    private Competition convertToEntity(CompetitionCreateRequest request) {
+    private Competition convertToEntity(CompetitionCreateRequest request, User createdBy) {
         Competition competition = new Competition();
         competition.setName(request.getName());
         competition.setDescription(request.getDescription());
@@ -382,14 +387,9 @@ public class CompetitionService {
         competition.setCategory(request.getCategory());
         competition.setLevel(request.getLevel());
         competition.setStatus(request.getStatus());
-        if (request.getCreatedById() != null) {
-            User createdBy = userRepository.findById(request.getCreatedById())
-                    .orElseThrow(() -> new RuntimeException("创建人不存在"));
-            competition.setCreatedBy(createdBy);
-        }
+        competition.setCreatedBy(createdBy);
         if (request.getManagerId() != null) {
-            User manager = userRepository.findById(request.getManagerId())
-                    .orElseThrow(() -> new RuntimeException("负责人不存在"));
+            User manager = resolveTeacherManager(request.getManagerId());
             competition.setManager(manager);
         }
         return competition;
@@ -400,10 +400,18 @@ public class CompetitionService {
             competition.setStatus(request.getStatus());
         }
         if (request.getManagerId() != null) {
-            User manager = userRepository.findById(request.getManagerId())
-                    .orElseThrow(() -> new RuntimeException("负责人不存在"));
+            User manager = resolveTeacherManager(request.getManagerId());
             competition.setManager(manager);
         }
+    }
+
+    private User resolveTeacherManager(Long managerId) {
+        User manager = userRepository.findById(managerId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "manager not found"));
+        if (manager.getRole() != User.Role.TEACHER) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "manager must be TEACHER");
+        }
+        return manager;
     }
 
     private void validateCompetitionDates(LocalDate registrationDeadline,

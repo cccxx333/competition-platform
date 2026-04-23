@@ -59,6 +59,7 @@ export type CompetitionAdminUpdatePayload = {
   maxTeamSize?: number
   description?: string
   managerId?: number | null
+  clearManager?: boolean
   requiredSkills?: Array<{
     skillId: number
     importance?: number

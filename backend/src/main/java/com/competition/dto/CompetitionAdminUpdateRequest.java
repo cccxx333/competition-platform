@@ -15,5 +15,6 @@ public class CompetitionAdminUpdateRequest {
     private Competition.CompetitionStatus status;
     private String description;
     private Long managerId;
+    private Boolean clearManager;
     private java.util.List<CompetitionRequiredSkillDTO> requiredSkills;
 }

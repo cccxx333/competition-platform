@@ -50,10 +50,10 @@ public class AdminCompetitionService {
                 : competition.getRegistrationDeadline();
 
         if (nextStartDate != null && nextEndDate != null && nextStartDate.isAfter(nextEndDate)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "开始日期不能晚于结束日期");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "startDate must be before or equal to endDate");
         }
         if (nextDeadline != null && nextStartDate != null && nextDeadline.isAfter(nextStartDate)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "报名截止日期不能晚于开始日期");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "registrationDeadline must be before or equal to startDate");
         }
 
         if (request.getName() != null && !request.getName().trim().isEmpty()) {
@@ -80,21 +80,21 @@ public class AdminCompetitionService {
         if (request.getDescription() != null) {
             competition.setDescription(request.getDescription());
         }
-        // managerId: null means clear, non-null means set
-        if (request.getManagerId() != null) {
+
+        if (Boolean.TRUE.equals(request.getClearManager())) {
+            competition.setManager(null);
+        } else if (request.getManagerId() != null) {
             User manager = userRepository.findById(request.getManagerId())
-                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "指定的负责人不存在"));
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "manager not found"));
             if (manager.getRole() != User.Role.TEACHER) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "负责人必须是教师角色");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "manager must be TEACHER");
             }
             competition.setManager(manager);
         }
 
         if (request.getRequiredSkills() != null) {
-            // Remove old skills
             competitionSkillRepository.deleteByCompetitionId(competitionId);
-            
-            // Add new skills
+
             java.util.Set<com.competition.entity.CompetitionSkill> newSkills = request.getRequiredSkills().stream()
                     .map(dto -> {
                         com.competition.entity.CompetitionSkill cs = new com.competition.entity.CompetitionSkill();
@@ -121,20 +121,18 @@ public class AdminCompetitionService {
         }
 
         Competition competition = competitionRepository.findById(competitionId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "竞赛不存在"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "competition not found"));
 
-        // Check if teams exist under this competition
         boolean hasTeams = !teamRepository.findByCompetitionId(competitionId).isEmpty();
         if (hasTeams) {
-            throw new ApiException(HttpStatus.CONFLICT, "该竞赛下已有队伍创建，无法删除");
+            throw new ApiException(HttpStatus.CONFLICT, "cannot delete competition with existing teams");
         }
 
-        // Check if teacher applications exist
         long appCount = teacherApplicationRepository.findAll().stream()
                 .filter(a -> a.getCompetition() != null && competitionId.equals(a.getCompetition().getId()))
                 .count();
         if (appCount > 0) {
-            throw new ApiException(HttpStatus.CONFLICT, "该竞赛下已有教师申请记录，无法删除");
+            throw new ApiException(HttpStatus.CONFLICT, "cannot delete competition with existing teacher applications");
         }
 
         competitionSkillRepository.deleteByCompetitionId(competitionId);

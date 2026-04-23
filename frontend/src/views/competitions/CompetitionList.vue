@@ -598,6 +598,7 @@ const submitEdit = async () => {
       maxTeamSize: form.maxTeamSize,
       description: form.description?.trim(),
       managerId: form.managerId,
+      clearManager: form.managerId == null,
       requiredSkills
     }
     await updateCompetitionAdmin(editForm.value.id, payload)
