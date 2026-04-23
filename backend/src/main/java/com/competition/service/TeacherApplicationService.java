@@ -45,6 +45,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class TeacherApplicationService {
+    private static final int MIN_REQUIRED_SKILLS = 1;
+    private static final int MAX_REQUIRED_SKILLS = 8;
 
     private final TeacherApplicationRepository teacherApplicationRepository;
     private final CompetitionRepository competitionRepository;
@@ -81,6 +83,7 @@ public class TeacherApplicationService {
         if (LocalDate.now().isAfter(competition.getRegistrationDeadline())) {
             throw new ApiException(HttpStatus.CONFLICT, "registration deadline passed");
         }
+        validateRequiredSkills(request.getSkills());
 
         TeacherApplication application = new TeacherApplication();
         application.setCompetition(competition);
@@ -91,6 +94,23 @@ public class TeacherApplicationService {
         TeacherApplication saved = teacherApplicationRepository.save(application);
         applyApplicationSkills(saved, request.getSkills(), true);
         return toResponse(saved);
+    }
+
+    private void validateRequiredSkills(List<TeacherApplicationSkillDTO> requestSkills) {
+        if (requestSkills == null || requestSkills.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "at least one preferred skill is required");
+        }
+        Set<Long> uniqueSkillIds = requestSkills.stream()
+                .filter(Objects::nonNull)
+                .map(TeacherApplicationSkillDTO::getSkillId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (uniqueSkillIds.size() < MIN_REQUIRED_SKILLS) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "at least one preferred skill is required");
+        }
+        if (uniqueSkillIds.size() > MAX_REQUIRED_SKILLS) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "preferred skills cannot exceed 8 items");
+        }
     }
 
     @Transactional(readOnly = true)

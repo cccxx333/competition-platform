@@ -50,26 +50,33 @@ const handleSubmit = async () => {
     errorMessage.value = "竞赛不存在"
     return
   }
+  const skills = preferredSkillRows.value
+    .filter((row) => typeof row.skillId === "number")
+    .map((row) => ({
+      skillId: row.skillId as number,
+      weight: Number.isFinite(row.weight) && row.weight > 0 ? row.weight : 1
+    }))
+  if (skills.length < 1) {
+    errorMessage.value = "请至少选择 1 项队伍青睐技能"
+    return
+  }
+  if (skills.length > 8) {
+    errorMessage.value = "队伍青睐技能最多 8 项"
+    return
+  }
+
   loading.value = true
   try {
     const payload: TeacherApplicationCreatePayload = {}
     if (form.description && form.description.trim()) {
       payload.description = form.description.trim()
     }
-    const skills = preferredSkillRows.value
-      .filter((row) => typeof row.skillId === "number")
-      .map((row) => ({
-        skillId: row.skillId as number,
-        weight: Number.isFinite(row.weight) && row.weight > 0 ? row.weight : 1
-      }))
-    if (skills.length > 0) {
-      payload.skills = skills
-    }
+    payload.skills = skills
     await createTeacherApplication(competitionId.value, payload)
     ElMessage.success("申请已提交")
     router.push("/teacher/applications")
   } catch (error: any) {
-    errorMessage.value = showRequestError(error, "提交创建队伍申请失败")
+    errorMessage.value = showRequestError(error, "提交建队申请失败")
   } finally {
     loading.value = false
   }
@@ -108,7 +115,7 @@ onMounted(loadSkills)
   <div class="page-container">
 
     <div class="page-header">
-        <h2>创建队伍申请</h2>
+        <h2>建队申请</h2>
       </div>
 
   <el-card shadow="never" v-loading="loading" class="create-apply-card">
@@ -158,7 +165,7 @@ onMounted(loadSkills)
               <el-button type="primary" plain :disabled="preferredSkillRows.length >= 8" @click="addPreferredSkillRow">
                 添加技能
               </el-button>
-              <span class="skills-inline-hint">可选，最多 8 项</span>
+              <span class="skills-inline-hint">至少 1 项，最多 8 项</span>
             </div>
           </div>
         </el-form-item>

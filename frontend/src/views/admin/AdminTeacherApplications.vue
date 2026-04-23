@@ -77,7 +77,7 @@ const loadApplications = async () => {
     items.value = await adminListTeacherApplications(buildParams())
   } catch (error: any) {
     items.value = []
-    errorMessage.value = showRequestError(error, "加载创建队伍申请失败")
+    errorMessage.value = showRequestError(error, "加载建队申请失败")
   } finally {
     loading.value = false
   }
@@ -124,7 +124,7 @@ onMounted(loadApplications)
   <div class="page-container">
 
     <div class="page-header">
-        <h2>创建队伍申请审核</h2>
+        <h2>教师建队申请审核</h2>
         <div class="page-header__filters">
           <el-input v-model="competitionIdFilter" placeholder="竞赛 ID" style="width: 160px" />
           <el-select v-model="statusFilter" clearable placeholder="状态" style="width: 160px">

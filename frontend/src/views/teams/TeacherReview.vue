@@ -168,7 +168,7 @@ const resetFilters = () => {
   <div class="page-container">
 
     <div class="page-header review-header">
-      <h2>教师审核</h2>
+      <h2>学生入队申请审核</h2>
     </div>
 
   <el-card shadow="never" v-loading="loading" class="review-card">
@@ -281,3 +281,4 @@ const resetFilters = () => {
 }
 
 </style>
+

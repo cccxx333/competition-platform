@@ -328,7 +328,7 @@ const handleEnrollAction = (row: RecommendationRow) => {
   }
   if (isTeacher.value) {
     if (!canApplyBeforeDeadline(row)) {
-      ElMessage.warning("当前竞赛已超过报名截止时间，无法发起创建队伍申请")
+      ElMessage.warning("当前竞赛已超过报名截止时间，无法发起建队申请")
       return
     }
     openTeacherApplyDialog(row)
@@ -364,13 +364,17 @@ const openTeacherApplyDialog = (row: RecommendationRow) => {
   loadSkillsForCreate()
 }
 
-const closeTeacherApplyDialog = () => {
-  if (teacherApplyDialogLoading.value) return
+const resetTeacherApplyDialogState = () => {
   teacherApplyDialogVisible.value = false
   teacherApplyDialogError.value = ""
   teacherApplyCompetitionId.value = null
   teacherApplyCompetitionName.value = ""
   teacherApplyDescription.value = ""
+}
+
+const closeTeacherApplyDialog = () => {
+  if (teacherApplyDialogLoading.value) return
+  resetTeacherApplyDialogState()
 }
 
 const addTeacherApplySkillRow = () => {
@@ -388,6 +392,21 @@ const submitTeacherApply = async () => {
     teacherApplyDialogError.value = "竞赛信息异常，请关闭后重试"
     return
   }
+  const skills = teacherApplySkillRows.value
+    .filter((row) => typeof row.skillId === "number")
+    .map((row) => ({
+      skillId: row.skillId as number,
+      weight: Number.isFinite(row.weight) && row.weight > 0 ? row.weight : 1
+    }))
+  if (skills.length < 1) {
+    teacherApplyDialogError.value = "请至少选择 1 项队伍青睐技能"
+    return
+  }
+  if (skills.length > 8) {
+    teacherApplyDialogError.value = "队伍青睐技能最多 8 项"
+    return
+  }
+
   teacherApplyDialogLoading.value = true
   teacherApplyDialogError.value = ""
   try {
@@ -396,20 +415,12 @@ const submitTeacherApply = async () => {
     if (description) {
       payload.description = description
     }
-    const skills = teacherApplySkillRows.value
-      .filter((row) => typeof row.skillId === "number")
-      .map((row) => ({
-        skillId: row.skillId as number,
-        weight: Number.isFinite(row.weight) && row.weight > 0 ? row.weight : 1
-      }))
-    if (skills.length > 0) {
-      payload.skills = skills
-    }
+    payload.skills = skills
     await createTeacherApplication(teacherApplyCompetitionId.value, payload)
     ElMessage.success("申请已提交")
-    closeTeacherApplyDialog()
+    resetTeacherApplyDialogState()
   } catch (error: any) {
-    teacherApplyDialogError.value = error?.message || "提交创建队伍申请失败"
+    teacherApplyDialogError.value = error?.message || "提交建队申请失败"
   } finally {
     teacherApplyDialogLoading.value = false
   }
@@ -886,9 +897,7 @@ onBeforeUnmount(() => {
       <el-table
         :data="rows"
         style="width: 100%"
-        @row-click="goDetail"
         v-loading="loading"
-        highlight-current-row
       >
         <el-table-column prop="name" label="名称" min-width="180" />
         <el-table-column label="负责人" width="120">
@@ -921,14 +930,15 @@ onBeforeUnmount(() => {
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column v-if="isStudent || isTeacher || isAdmin" label="操作" width="180" align="center">
+        <el-table-column v-if="isStudent || isTeacher || isAdmin" label="操作" width="220" align="center">
           <template #default="{ row }">
-            <div @click.stop>
+            <div class="competition-op-actions" @click.stop>
               <template v-if="isAdmin">
                 <el-button type="primary" link @click="goDetail(row)">详情</el-button>
                 <el-button type="primary" link @click="openEditDialog(row)">编辑</el-button>
               </template>
               <template v-else>
+                <el-button type="primary" link @click="goDetail(row)">详情</el-button>
                 <el-button type="primary" link @click="handleEnrollAction(row)">
                   申请
                 </el-button>
@@ -1064,7 +1074,7 @@ onBeforeUnmount(() => {
         <div class="teacher-apply-dialog__header">
           <div class="teacher-apply-dialog__title-row">
             <el-icon class="teacher-apply-dialog__title-icon"><Document /></el-icon>
-            <span class="teacher-apply-dialog__title-text">创建队伍申请</span>
+            <span class="teacher-apply-dialog__title-text">建队申请</span>
           </div>
           <div class="teacher-apply-dialog__header-tip">提交后进入管理员审核流程</div>
         </div>
@@ -1117,7 +1127,7 @@ onBeforeUnmount(() => {
               <el-button type="primary" plain :disabled="teacherApplySkillRows.length >= 8" @click="addTeacherApplySkillRow">
                 添加技能
               </el-button>
-              <span class="skills-inline-hint">可选，最多 8 项</span>
+              <span class="skills-inline-hint">至少 1 项，最多 8 项</span>
             </div>
           </div>
         </el-form-item>
@@ -1489,6 +1499,15 @@ onBeforeUnmount(() => {
 .skills-inline-hint {
   color: #909399;
   font-size: 12px;
+}
+
+.competition-op-actions {
+  display: inline-flex;
+  align-items: center;
+}
+
+.competition-op-actions :deep(.el-button + .el-button) {
+  margin-left: 6px;
 }
 
 @media (max-width: 900px) {

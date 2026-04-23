@@ -83,25 +83,25 @@ export const constantRoutes: RouteRecordRaw[] = [
         path: "teacher/applications",
         name: "TeacherApplicationList",
         component: () => import("@/views/teacher/TeacherApplicationList.vue"),
-        meta: { title: "创建队伍申请", hidden: true }
+        meta: { title: "建队申请", hidden: true }
       },
       {
         path: "teacher/applications/create/:competitionId",
         name: "TeacherApplicationCreate",
         component: () => import("@/views/teacher/TeacherApplyCreate.vue"),
-        meta: { title: "创建队伍申请", hidden: true }
+        meta: { title: "建队申请", hidden: true }
       },
       {
         path: "admin/teacher-applications",
         name: "AdminTeacherApplicationReviewList",
         component: () => import("@/views/admin/AdminTeacherApplicationReviewList.vue"),
-        meta: { title: "创建队伍申请审核", hidden: true }
+        meta: { title: "教师建队申请审核", hidden: true }
       },
       {
         path: "teacher/managed-applications",
         name: "TeacherManagedApplicationReview",
         component: () => import("@/views/admin/AdminTeacherApplicationReviewList.vue"),
-        meta: { title: "审核负责的竞赛", roles: ["TEACHER"] }
+        meta: { title: "负责竞赛建队审核", roles: ["TEACHER"] }
       },
       {
         path: "admin/users",
@@ -167,7 +167,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         path: "teams/review",
         name: "TeacherReviewApplications",
         component: () => import("@/views/teams/TeacherReview.vue"),
-        meta: { title: "申请审核" }
+        meta: { title: "学生入队申请审核" }
       }
     ]
   },
