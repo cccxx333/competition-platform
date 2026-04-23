@@ -32,6 +32,11 @@ type RecommendationRow = {
   minTeamSize?: number
   maxTeamSize?: number
   description?: string
+  requiredSkills?: Array<{
+    skillId: number
+    skillName?: string
+    importance?: number
+  }>
 }
 
 const rows = ref<RecommendationRow[]>([])
@@ -72,6 +77,10 @@ const requiredSkillRows = ref<Array<{ skillId: number | null; importance: number
 const teacherApplySkillRows = ref<Array<{ skillId: number | null; weight: number }>>([{ skillId: null, weight: 3 }])
 const teachersLoading = ref(false)
 const allTeachers = ref<AdminUserProfile[]>([])
+const skillOptions = computed(() => allSkills.value.filter((s): s is Skill & { id: number } => typeof s.id === "number"))
+const teacherOptions = computed(() =>
+  allTeachers.value.filter((teacher): teacher is AdminUserProfile & { id: number } => typeof teacher.id === "number")
+)
 const createForm = ref({
   name: "",
   organizer: "",
@@ -238,7 +247,7 @@ const fetchList = async () => {
         organizer: item.organizer,
         source: "list",
         managerId: item.managerId,
-        managerName: item.managerName,
+        managerName: typeof item.managerName === "string" ? item.managerName : undefined,
         minTeamSize: item.minTeamSize,
         maxTeamSize: item.maxTeamSize,
         description: item.description,
@@ -433,7 +442,8 @@ const openCreateDialog = () => {
     registrationDeadline: "",
     minTeamSize: 1,
     maxTeamSize: 1,
-    description: ""
+    description: "",
+    managerId: null
   }
   createDialogVisible.value = true
   loadSkillsForCreate()
@@ -478,6 +488,20 @@ const submitCreate = async () => {
     createDialogError.value = "请填写竞赛名称"
     return
   }
+  if (!form.managerId) {
+    createDialogError.value = "请选择竞赛负责人"
+    return
+  }
+  const organizer = form.organizer.trim()
+  if (!organizer) {
+    createDialogError.value = "请填写主办方"
+    return
+  }
+  const level = form.level.trim()
+  if (!level) {
+    createDialogError.value = "请填写竞赛级别"
+    return
+  }
   if (!form.startDate || !form.endDate || !form.registrationDeadline) {
     createDialogError.value = "请完整填写日期"
     return
@@ -511,15 +535,15 @@ const submitCreate = async () => {
 
   const payload: CompetitionCreatePayload = {
     name,
-    organizer: form.organizer.trim() || undefined,
-    level: form.level.trim() || undefined,
+    organizer,
+    level,
     startDate: form.startDate,
     endDate: form.endDate,
     registrationDeadline: form.registrationDeadline,
     minTeamSize: form.minTeamSize,
     maxTeamSize: form.maxTeamSize,
     description: form.description.trim() || undefined,
-    managerId: form.managerId || null,
+    managerId: form.managerId,
     requiredSkills
   }
   createDialogLoading.value = true
@@ -551,7 +575,7 @@ const openEditDialog = (row: RecommendationRow) => {
     managerId: row.managerId || null
   }
   if (row.requiredSkills && row.requiredSkills.length > 0) {
-    editRequiredSkillRows.value = row.requiredSkills.map(s => ({
+    editRequiredSkillRows.value = row.requiredSkills.map((s) => ({
       skillId: s.skillId,
       importance: s.importance || 3
     }))
@@ -942,32 +966,32 @@ onBeforeUnmount(() => {
       :before-close="closeCreateDialog"
     >
       <el-form label-position="top" class="create-form-grid">
-        <el-form-item label="竞赛名称">
+        <el-form-item label="竞赛名称" required>
           <el-input v-model="createForm.name" placeholder="请输入竞赛名称" />
         </el-form-item>
-        <el-form-item label="竞赛负责人">
-          <el-select v-model="createForm.managerId" placeholder="请选择竞赛负责人（可选）" clearable :loading="teachersLoading">
+        <el-form-item label="竞赛负责人" required>
+          <el-select v-model="createForm.managerId" placeholder="请选择竞赛负责人" :loading="teachersLoading">
             <el-option
-              v-for="teacher in allTeachers"
+              v-for="teacher in teacherOptions"
               :key="teacher.id"
               :label="teacher.realName || teacher.username"
               :value="teacher.id"
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="主办方">
-          <el-input v-model="createForm.organizer" placeholder="请输入主办方（可选）" />
+        <el-form-item label="主办方" required>
+          <el-input v-model="createForm.organizer" placeholder="请输入主办方" />
         </el-form-item>
-        <el-form-item label="级别">
-          <el-input v-model="createForm.level" placeholder="请输入级别（可选）" />
+        <el-form-item label="级别" required>
+          <el-input v-model="createForm.level" placeholder="请输入级别" />
         </el-form-item>
-        <el-form-item label="开始日期">
+        <el-form-item label="开始日期" required>
           <el-date-picker v-model="createForm.startDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择开始日期" />
         </el-form-item>
-        <el-form-item label="结束日期">
+        <el-form-item label="结束日期" required>
           <el-date-picker v-model="createForm.endDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择结束日期" />
         </el-form-item>
-        <el-form-item label="报名截止">
+        <el-form-item label="报名截止" required>
           <el-date-picker
             v-model="createForm.registrationDeadline"
             type="date"
@@ -975,13 +999,13 @@ onBeforeUnmount(() => {
             placeholder="请选择报名截止日期"
           />
         </el-form-item>
-        <el-form-item label="最小队伍人数">
+        <el-form-item label="最小队伍人数" required>
           <el-input-number v-model="createForm.minTeamSize" :min="1" :controls="true" />
         </el-form-item>
-        <el-form-item label="最大队伍人数">
+        <el-form-item label="最大队伍人数" required>
           <el-input-number v-model="createForm.maxTeamSize" :min="1" :controls="true" />
         </el-form-item>
-        <el-form-item label="竞赛技能需求" class="required-skills-item">
+        <el-form-item label="竞赛技能需求" class="required-skills-item" required>
           <div class="required-skills-editor">
             <div
               v-for="(row, index) in requiredSkillRows"
@@ -998,7 +1022,7 @@ onBeforeUnmount(() => {
                 class="required-skill-select"
               >
                 <el-option
-                  v-for="s in allSkills"
+                  v-for="s in skillOptions"
                   :key="`skill-${s.id}`"
                   :label="s.name || `ID:${s.id}`"
                   :value="s.id"
@@ -1077,7 +1101,7 @@ onBeforeUnmount(() => {
                 class="teacher-apply-skill-select"
               >
                 <el-option
-                  v-for="s in allSkills"
+                  v-for="s in skillOptions"
                   :key="`teacher-apply-skill-option-${s.id}`"
                   :label="s.name || `ID:${s.id}`"
                   :value="s.id"
@@ -1130,7 +1154,7 @@ onBeforeUnmount(() => {
             <el-form-item label="竞赛负责人">
               <el-select v-model="editForm.managerId" placeholder="请选择竞赛负责人（可选）" clearable :loading="teachersLoading" style="width: 100%">
                 <el-option
-                  v-for="teacher in allTeachers"
+                  v-for="teacher in teacherOptions"
                   :key="teacher.id"
                   :label="teacher.realName || teacher.username"
                   :value="teacher.id"
@@ -1196,7 +1220,7 @@ onBeforeUnmount(() => {
                 class="required-skill-select"
               >
                 <el-option
-                  v-for="s in allSkills"
+                  v-for="s in skillOptions"
                   :key="`edit-skill-${s.id}`"
                   :label="s.name || `ID:${s.id}`"
                   :value="s.id"

@@ -10,7 +10,7 @@ import { routerConfig } from "@/router/config"
 import { flatMultiLevelRoutes } from "@/router/helper"
 
 function hasPermission(roles: string[], route: RouteRecordRaw) {
-  const routeRoles = route.meta?.roles
+  const routeRoles = route.meta?.roles as string[] | undefined
   return routeRoles ? roles.some(role => routeRoles.includes(role)) : true
 }
 

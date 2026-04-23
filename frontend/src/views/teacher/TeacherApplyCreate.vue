@@ -10,6 +10,7 @@ const loading = ref(false)
 const errorMessage = ref("")
 const skillsLoading = ref(false)
 const allSkills = ref<Skill[]>([])
+const skillOptions = computed(() => allSkills.value.filter((s): s is Skill & { id: number } => typeof s.id === "number"))
 const preferredSkillRows = ref<Array<{ skillId: number | null; weight: number }>>([{ skillId: null, weight: 3 }])
 const form = reactive<TeacherApplicationCreatePayload>({
   description: ""
@@ -143,7 +144,7 @@ onMounted(loadSkills)
                 class="preferred-skill-select"
               >
                 <el-option
-                  v-for="s in allSkills"
+                  v-for="s in skillOptions"
                   :key="`skill-${s.id}`"
                   :label="s.name || `ID:${s.id}`"
                   :value="s.id"

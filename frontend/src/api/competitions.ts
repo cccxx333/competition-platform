@@ -14,6 +14,7 @@ export type CompetitionListItem = {
   level?: string
   status?: "UPCOMING" | "ONGOING" | "FINISHED"
   managerId?: number
+  managerName?: string
   createdById?: number
   createdAt?: string
   updatedAt?: string

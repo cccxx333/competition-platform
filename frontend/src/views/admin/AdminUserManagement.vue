@@ -17,7 +17,7 @@ const total = ref(0)
 const filters = reactive({
   keyword: "",
   role: "" as UserRole | "",
-  approvalStatus: "" as string
+  approvalStatus: "" as ApprovalStatus | ""
 })
 
 const pagination = reactive({

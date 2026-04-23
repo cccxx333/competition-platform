@@ -7,7 +7,6 @@ Do not edit. Kept for historical reference.
 import { removeLayoutsConfig } from "@@/utils/cache/local-storage"
 import { Refresh } from "@element-plus/icons-vue"
 import { useSettingsStore } from "@/pinia/stores/settings"
-import SelectLayoutMode from "./SelectLayoutMode.vue"
 
 const isLeft = { value: true }
 
@@ -60,7 +59,7 @@ function resetLayoutsConfig() {
 <template>
   <div class="setting-container">
     <h4>Layout Settings</h4>
-    <SelectLayoutMode />
+    <el-alert type="info" :closable="false" title="Legacy settings panel placeholder." />
     <el-divider />
     <h4>Feature Settings</h4>
     <div v-for="(settingValue, settingName, index) in switchSettings" :key="index" class="setting-item">

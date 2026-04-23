@@ -27,6 +27,10 @@ const pendingApplyTeam = ref<{ teamId: number; teamName?: string } | null>(null)
 const applyRemark = ref("")
 const applyDialogError = ref("")
 
+const competitionSelectOptions = computed(() =>
+  competitionOptions.value.filter((item): item is ApplyableCompetitionItem & { id: number } => typeof item.id === "number")
+)
+
 let searchTimer: number | undefined
 
 const statusLabelMap: Record<string, string> = {
@@ -208,8 +212,7 @@ const confirmApply = async () => {
   try {
     await createApplication({
       competitionId: selectedCompetitionId.value,
-      teamId: pendingApplyTeam.value.teamId,
-      remark: applyRemark.value ? applyRemark.value : undefined
+      teamId: pendingApplyTeam.value.teamId
     })
     applyDialogVisible.value = false
     pendingApplyTeam.value = null
@@ -263,7 +266,7 @@ watch(
             @change="handleCompetitionChange"
           >
             <el-option
-              v-for="item in competitionOptions"
+              v-for="item in competitionSelectOptions"
               :key="item.id"
               :label="item.name ?? ''"
               :value="item.id"
@@ -331,7 +334,7 @@ watch(
       width="520px"
       :align-center="true"
       top="12vh"
-      append-to-body="true"
+      :append-to-body="true"
       :close-on-click-modal="false"
     >
       <div>确认提交报名申请吗？</div>

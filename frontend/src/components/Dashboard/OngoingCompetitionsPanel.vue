@@ -3,8 +3,12 @@ import { ElMessage } from "element-plus"
 import { listCompetitions, type CompetitionListItem } from "@/api/competitions"
 import StatusTag from "@/common/components/StatusTag/index.vue"
 
+const route = useRoute()
 const loading = ref(false)
 const items = ref<CompetitionListItem[]>([])
+const pendingReload = ref(false)
+let lastLoadedAt = 0
+let refreshTimer: number | undefined
 
 const getSortTime = (item: CompetitionListItem) => {
   const value = item.startDate ?? item.createdAt ?? item.registrationDeadline ?? item.updatedAt ?? item.endDate
@@ -25,21 +29,77 @@ const formatDateRange = (item: CompetitionListItem) => {
   return [start, end].filter(Boolean).join(" ~ ")
 }
 
-const loadData = async () => {
+const runLoad = async () => {
   loading.value = true
   try {
     const { items: list } = await listCompetitions({ page: 0, size: 50 })
     const sorted = (list ?? []).slice().sort((a, b) => getSortTime(b) - getSortTime(a))
     items.value = sorted.slice(0, 10)
+    lastLoadedAt = Date.now()
   } catch (error: any) {
     items.value = []
     ElMessage.error("获取竞赛信息失败")
   } finally {
     loading.value = false
+    if (pendingReload.value) {
+      pendingReload.value = false
+      void runLoad()
+    }
   }
 }
 
-onMounted(loadData)
+const loadData = async (force = false) => {
+  if (!force && Date.now() - lastLoadedAt < 3000) return
+  if (loading.value) {
+    pendingReload.value = true
+    return
+  }
+  await runLoad()
+}
+
+const handleWindowFocus = () => {
+  if (document.visibilityState === "hidden") return
+  void loadData(true)
+}
+
+const startAutoRefresh = () => {
+  if (refreshTimer) return
+  refreshTimer = window.setInterval(() => {
+    void loadData(true)
+  }, 60_000)
+}
+
+const stopAutoRefresh = () => {
+  if (!refreshTimer) return
+  window.clearInterval(refreshTimer)
+  refreshTimer = undefined
+}
+
+watch(
+  () => route.fullPath,
+  (path) => {
+    if (path.startsWith("/dashboard")) {
+      void loadData(true)
+    }
+  },
+  { immediate: true }
+)
+
+onMounted(() => {
+  startAutoRefresh()
+  window.addEventListener("focus", handleWindowFocus)
+  document.addEventListener("visibilitychange", handleWindowFocus)
+})
+
+onActivated(() => {
+  void loadData(true)
+})
+
+onBeforeUnmount(() => {
+  stopAutoRefresh()
+  window.removeEventListener("focus", handleWindowFocus)
+  document.removeEventListener("visibilitychange", handleWindowFocus)
+})
 </script>
 
 <template>

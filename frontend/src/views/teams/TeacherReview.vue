@@ -1,7 +1,7 @@
 ﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { getCompetitionDetail } from "@/api/competitions"
-import { listPendingApplications, reviewApplication, type ApplicationItem } from "@/api/teamApplications"
+import { listPendingApplications, reviewApplication, type ApplicationItem, type ApplicationStatus } from "@/api/teamApplications"
 import { getApiErrorMessage } from "@/utils/errorMessage"
 import StatusTag from "@/common/components/StatusTag/index.vue"
 
@@ -13,8 +13,26 @@ const items = ref<ApplicationItem[]>([])
 const current = ref<ApplicationItem | null>(null)
 const reviewAction = ref<"approve" | "reject">("approve")
 const reason = ref("")
-const teamIdFilter = ref<number | null>(null)
 const competitionStatusMap = ref<Record<number, string>>({})
+const competitionKeywordFilter = ref("")
+const reviewStatusFilter = ref<"" | ApplicationStatus>("")
+
+const statusOptions: Array<{ label: string; value: "" | ApplicationStatus }> = [
+  { label: "全部状态", value: "" },
+  { label: "待审核", value: "PENDING" },
+  { label: "已通过", value: "APPROVED" },
+  { label: "已拒绝", value: "REJECTED" }
+]
+
+const filteredItems = computed(() => {
+  const keyword = competitionKeywordFilter.value.trim().toLowerCase()
+  const selectedStatus = reviewStatusFilter.value
+  return items.value.filter((item) => {
+    const matchKeyword = !keyword || String(item.competitionName ?? "").toLowerCase().includes(keyword)
+    const matchStatus = !selectedStatus || item.status === selectedStatus
+    return matchKeyword && matchStatus
+  })
+})
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return ""
@@ -45,10 +63,7 @@ const showRequestError = (error: any, fallback: string) => {
 const loadApplications = async () => {
   loading.value = true
   try {
-    const list = await listPendingApplications({
-      status: undefined,
-      teamId: teamIdFilter.value ?? undefined
-    })
+    const list = await listPendingApplications({ status: undefined })
     items.value = (list ?? []).slice().sort((a, b) => {
       const timeA = a.appliedAt ? Date.parse(a.appliedAt) : 0
       const timeB = b.appliedAt ? Date.parse(b.appliedAt) : 0
@@ -142,6 +157,11 @@ const submitReview = async () => {
 }
 
 onMounted(loadApplications)
+
+const resetFilters = () => {
+  competitionKeywordFilter.value = ""
+  reviewStatusFilter.value = ""
+}
 </script>
 
 <template>
@@ -149,13 +169,23 @@ onMounted(loadApplications)
 
     <div class="page-header review-header">
       <h2>教师审核</h2>
-      <div class="page-header__filters" />
     </div>
 
   <el-card shadow="never" v-loading="loading" class="review-card">
-    
+      <div class="filter-row">
+        <el-input
+          v-model="competitionKeywordFilter"
+          placeholder="竞赛名称"
+          clearable
+          style="width: 220px"
+        />
+        <el-select v-model="reviewStatusFilter" style="width: 160px">
+          <el-option v-for="option in statusOptions" :key="option.value || 'ALL'" :label="option.label" :value="option.value" />
+        </el-select>
+        <el-button @click="resetFilters">重置</el-button>
+      </div>
 
-      <el-table v-if="items.length" :data="items" style="width: 100%">
+      <el-table v-if="filteredItems.length" :data="filteredItems" style="width: 100%">
         <el-table-column label="学生" width="120">
           <template #default="{ row }">
             {{ row.studentName || "-" }}
@@ -208,7 +238,7 @@ onMounted(loadApplications)
         </el-table-column>
       </el-table>
 
-      <el-empty v-else-if="!loading" description="暂无待审申请" />
+      <el-empty v-else-if="!loading" description="暂无匹配申请" />
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="reviewAction === 'approve' ? '通过审核' : '拒绝申请'" width="420px">
@@ -232,10 +262,12 @@ onMounted(loadApplications)
   margin-bottom: 12px;
 }
 
-.page-header__filters {
-  display: inline-flex;
-  gap: 8px;
+.filter-row {
+  display: flex;
   align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
 }
 
 .review-header {

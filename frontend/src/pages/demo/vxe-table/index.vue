@@ -153,11 +153,11 @@ const xGridOpt: VxeGridProps = reactive({
           let result: RowMeta[] = []
           // 加载数据
           const callback = (res: TableResponseData) => {
-            if (res?.data) {
+            if (res) {
               // 总数
-              total = res.data.total
+              total = res.total
               // 列表数据
-              result = res.data.list
+              result = res.list as RowMeta[]
             }
             xGridOpt.loading = false
             // 返回值有格式要求，详情见 vxe-table 官方文档
@@ -171,7 +171,9 @@ const xGridOpt: VxeGridProps = reactive({
             currentPage: page.currentPage
           }
           // 调用接口
-          getTableDataApi(params).then(callback).catch(callback)
+          getTableDataApi(params)
+            .then((res) => callback(res.data))
+            .catch(() => callback({ list: [], total: 0 }))
         })
       }
     }

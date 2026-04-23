@@ -89,7 +89,7 @@ const handleReview = async (row: TeacherApplicationItem, approved: boolean, revi
   try {
     await adminReviewTeacherApplication(row.id, {
       approved,
-      reviewComment: reviewComment ? reviewComment : null
+      reviewComment: reviewComment ? reviewComment : undefined
     })
     ElMessage.success(approved ? "已通过" : "已拒绝")
     await loadApplications()

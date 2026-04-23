@@ -124,12 +124,25 @@ const openRejectDialog = (row: AdminTeacherApplicationListItem) => {
   reviewDialogVisible.value = true
 }
 
-const closeReviewDialog = (force = false) => {
-  if (reviewSubmitting.value && !force) return
+const closeReviewDialog = () => {
+  if (reviewSubmitting.value) return
   reviewDialogVisible.value = false
   reviewReason.value = ""
   reviewTargetId.value = null
   submitError.value = ""
+}
+
+const forceCloseReviewDialog = () => {
+  reviewDialogVisible.value = false
+  reviewReason.value = ""
+  reviewTargetId.value = null
+  submitError.value = ""
+}
+
+const handleReviewDialogBeforeClose = (done: () => void) => {
+  if (reviewSubmitting.value) return
+  done()
+  closeReviewDialog()
 }
 
 const submitReview = async () => {
@@ -142,7 +155,7 @@ const submitReview = async () => {
       reviewComment
     })
     ElMessage.success(reviewAction.value === "approve" ? "已通过" : "已拒绝")
-    closeReviewDialog(true)
+    forceCloseReviewDialog()
     await fetchList()
   } catch (error: any) {
     showRequestError(error, "审核失败")
@@ -222,7 +235,7 @@ onMounted(fetchList)
         center
         :close-on-click-modal="true"
         :close-on-press-escape="true"
-        :before-close="closeReviewDialog"
+        :before-close="handleReviewDialogBeforeClose"
       >
         <div class="review-note">原因（可选）</div>
         <el-alert
