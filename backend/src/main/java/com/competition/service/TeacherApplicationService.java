@@ -68,6 +68,10 @@ public class TeacherApplicationService {
         Competition competition = competitionRepository.findById(request.getCompetitionId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "competition not found"));
 
+        if (competition.getManager() != null && competition.getManager().getId().equals(userId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "负责人不可申请自己负责的竞赛");
+        }
+
         if (competition.getStatus() != Competition.CompetitionStatus.UPCOMING) {
             throw new ApiException(HttpStatus.CONFLICT, "competition status must be UPCOMING");
         }
@@ -146,13 +150,19 @@ public class TeacherApplicationService {
                                                                           TeacherApplication.Status status,
                                                                           String keyword,
                                                                           Pageable pageable) {
-        User admin = userRepository.findById(adminUserId)
+        User user = userRepository.findById(adminUserId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
-        if (admin.getRole() != User.Role.ADMIN) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN can view applications");
+
+        Long managerId = null;
+        if (user.getRole() == User.Role.ADMIN) {
+            managerId = null;
+        } else if (user.getRole() == User.Role.TEACHER) {
+            managerId = user.getId();
+        } else {
+            throw new ApiException(HttpStatus.FORBIDDEN, "无权限查看");
         }
 
-        Page<TeacherApplication> page = teacherApplicationRepository.searchAdmin(status, keyword, pageable);
+        Page<TeacherApplication> page = teacherApplicationRepository.searchAdmin(status, keyword, managerId, pageable);
         return page.map(this::toAdminListItem);
     }
 
@@ -161,14 +171,25 @@ public class TeacherApplicationService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "approved is required");
         }
 
-        User admin = userRepository.findById(adminUserId)
+        User user = userRepository.findById(adminUserId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
-        if (admin.getRole() != User.Role.ADMIN) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN can review");
-        }
 
         TeacherApplication application = teacherApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "application not found"));
+
+        boolean hasPermission = false;
+        if (user.getRole() == User.Role.ADMIN) {
+            hasPermission = true;
+        } else if (user.getRole() == User.Role.TEACHER) {
+            Competition competition = application.getCompetition();
+            if (competition != null && competition.getManager() != null && competition.getManager().getId().equals(user.getId())) {
+                hasPermission = true;
+            }
+        }
+
+        if (!hasPermission) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "无权限：仅管理员或该竞赛负责人可审核");
+        }
 
         if (application.getStatus() != TeacherApplication.Status.PENDING) {
             throw new ApiException(HttpStatus.CONFLICT, "application already reviewed");
@@ -198,7 +219,7 @@ public class TeacherApplicationService {
             }
         }
         application.setReviewedAt(LocalDateTime.now());
-        application.setReviewedBy(admin);
+        application.setReviewedBy(user);
         application.setReviewComment(request.getReviewComment());
 
         TeacherApplication saved = teacherApplicationRepository.save(application);

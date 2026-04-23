@@ -18,6 +18,7 @@ public interface TeacherApplicationRepository extends JpaRepository<TeacherAppli
             "join ta.teacher t " +
             "join ta.competition c " +
             "where (:status is null or ta.status = :status) " +
+            "and (:managerId is null or c.manager.id = :managerId) " +
             "and (" +
             ":keyword is null or :keyword = '' " +
             "or lower(t.realName) like lower(concat('%', :keyword, '%')) " +
@@ -27,5 +28,6 @@ public interface TeacherApplicationRepository extends JpaRepository<TeacherAppli
     Page<TeacherApplication> searchAdmin(
             @Param("status") TeacherApplication.Status status,
             @Param("keyword") String keyword,
+            @Param("managerId") Long managerId,
             Pageable pageable);
 }
