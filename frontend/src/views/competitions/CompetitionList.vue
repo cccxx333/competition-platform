@@ -270,7 +270,12 @@ const handleEnrollAction = (row: RecommendationRow) => {
     return
   }
   if (isStudent.value) {
-    goDetail(row)
+    router.push({
+      path: "/competitions/apply",
+      query: {
+        competitionId: String(row.id)
+      }
+    })
     return
   }
   if (isTeacher.value) {
@@ -714,6 +719,7 @@ onBeforeUnmount(() => {
         </el-table-column>
         <el-table-column prop="organizer" label="主办方" min-width="120" />
         <el-table-column
+          v-if="isAlgorithmMode"
           label="推荐分数"
           width="96"
           align="left"

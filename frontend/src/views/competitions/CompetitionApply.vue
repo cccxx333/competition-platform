@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {
+  getCompetitionDetail,
   getRecommendedTeams,
   listApplyableCompetitions,
   type ApplyableCompetitionItem,
@@ -9,6 +10,7 @@ import {
 import { createApplication } from "@/api/teamApplications"
 import { getApiErrorMessage } from "@/utils/errorMessage"
 
+const route = useRoute()
 const competitionOptions = ref<ApplyableCompetitionItem[]>([])
 const selectedCompetitionId = ref<number | null>(null)
 const competitionLoading = ref(false)
@@ -46,6 +48,28 @@ const fetchCompetitions = async (keyword: string) => {
   }
 }
 
+const ensureCompetitionOption = async (competitionId: number) => {
+  if (competitionOptions.value.some((item) => item.id === competitionId)) return
+  try {
+    const detail = await getCompetitionDetail(competitionId)
+    competitionOptions.value = [
+      {
+        id: competitionId,
+        name: detail?.name ?? `竞赛 ${competitionId}`
+      },
+      ...competitionOptions.value
+    ]
+  } catch {
+    competitionOptions.value = [
+      {
+        id: competitionId,
+        name: `竞赛 ${competitionId}`
+      },
+      ...competitionOptions.value
+    ]
+  }
+}
+
 const handleSearch = (keyword: string) => {
   if (searchTimer) {
     window.clearTimeout(searchTimer)
@@ -80,6 +104,23 @@ const handleCompetitionChange = (value: number | null) => {
   fallbackSorted.value = false
   if (!value) return
   fetchTeams(value)
+}
+
+const parseCompetitionIdFromRoute = () => {
+  const raw = route.query.competitionId
+  const value = Array.isArray(raw) ? raw[0] : raw
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) return null
+  return parsed
+}
+
+const applyCompetitionFromRoute = async () => {
+  const competitionId = parseCompetitionIdFromRoute()
+  if (!competitionId) return
+  selectedCompetitionId.value = competitionId
+  await fetchCompetitions("")
+  await ensureCompetitionOption(competitionId)
+  await fetchTeams(competitionId)
 }
 
 const buildReasonText = (reasons?: TeamRecommendReason[]) => {
@@ -170,6 +211,17 @@ const confirmApply = async () => {
     applyDialogLoading.value = false
   }
 }
+
+onMounted(() => {
+  applyCompetitionFromRoute()
+})
+
+watch(
+  () => route.query.competitionId,
+  () => {
+    applyCompetitionFromRoute()
+  }
+)
 </script>
 
 <template>

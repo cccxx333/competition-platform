@@ -1,8 +1,18 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
-import { closeTeam, disbandTeam, getTeamAwardSummary, getTeamDetail, listTeamMembers, type TeamAwardSummary, type TeamDto, type TeamMemberView } from "@/api/teams"
+import {
+  closeTeam,
+  disbandTeam,
+  getTeamAwardSummary,
+  getTeamDetail,
+  listTeamMembers,
+  reopenRecruiting,
+  type TeamAwardSummary,
+  type TeamDto,
+  type TeamMemberView
+} from "@/api/teams"
 import { useAuthStore } from "@/stores/auth"
-import { canCloseRecruiting, getTeamWriteBlockReason, isDisbanded } from "@/utils/teamGuards"
+import { canToggleRecruiting, getTeamWriteBlockReason, isDisbanded } from "@/utils/teamGuards"
 import { getApiErrorMessage } from "@/utils/errorMessage"
 
 const route = useRoute()
@@ -46,22 +56,23 @@ const currentCount = computed(() => {
   return typeof fallback === "number" ? String(fallback) : "-"
 })
 
-const canShowClose = computed(() => roleUpper.value === "ADMIN" || roleUpper.value === "TEACHER")
-const canClose = computed(() => canCloseRecruiting(team.value, roleUpper.value, isLeader.value))
+const canShowClose = computed(() => roleUpper.value === "TEACHER")
+const canClose = computed(() => canToggleRecruiting(team.value, roleUpper.value, isLeader.value))
+const recruitingToggleLabel = computed(() => (team.value?.status === "CLOSED" ? "恢复招募" : "停止招募"))
 
 const closeDisabledReason = computed(() => {
   if (!team.value) return "队伍不存在"
   if (isTeamDisbanded.value) return "队伍已解散"
-  if (team.value.status !== "RECRUITING") return "仅招募中可关闭"
-  if (roleUpper.value === "TEACHER" && !isLeader.value) return "仅指导教师可关闭"
-  if (roleUpper.value !== "ADMIN" && roleUpper.value !== "TEACHER") return "无权限"
+  if (team.value.status !== "RECRUITING" && team.value.status !== "CLOSED") return "仅支持在招募中/已关闭间切换"
+  if (roleUpper.value === "TEACHER" && !isLeader.value) return "仅队长可切换招募状态"
+  if (roleUpper.value !== "TEACHER") return "无权限"
   return ""
 })
 
 const getFallbackMessage = (status?: number) => {
   if (status === 400) return "参数错误"
   if (status === 401) return "登录已过期，请重新登录"
-  if (status === 403) return "无权访问"
+  if (status === 403) return "无权限访问"
   if (status === 404) return "队伍不存在或已删除"
   if (status === 409) return "操作冲突，请稍后重试"
   return "服务异常，请稍后重试"
@@ -71,22 +82,10 @@ const showRequestError = (error: any, fallback: string) => {
   const status = error?.status ?? error?.response?.status
   const fallbackMessage = status ? getFallbackMessage(status) : fallback
   const message = getApiErrorMessage(error, fallbackMessage)
-  const showUiError = (value: string) => {
-    errorDialogMessage.value = value
-    errorDialogVisible.value = true
-    redirectAfterError.value = null
-  }
-  showUiError(message)
+  errorDialogMessage.value = message
+  errorDialogVisible.value = true
+  redirectAfterError.value = null
   return message
-}
-
-const formatDateTime = (value?: string | null) => {
-  if (!value) return ""
-  if (value.includes("T")) {
-    const [date, time] = value.split("T")
-    return `${date} ${time.slice(0, 5)}`
-  }
-  return value
 }
 
 const toYmd = (value?: string | null) => {
@@ -151,12 +150,17 @@ const onCloseErrorDialog = () => {
   redirectAfterError.value = null
 }
 
-const submitCloseTeam = async () => {
+const submitToggleRecruiting = async () => {
   if (!teamId.value) return
+  const isReopen = team.value?.status === "CLOSED"
   actionLoading.value = true
   try {
-    await closeTeam(teamId.value)
-    ElMessage.success("已停止招人")
+    if (isReopen) {
+      await reopenRecruiting(teamId.value)
+    } else {
+      await closeTeam(teamId.value)
+    }
+    ElMessage.success(isReopen ? "已恢复招募" : "已停止招募")
     closeDialogVisible.value = false
     await loadTeam()
   } catch (error: any) {
@@ -165,7 +169,7 @@ const submitCloseTeam = async () => {
     if (status === 409 && message.includes("disbanded")) {
       handleDisbandedRedirect()
     } else {
-      showRequestError(error, "停止招募失败")
+      showRequestError(error, "切换招募状态失败")
     }
   } finally {
     actionLoading.value = false
@@ -198,23 +202,20 @@ onMounted(loadTeam)
 
 <template>
   <div class="page-container">
-
     <div class="page-header">
-        <div>
-          <h2>队伍详情</h2>
-          <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
-        </div>
-        <div class="page-actions">
-          <el-button @click="router.push(returnPath)">{{ returnLabel }}</el-button>
-          <el-button type="primary" :disabled="!teamId" @click="router.push(`/teams/${teamId}/members`)">
-            成员管理
-          </el-button>
-        </div>
+      <div>
+        <h2>队伍详情</h2>
+        <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
       </div>
+      <div class="page-actions">
+        <el-button @click="router.push(returnPath)">{{ returnLabel }}</el-button>
+        <el-button type="primary" :disabled="!teamId" @click="router.push(`/teams/${teamId}/members`)">
+          成员信息
+        </el-button>
+      </div>
+    </div>
 
-  <el-card shadow="never" v-loading="loading">
-    
-
+    <el-card shadow="never" v-loading="loading">
       <el-alert
         v-if="writeBlockReason"
         type="warning"
@@ -259,7 +260,7 @@ onMounted(loadTeam)
         <el-divider />
         <div class="action-panel__row">
           <el-button v-if="canShowClose" type="warning" :disabled="!canClose" @click="closeDialogVisible = true">
-            停止招人
+            {{ recruitingToggleLabel }}
           </el-button>
           <el-button
             v-if="isAdmin"
@@ -279,11 +280,11 @@ onMounted(loadTeam)
       </div>
     </el-card>
 
-    <el-dialog v-model="closeDialogVisible" title="停止招人" width="420px">
-      <div>确认将队伍状态变更为 CLOSED？</div>
+    <el-dialog v-model="closeDialogVisible" :title="recruitingToggleLabel" width="420px">
+      <div>确认切换当前队伍的招募状态吗？</div>
       <template #footer>
         <el-button @click="closeDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="actionLoading" @click="submitCloseTeam">确认</el-button>
+        <el-button type="primary" :loading="actionLoading" @click="submitToggleRecruiting">确认</el-button>
       </template>
     </el-dialog>
 
@@ -309,7 +310,8 @@ onMounted(loadTeam)
         <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
       </template>
     </el-dialog>
-  </div></template>
+  </div>
+</template>
 
 <style scoped>
 .page-header {

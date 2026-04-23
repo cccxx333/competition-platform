@@ -131,6 +131,15 @@ public class TeamController {
         return ResponseEntity.ok(closedTeam);
     }
 
+    @PutMapping("/{teamId:\\d+}/recruiting")
+    public ResponseEntity<TeamDTO> reopenTeamRecruiting(
+            HttpServletRequest request,
+            @PathVariable Long teamId) {
+        Long userId = getUserIdFromToken(request);
+        TeamDTO recruitingTeam = teamService.reopenTeamRecruiting(userId, teamId);
+        return ResponseEntity.ok(recruitingTeam);
+    }
+
     /**
      * 管理员解散队伍
      */

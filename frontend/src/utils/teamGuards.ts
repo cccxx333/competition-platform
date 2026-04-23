@@ -15,11 +15,10 @@ export const getTeamWriteBlockReason = (team?: TeamLike | null): string | null =
   return null
 }
 
-export const canCloseRecruiting = (team: TeamLike | null | undefined, role?: string, isLeader?: boolean): boolean => {
+export const canToggleRecruiting = (team: TeamLike | null | undefined, role?: string, isLeader?: boolean): boolean => {
   if (!team) return false
   if (isDisbanded(team)) return false
-  if (team.status !== "RECRUITING") return false
-  if (role === "ADMIN") return true
-  if (role === "TEACHER" && isLeader) return true
-  return false
+  const status = team.status
+  if (status !== "RECRUITING" && status !== "CLOSED") return false
+  return role === "TEACHER" && Boolean(isLeader)
 }

@@ -188,8 +188,8 @@ public class TeamService {
     public TeamDTO closeTeam(Long currentUserId, Long teamId) {
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
-        if (currentUser.getRole() == User.Role.STUDENT) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN or TEACHER can close team");
+        if (currentUser.getRole() != User.Role.TEACHER) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only team leader can close team");
         }
 
         Team team = getTeamById(teamId);
@@ -200,10 +200,8 @@ public class TeamService {
             throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
         }
 
-        if (currentUser.getRole() == User.Role.TEACHER) {
-            if (team.getLeader() == null || !team.getLeader().getId().equals(currentUserId)) {
-                throw new ApiException(HttpStatus.FORBIDDEN, "only team leader can close team");
-            }
+        if (team.getLeader() == null || !team.getLeader().getId().equals(currentUserId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only team leader can close team");
         }
 
         team.setStatus(Team.TeamStatus.CLOSED);
@@ -212,6 +210,32 @@ public class TeamService {
         team.setUpdatedAt(LocalDateTime.now());
         Team saved = teamRepository.save(team);
 
+        return convertToDTO(saved);
+    }
+
+    public TeamDTO reopenTeamRecruiting(Long currentUserId, Long teamId) {
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        if (currentUser.getRole() != User.Role.TEACHER) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only team leader can reopen recruiting");
+        }
+
+        Team team = getTeamById(teamId);
+        if (team.getStatus() == Team.TeamStatus.DISBANDED) {
+            throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
+        }
+        if (team.getStatus() == Team.TeamStatus.RECRUITING) {
+            throw new ApiException(HttpStatus.CONFLICT, "team already recruiting");
+        }
+        if (team.getLeader() == null || !team.getLeader().getId().equals(currentUserId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only team leader can reopen recruiting");
+        }
+
+        team.setStatus(Team.TeamStatus.RECRUITING);
+        team.setClosedAt(null);
+        team.setClosedBy(null);
+        team.setUpdatedAt(LocalDateTime.now());
+        Team saved = teamRepository.save(team);
         return convertToDTO(saved);
     }
 
@@ -230,21 +254,19 @@ public class TeamService {
     public void removeMember(Long currentUserId, Long teamId, Long userId, String reason) {
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
-        if (currentUser.getRole() == User.Role.STUDENT) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN or TEACHER can remove member");
+        if (currentUser.getRole() != User.Role.TEACHER) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only team leader can remove member");
         }
 
         Team team = getTeamById(teamId);
         if (team.getStatus() == Team.TeamStatus.DISBANDED) {
             throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
         }
-        if (team.getStatus() == Team.TeamStatus.CLOSED && currentUser.getRole() != User.Role.ADMIN) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN can remove member from closed team");
+        if (team.getStatus() == Team.TeamStatus.CLOSED) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "cannot remove member from closed team");
         }
-        if (currentUser.getRole() == User.Role.TEACHER) {
-            if (team.getLeader() == null || !team.getLeader().getId().equals(currentUserId)) {
-                throw new ApiException(HttpStatus.FORBIDDEN, "only team leader can remove member");
-            }
+        if (team.getLeader() == null || !team.getLeader().getId().equals(currentUserId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only team leader can remove member");
         }
 
         if (team.getLeader() != null && team.getLeader().getId().equals(userId)) {

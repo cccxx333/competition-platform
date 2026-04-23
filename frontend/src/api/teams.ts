@@ -123,6 +123,15 @@ export async function closeTeam(teamId: number): Promise<TeamDto> {
   }
 }
 
+export async function reopenRecruiting(teamId: number): Promise<TeamDto> {
+  try {
+    const response = await client.put(`/teams/${teamId}/recruiting`)
+    return unwrapData<TeamDto>(response?.data)
+  } catch (error: any) {
+    throw toError(error, "Failed to reopen recruiting")
+  }
+}
+
 export async function removeMember(teamId: number, userId: number, reason?: string): Promise<void> {
   try {
     await client.delete(`/teams/${teamId}/members/${userId}`, {

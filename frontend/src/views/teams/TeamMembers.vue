@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { getTeamDetail, listTeamMembers, removeMember, type TeamDto, type TeamMemberView } from "@/api/teams"
 import { useAuthStore } from "@/stores/auth"
@@ -31,16 +31,14 @@ const isLeader = computed(() => {
   return Boolean(leaderId && currentUserId && leaderId === currentUserId)
 })
 const isTeamDisbanded = computed(() => isDisbanded(team.value))
-const returnLabel = computed(() => (roleUpper.value === "STUDENT" ? "返回我的队伍" : "返回队伍查询"))
-const returnPath = computed(() => (roleUpper.value === "STUDENT" ? "/teams/my" : "/teams/lookup"))
+const returnLabel = computed(() => "返回队伍详情")
+const returnPath = computed(() => (teamId.value ? `/teams/${teamId.value}` : "/teams/lookup"))
 const writeBlockReason = computed(() => getTeamWriteBlockReason(team.value))
 
 const getFallbackMessage = (status?: number) => {
   if (status === 400) return "参数错误"
   if (status === 401) return "登录已过期，请重新登录"
-  if (status === 403) {
-    return roleUpper.value === "TEACHER" ? "仅指导教师可查看/管理队伍成员" : "无权访问"
-  }
+  if (status === 403) return "仅队长可查看/管理队伍成员"
   if (status === 404) return "队伍不存在或已删除"
   if (status === 409) return "操作冲突，请稍后重试"
   return "服务异常，请稍后重试"
@@ -50,12 +48,9 @@ const showRequestError = (error: any, fallback: string) => {
   const status = error?.status ?? error?.response?.status
   const fallbackMessage = status ? getFallbackMessage(status) : fallback
   const message = getApiErrorMessage(error, fallbackMessage)
-  const showUiError = (value: string) => {
-    errorDialogMessage.value = value
-    errorDialogVisible.value = true
-    redirectAfterError.value = null
-  }
-  showUiError(message)
+  errorDialogMessage.value = message
+  errorDialogVisible.value = true
+  redirectAfterError.value = null
   return message
 }
 
@@ -86,7 +81,7 @@ const loadMembers = async () => {
   }
 }
 
-const canShowRemove = computed(() => roleUpper.value === "ADMIN" || roleUpper.value === "TEACHER")
+const canShowRemove = computed(() => roleUpper.value === "TEACHER")
 
 const isSelf = (member: TeamMemberView) => {
   const currentUserId = authStore.user?.id
@@ -96,7 +91,6 @@ const isSelf = (member: TeamMemberView) => {
 const canRemove = (member: TeamMemberView) => {
   if (!team.value) return false
   if (isTeamDisbanded.value) return false
-  if (roleUpper.value === "ADMIN") return !isSelf(member)
   if (roleUpper.value === "TEACHER") {
     if (!isLeader.value) return false
     if (team.value.status === "CLOSED") return false
@@ -108,8 +102,8 @@ const canRemove = (member: TeamMemberView) => {
 const removeDisabledReason = (member: TeamMemberView) => {
   if (isTeamDisbanded.value) return "队伍已解散"
   if (isSelf(member)) return "不可移除自己"
-  if (roleUpper.value === "TEACHER" && !isLeader.value) return "仅指导教师可移除"
-  if (team.value?.status === "CLOSED" && roleUpper.value === "TEACHER") return "关闭后仅管理员可移除"
+  if (roleUpper.value === "TEACHER" && !isLeader.value) return "仅队长可移除"
+  if (team.value?.status === "CLOSED" && roleUpper.value === "TEACHER") return "关闭状态下不可移除成员"
   return "无权限"
 }
 
@@ -156,20 +150,17 @@ onMounted(loadMembers)
 
 <template>
   <div class="page-container">
-
     <div class="page-header">
-        <div>
-          <h2>成员列表</h2>
-          <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
-        </div>
-        <div class="page-actions">
-          <el-button @click="router.push(returnPath)">{{ returnLabel }}</el-button>
-        </div>
+      <div>
+        <h2>成员信息</h2>
+        <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
       </div>
+      <div class="page-actions">
+        <el-button @click="router.push(returnPath)">{{ returnLabel }}</el-button>
+      </div>
+    </div>
 
-  <el-card shadow="never" v-loading="loading">
-    
-
+    <el-card shadow="never" v-loading="loading">
       <el-alert
         v-if="writeBlockReason"
         type="warning"
@@ -187,7 +178,6 @@ onMounted(loadMembers)
           <template #default="{ row }">
             {{ formatDateTime(row.joinedAt) }}
           </template>
-        
         </el-table-column>
         <el-table-column v-if="canShowRemove" label="操作" width="180">
           <template #default="{ row }">
@@ -225,7 +215,8 @@ onMounted(loadMembers)
         <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
       </template>
     </el-dialog>
-  </div></template>
+  </div>
+</template>
 
 <style scoped>
 .page-header {
