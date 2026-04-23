@@ -228,11 +228,14 @@ public class TeacherApplicationService {
         team.setCompetition(competition);
         team.setLeader(teacher);
         team.setStatus(Team.TeamStatus.RECRUITING);
-        team.setName("Team-" + competition.getId() + "-" + teacher.getId());
+        // Name is finalized after persistence when teamId is available.
+        team.setName("队伍待命名");
         team.setDescription(null);
 
         try {
-            return teamRepository.save(team);
+            Team savedTeam = teamRepository.save(team);
+            savedTeam.setName(buildDefaultTeamName(savedTeam.getId()));
+            return teamRepository.save(savedTeam);
         } catch (DataIntegrityViolationException ex) {
             Team retry = teamRepository.findByCompetitionIdAndLeaderId(competition.getId(), teacher.getId());
             if (retry != null) {
@@ -240,6 +243,13 @@ public class TeacherApplicationService {
             }
             throw new ApiException(HttpStatus.CONFLICT, "team already exists");
         }
+    }
+
+    private String buildDefaultTeamName(Long teamId) {
+        if (teamId == null) {
+            return "队伍待命名";
+        }
+        return "队伍T" + teamId;
     }
 
     private void syncTeamSkillsFromApplication(TeacherApplication application, Team team) {

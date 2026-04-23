@@ -1,7 +1,9 @@
 ﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
+import { Document } from "@element-plus/icons-vue"
 import { createCompetition, listCompetitions, type CompetitionCreatePayload, type CompetitionListItem, type CompetitionListParams } from "@/api/competitions"
 import { listSkills, type Skill } from "@/api/skills"
+import { createTeacherApplication, type TeacherApplicationCreatePayload } from "@/api/teacherApplications"
 import StatusTag from "@@/components/StatusTag/index.vue"
 import { useAuthStore } from "@/stores/auth"
 
@@ -9,6 +11,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
+const isStudent = computed(() => roleUpper.value === "STUDENT")
 const isTeacher = computed(() => roleUpper.value === "TEACHER")
 const isAdmin = computed(() => roleUpper.value === "ADMIN")
 
@@ -33,9 +36,16 @@ const isApplying = ref(false)
 const createDialogVisible = ref(false)
 const createDialogLoading = ref(false)
 const createDialogError = ref("")
+const teacherApplyDialogVisible = ref(false)
+const teacherApplyDialogLoading = ref(false)
+const teacherApplyDialogError = ref("")
+const teacherApplyCompetitionId = ref<number | null>(null)
+const teacherApplyCompetitionName = ref("")
+const teacherApplyDescription = ref("")
 const skillsLoading = ref(false)
 const allSkills = ref<Skill[]>([])
 const requiredSkillRows = ref<Array<{ skillId: number | null; importance: number }>>([{ skillId: null, importance: 3 }])
+const teacherApplySkillRows = ref<Array<{ skillId: number | null; weight: number }>>([{ skillId: null, weight: 3 }])
 const createForm = ref({
   name: "",
   organizer: "",
@@ -49,6 +59,9 @@ const createForm = ref({
 })
 const selectedRequiredSkillIds = computed(
   () => new Set(requiredSkillRows.value.map((row) => row.skillId).filter((id): id is number => typeof id === "number"))
+)
+const selectedTeacherApplySkillIds = computed(
+  () => new Set(teacherApplySkillRows.value.map((row) => row.skillId).filter((id): id is number => typeof id === "number"))
 )
 
 type StatusFilterValue = "" | "UPCOMING" | "ONGOING" | "FINISHED"
@@ -150,14 +163,13 @@ const fetchList = async () => {
     if (sourceMode.value === "algorithm") {
       const { items: data } = await listCompetitions({
         recommend: true,
+        status: "UPCOMING",
         topK: topK.value,
         page: 0,
         size: topK.value
       })
       if (data.length > 0) {
         const hasFallbackFlag = data.some((item) => item.fallbackApplied === true)
-        const hasPersonalizedScore = data.some((item) => typeof item.matchScore === "number")
-        const hasRecommendReason = data.some((item) => Boolean(item.recommendReason))
         rows.value = sortRows(
           data.map((item) => ({
             id: item.id,
@@ -171,26 +183,11 @@ const fetchList = async () => {
             source: "algorithm"
           }))
         )
-        if (hasFallbackFlag || (!hasPersonalizedScore && !hasRecommendReason)) {
+        if (hasFallbackFlag) {
           fallbackNotice.value = FALLBACK_NOTICE_TEXT
         }
       } else {
-        const { items: fallbackData } = await listCompetitions({
-          page: 0,
-          size: topK.value
-        })
-        rows.value = fallbackData.map((item) => ({
-          id: item.id,
-          name: item.name,
-          status: item.status,
-          startDate: item.startDate,
-          endDate: item.endDate,
-          organizer: item.organizer,
-          source: "list"
-        }))
-        if (rows.value.length > 0) {
-          fallbackNotice.value = FALLBACK_NOTICE_TEXT
-        }
+        rows.value = []
       }
       total.value = null
     } else {
@@ -265,6 +262,85 @@ const goDetail = (row: RecommendationRow) => {
       back: encodeURIComponent(route.fullPath)
     }
   })
+}
+
+const handleEnrollAction = (row: RecommendationRow) => {
+  if (!row?.id) {
+    ElMessage.warning("竞赛信息异常")
+    return
+  }
+  if (isStudent.value) {
+    goDetail(row)
+    return
+  }
+  if (isTeacher.value) {
+    openTeacherApplyDialog(row)
+  }
+}
+
+const openTeacherApplyDialog = (row: RecommendationRow) => {
+  if (!row?.id) {
+    ElMessage.warning("竞赛信息异常")
+    return
+  }
+  teacherApplyCompetitionId.value = row.id
+  teacherApplyCompetitionName.value = row.name ?? `竞赛 ${row.id}`
+  teacherApplyDescription.value = ""
+  teacherApplyDialogError.value = ""
+  teacherApplySkillRows.value = [{ skillId: null, weight: 3 }]
+  teacherApplyDialogVisible.value = true
+  loadSkillsForCreate()
+}
+
+const closeTeacherApplyDialog = () => {
+  if (teacherApplyDialogLoading.value) return
+  teacherApplyDialogVisible.value = false
+  teacherApplyDialogError.value = ""
+  teacherApplyCompetitionId.value = null
+  teacherApplyCompetitionName.value = ""
+  teacherApplyDescription.value = ""
+}
+
+const addTeacherApplySkillRow = () => {
+  if (teacherApplySkillRows.value.length >= 8) return
+  teacherApplySkillRows.value.push({ skillId: null, weight: 3 })
+}
+
+const removeTeacherApplySkillRow = (index: number) => {
+  if (teacherApplySkillRows.value.length <= 1) return
+  teacherApplySkillRows.value.splice(index, 1)
+}
+
+const submitTeacherApply = async () => {
+  if (!teacherApplyCompetitionId.value) {
+    teacherApplyDialogError.value = "竞赛信息异常，请关闭后重试"
+    return
+  }
+  teacherApplyDialogLoading.value = true
+  teacherApplyDialogError.value = ""
+  try {
+    const payload: TeacherApplicationCreatePayload = {}
+    const description = teacherApplyDescription.value.trim()
+    if (description) {
+      payload.description = description
+    }
+    const skills = teacherApplySkillRows.value
+      .filter((row) => typeof row.skillId === "number")
+      .map((row) => ({
+        skillId: row.skillId as number,
+        weight: Number.isFinite(row.weight) && row.weight > 0 ? row.weight : 1
+      }))
+    if (skills.length > 0) {
+      payload.skills = skills
+    }
+    await createTeacherApplication(teacherApplyCompetitionId.value, payload)
+    ElMessage.success("申请已提交")
+    closeTeacherApplyDialog()
+  } catch (error: any) {
+    teacherApplyDialogError.value = error?.message || "提交创建队伍申请失败"
+  } finally {
+    teacherApplyDialogLoading.value = false
+  }
 }
 
 const formatDateRange = (row: RecommendationRow) => {
@@ -636,11 +712,24 @@ onBeforeUnmount(() => {
             {{ formatDateRange(row) }}
           </template>
         </el-table-column>
-        <el-table-column prop="organizer" label="主办方" min-width="180" />
-        <el-table-column label="推荐分数" min-width="160">
+        <el-table-column prop="organizer" label="主办方" min-width="120" />
+        <el-table-column
+          label="推荐分数"
+          width="96"
+          align="left"
+          class-name="recommend-score-col"
+          header-cell-class-name="recommend-score-col-header"
+        >
           <template #default="{ row }">
             <span v-if="typeof row.score === 'number'">{{ row.score.toFixed(3) }}</span>
             <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column v-if="isStudent || isTeacher" label="操作" width="88" align="center">
+          <template #default="{ row }">
+            <el-button type="primary" link @click.stop="handleEnrollAction(row)">
+              申请
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -747,6 +836,84 @@ onBeforeUnmount(() => {
         <el-button type="primary" :loading="createDialogLoading" @click="submitCreate">发布</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="teacherApplyDialogVisible"
+      width="700px"
+      class="teacher-apply-dialog"
+      append-to-body
+      top="10vh"
+      :close-on-click-modal="false"
+      :before-close="closeTeacherApplyDialog"
+    >
+      <template #header>
+        <div class="teacher-apply-dialog__header">
+          <div class="teacher-apply-dialog__title-row">
+            <el-icon class="teacher-apply-dialog__title-icon"><Document /></el-icon>
+            <span class="teacher-apply-dialog__title-text">创建队伍申请</span>
+          </div>
+          <div class="teacher-apply-dialog__header-tip">提交后进入管理员审核流程</div>
+        </div>
+      </template>
+      <div class="teacher-apply-dialog__summary">
+        <div class="teacher-apply-dialog__summary-label">当前竞赛</div>
+        <div class="teacher-apply-dialog__summary-value">{{ teacherApplyCompetitionName }}</div>
+      </div>
+      <el-form label-position="top" class="teacher-apply-dialog__form">
+        <el-form-item label="队伍说明（可选）">
+          <el-input
+            v-model="teacherApplyDescription"
+            type="textarea"
+            :rows="3"
+            maxlength="200"
+            show-word-limit
+            placeholder="例如：队伍方向、招募偏好、预期目标等"
+          />
+        </el-form-item>
+        <el-form-item label="队伍青睐技能">
+          <div class="teacher-apply-skills-editor">
+            <div
+              v-for="(row, index) in teacherApplySkillRows"
+              :key="`teacher-apply-skill-${index}`"
+              class="teacher-apply-skill-row"
+            >
+              <el-select
+                v-model="row.skillId"
+                filterable
+                clearable
+                placeholder="请选择技能"
+                :loading="skillsLoading"
+                :disabled="skillsLoading"
+                class="teacher-apply-skill-select"
+              >
+                <el-option
+                  v-for="s in allSkills"
+                  :key="`teacher-apply-skill-option-${s.id}`"
+                  :label="s.name || `ID:${s.id}`"
+                  :value="s.id"
+                  :disabled="typeof s.id === 'number' && row.skillId !== s.id && selectedTeacherApplySkillIds.has(s.id)"
+                />
+              </el-select>
+              <el-input-number v-model="row.weight" :min="1" :max="10" class="teacher-apply-skill-weight" />
+              <el-button type="danger" link :disabled="teacherApplySkillRows.length <= 1" @click="removeTeacherApplySkillRow(index)">
+                删除
+              </el-button>
+            </div>
+            <div class="teacher-apply-skill-actions">
+              <el-button type="primary" plain :disabled="teacherApplySkillRows.length >= 8" @click="addTeacherApplySkillRow">
+                添加技能
+              </el-button>
+              <span class="skills-inline-hint">可选，最多 8 项</span>
+            </div>
+          </div>
+        </el-form-item>
+      </el-form>
+      <el-alert v-if="teacherApplyDialogError" type="error" :closable="false" :title="teacherApplyDialogError" />
+      <template #footer>
+        <el-button :disabled="teacherApplyDialogLoading" @click="closeTeacherApplyDialog">取消</el-button>
+        <el-button type="primary" :loading="teacherApplyDialogLoading" @click="submitTeacherApply">提交</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 <style scoped>
@@ -810,6 +977,114 @@ onBeforeUnmount(() => {
   box-shadow: none;
 }
 
+.competition-list-page :deep(.recommend-score-col .cell),
+.competition-list-page :deep(.recommend-score-col-header .cell) {
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.teacher-apply-dialog :deep(.el-dialog) {
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.14);
+}
+
+.teacher-apply-dialog :deep(.el-dialog__header) {
+  margin-right: 0;
+  padding: 18px 20px 10px;
+}
+
+.teacher-apply-dialog :deep(.el-dialog__body) {
+  padding: 12px 20px 10px;
+}
+
+.teacher-apply-dialog :deep(.el-dialog__footer) {
+  padding: 12px 20px 18px;
+  border-top: 1px solid #edf1f7;
+}
+
+.teacher-apply-dialog__header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.teacher-apply-dialog__title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.teacher-apply-dialog__title-icon {
+  color: #5f6b7a;
+  font-size: 18px;
+}
+
+.teacher-apply-dialog__title-text {
+  color: #1f2937;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.teacher-apply-dialog__header-tip {
+  color: #8a94a3;
+  font-size: 13px;
+}
+
+.teacher-apply-dialog__summary {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #e8edf5;
+  background: #f7faff;
+}
+
+.teacher-apply-dialog__summary-label {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 4px;
+}
+
+.teacher-apply-dialog__summary-value {
+  font-size: 15px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.teacher-apply-dialog__form {
+  margin-top: 2px;
+}
+
+.teacher-apply-dialog__form :deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+.teacher-apply-skills-editor {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.teacher-apply-skill-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px 88px;
+  gap: 10px;
+  align-items: center;
+}
+
+.teacher-apply-skill-select,
+.teacher-apply-skill-weight {
+  width: 100%;
+}
+
+.teacher-apply-skill-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
 .empty-state {
   padding: 16px 0;
   color: #6b7280;
@@ -862,6 +1137,10 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 900px) {
+  .teacher-apply-skill-row {
+    grid-template-columns: 1fr;
+  }
+
   .required-skill-row {
     grid-template-columns: 1fr;
   }

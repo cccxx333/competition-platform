@@ -148,6 +148,8 @@ public class CompetitionService {
                                                      boolean applyable,
                                                      Long userId,
                                                      Integer topK) {
+        Competition.CompetitionStatus effectiveStatus =
+                recommend ? Competition.CompetitionStatus.UPCOMING : status;
         int effectiveTopK = calculateEffectiveTopK(topK);
         String fallbackReason = recommend ? recommendationService.getRecommendFallbackReason(userId) : null;
         if (recommend) {
@@ -159,10 +161,11 @@ public class CompetitionService {
         }
 
         if (!recommend || fallbackReason != null) {
-            return getCompetitionsDefault(pageable, name, status, keyword, applyable, recommend && fallbackReason != null, fallbackReason);
+            return getCompetitionsDefault(
+                    pageable, name, effectiveStatus, keyword, applyable, recommend && fallbackReason != null, fallbackReason);
         }
 
-        List<Competition> candidates = getCandidateCompetitions(name, status, keyword, applyable);
+        List<Competition> candidates = getCandidateCompetitions(name, effectiveStatus, keyword, applyable);
         if (candidates.isEmpty()) {
             return new PageImpl<>(new ArrayList<>(), pageable, 0);
         }
@@ -178,7 +181,7 @@ public class CompetitionService {
                 hybridResult.getContentCandidateCount(),
                 hybridResult.getCfCandidateCount());
         if (matchScores.isEmpty()) {
-            return getCompetitionsDefault(pageable, name, status, keyword, applyable, true, "EMPTY_SCORES");
+            return getCompetitionsDefault(pageable, name, effectiveStatus, keyword, applyable, true, "EMPTY_SCORES");
         }
 
         Comparator<Competition> baseComparator = buildSortComparator(pageable.getSort());
