@@ -1,7 +1,8 @@
-﻿<script lang="ts" setup>
+<script lang="ts" setup>
 import { ElMessage } from "element-plus"
-import { getCompetitionDetail } from "@/api/competitions"
+import { getCompetitionDetail, listCompetitions, type CompetitionListItem } from "@/api/competitions"
 import { listAwardRecords, publishAward, type AwardPublishResponse, type AwardRecordItem } from "@/api/awards"
+import { listTeams, type TeamDto } from "@/api/teams"
 import { useAuthStore } from "@/stores/auth"
 import { toYmd } from "@/common/utils/datetime"
 import { getApiErrorMessage } from "@/utils/errorMessage"
@@ -12,9 +13,12 @@ const isAdmin = computed(() => roleUpper.value === "ADMIN")
 
 const submitting = ref(false)
 const loadingRecords = ref(false)
+const loadingCompetitions = ref(false)
+const loadingTeams = ref(false)
+
 const form = reactive({
-  competitionId: "",
-  teamId: "",
+  competitionId: null as number | null,
+  teamId: null as number | null,
   awardName: ""
 })
 
@@ -23,6 +27,20 @@ const records = ref<AwardRecordItem[]>([])
 const errorDialogVisible = ref(false)
 const errorDialogMessage = ref("")
 const competitionNameMap = ref<Record<number, string>>({})
+
+const finishedCompetitions = ref<CompetitionListItem[]>([])
+const competitionTeams = ref<TeamDto[]>([])
+const finishedCompetitionOptions = computed(
+  () => finishedCompetitions.value.filter((item): item is CompetitionListItem & { id: number } => typeof item.id === "number")
+)
+const teamOptions = computed(
+  () => competitionTeams.value.filter((team): team is TeamDto & { id: number } => typeof team.id === "number")
+)
+
+const publishDisabled = computed(() => {
+  if (!isAdmin.value || submitting.value) return true
+  return !(form.competitionId && form.teamId && form.awardName.trim())
+})
 
 const resetResult = () => {
   lastResult.value = null
@@ -42,24 +60,92 @@ const getFallbackMessage = (status?: number) => {
   return "发布奖项失败"
 }
 
-const parseId = (value: string, label: string) => {
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    showError(`${label} 必须为正数`)
-    return null
-  }
-  return parsed
+const getTeamStatusText = (value?: string) => {
+  if (value === "RECRUITING") return "招募中"
+  if (value === "CLOSED") return "停止招募"
+  if (value === "DISBANDED") return "已解散"
+  return value || "-"
 }
+
+const formatDate = (value?: string | null) => {
+  if (!value) return ""
+  return value.includes("T") ? value.split("T")[0] : value
+}
+
+const formatCompetitionOptionLabel = (item: CompetitionListItem) => {
+  const name = item.name || `竞赛 ${item.id ?? "-"}`
+  const start = formatDate(item.startDate)
+  const end = formatDate(item.endDate)
+  const range = [start, end].filter(Boolean).join(" ~ ")
+  return range ? `${name}（${range}）` : name
+}
+
+const loadFinishedCompetitions = async () => {
+  loadingCompetitions.value = true
+  try {
+    const { items } = await listCompetitions({
+      status: "FINISHED",
+      page: 0,
+      size: 300
+    })
+    finishedCompetitions.value = (items ?? []).slice()
+    if (!finishedCompetitions.value.some((item) => item.id === form.competitionId)) {
+      form.competitionId = null
+      form.teamId = null
+      competitionTeams.value = []
+    }
+  } catch (error: any) {
+    const status = error?.status ?? error?.response?.status
+    const fallback = getFallbackMessage(status)
+    showError(getApiErrorMessage(error, fallback))
+  } finally {
+    loadingCompetitions.value = false
+  }
+}
+
+const loadTeamsForCompetition = async (competitionId: number) => {
+  loadingTeams.value = true
+  try {
+    const { items } = await listTeams({ page: 0, size: 1000 })
+    competitionTeams.value = (items ?? []).filter((team) => team.competition?.id === competitionId)
+    if (!competitionTeams.value.some((team) => team.id === form.teamId)) {
+      form.teamId = null
+    }
+  } catch (error: any) {
+    competitionTeams.value = []
+    form.teamId = null
+    const status = error?.status ?? error?.response?.status
+    const fallback = getFallbackMessage(status)
+    showError(getApiErrorMessage(error, fallback))
+  } finally {
+    loadingTeams.value = false
+  }
+}
+
+watch(
+  () => form.competitionId,
+  (competitionId) => {
+    form.teamId = null
+    competitionTeams.value = []
+    if (typeof competitionId === "number" && competitionId > 0) {
+      void loadTeamsForCompetition(competitionId)
+    }
+  }
+)
 
 const handleSubmit = async () => {
   if (!isAdmin.value) {
     showError("无权限（仅管理员）")
     return
   }
-  const competitionId = parseId(form.competitionId, "竞赛 ID")
-  if (!competitionId) return
-  const teamId = parseId(form.teamId, "队伍 ID")
-  if (!teamId) return
+  if (!form.competitionId) {
+    showError("请选择已结束竞赛")
+    return
+  }
+  if (!form.teamId) {
+    showError("请选择竞赛队伍")
+    return
+  }
   const awardName = form.awardName.trim()
   if (!awardName) {
     showError("奖项名称不能为空")
@@ -69,7 +155,11 @@ const handleSubmit = async () => {
   submitting.value = true
   resetResult()
   try {
-    const result = await publishAward({ competitionId, teamId, awardName })
+    const result = await publishAward({
+      competitionId: form.competitionId,
+      teamId: form.teamId,
+      awardName
+    })
     lastResult.value = result
     ElMessage.success("奖项已发布")
     await loadRecords(true)
@@ -81,14 +171,6 @@ const handleSubmit = async () => {
   } finally {
     submitting.value = false
   }
-}
-
-const parseOptionalId = (value: string) => {
-  const trimmed = value.trim()
-  if (!trimmed) return undefined
-  const parsed = Number(trimmed)
-  if (!Number.isFinite(parsed) || parsed <= 0) return undefined
-  return parsed
 }
 
 const loadCompetitionNames = async (list: AwardRecordItem[]) => {
@@ -111,7 +193,7 @@ const loadCompetitionNames = async (list: AwardRecordItem[]) => {
       next[id] = name
     }
     competitionNameMap.value = next
-  } catch (error) {
+  } catch {
     competitionNameMap.value = {}
   }
 }
@@ -121,8 +203,8 @@ const loadRecords = async (useFilters = false) => {
   try {
     const params = useFilters
       ? {
-          competitionId: parseOptionalId(form.competitionId),
-          teamId: parseOptionalId(form.teamId)
+          competitionId: form.competitionId ?? undefined,
+          teamId: form.teamId ?? undefined
         }
       : {}
     records.value = await listAwardRecords(params)
@@ -137,8 +219,17 @@ const loadRecords = async (useFilters = false) => {
   }
 }
 
-onMounted(() => {
-  loadRecords(false)
+const resetSelection = () => {
+  form.competitionId = null
+  form.teamId = null
+  form.awardName = ""
+  competitionTeams.value = []
+  resetResult()
+}
+
+onMounted(async () => {
+  await loadFinishedCompetitions()
+  await loadRecords(false)
 })
 </script>
 
@@ -148,66 +239,84 @@ onMounted(() => {
       <h2>发布奖项</h2>
     </div>
 
-    <el-card shadow="never" class="publish-card">
-      <el-alert
-        v-if="!isAdmin"
-        type="warning"
-        show-icon
-        title="仅管理员可发布奖项"
-        class="status-alert"
-      />
+    <div class="admin-content-shell">
+      <el-card shadow="never" class="publish-card">
+        <el-alert
+          v-if="!isAdmin"
+          type="warning"
+          show-icon
+          title="仅管理员可发布奖项"
+          class="status-alert"
+        />
 
-      <el-alert
-        type="info"
-        show-icon
-        class="status-alert"
-        title="需要手动输入，请通过竞赛列表和队伍查询获取ID"
-      />
-
-      <el-form label-position="top" class="publish-form">
-        <el-form-item label="竞赛 ID">
-          <el-input
-            v-model="form.competitionId"
-            placeholder="请输入竞赛ID（已结束）"
-            :disabled="submitting"
-          />
+        <el-form label-position="top" class="publish-form">
+          <el-form-item label="已结束竞赛" required>
+            <el-select
+              v-model="form.competitionId"
+              filterable
+              clearable
+              placeholder="请选择已结束竞赛"
+              :loading="loadingCompetitions"
+              :disabled="submitting"
+            >
+              <el-option
+                v-for="item in finishedCompetitionOptions"
+                :key="`competition-${item.id}`"
+                :label="formatCompetitionOptionLabel(item)"
+                :value="item.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="竞赛队伍" required>
+            <el-select
+              v-model="form.teamId"
+              filterable
+              clearable
+              placeholder="请先选择竞赛"
+              :loading="loadingTeams"
+              :disabled="submitting || !form.competitionId"
+            >
+              <el-option
+                v-for="team in teamOptions"
+                :key="`team-${team.id}`"
+                :label="`${team.name || `队伍 ${team.id ?? '-'}`}（${getTeamStatusText(team.status)}）`"
+                :value="team.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="奖项名称" required>
+            <el-input
+              v-model="form.awardName"
+              maxlength="64"
+              show-word-limit
+              placeholder="例如：一等奖"
+              :disabled="submitting"
+            />
         </el-form-item>
-        <el-form-item label="队伍 ID">
-          <el-input
-            v-model="form.teamId"
-            placeholder="请输入队伍ID（已关闭）"
-            :disabled="submitting"
-          />
-        </el-form-item>
-        <el-form-item label="奖项名称">
-          <el-input
-            v-model="form.awardName"
-            maxlength="64"
-            show-word-limit
-            placeholder="例如：一等奖"
-            :disabled="submitting"
-          />
-        </el-form-item>
-        <el-button type="primary" :loading="submitting" :disabled="submitting" @click="handleSubmit">
-          发布
-        </el-button>
+        <div class="publish-actions">
+          <el-button type="primary" :loading="submitting" :disabled="publishDisabled" @click="handleSubmit">
+            发布
+          </el-button>
+          <el-button :disabled="submitting" @click="resetSelection">重置</el-button>
+        </div>
       </el-form>
 
-      <el-card v-if="lastResult" shadow="never" class="result-card">
-        <h3>发布结果</h3>
-        <el-descriptions :column="1">
-          <el-descriptions-item label="奖项 ID">{{ lastResult.awardId ?? "-" }}</el-descriptions-item>
-          <el-descriptions-item label="竞赛 ID">{{ lastResult.competitionId ?? "-" }}</el-descriptions-item>
-          <el-descriptions-item label="队伍 ID">{{ lastResult.teamId ?? "-" }}</el-descriptions-item>
-          <el-descriptions-item label="奖项名称">{{ lastResult.awardName ?? "-" }}</el-descriptions-item>
-          <el-descriptions-item label="获奖人数">{{ lastResult.recipientCount ?? "-" }}</el-descriptions-item>
-          <el-descriptions-item label="获奖用户 ID">
-            {{ lastResult.recipientUserIds?.length ? lastResult.recipientUserIds.join(", ") : "-" }}
-          </el-descriptions-item>
-        </el-descriptions>
-        <div class="result-hint">可使用获奖成员账号验证荣誉页。</div>
+        <el-card v-if="lastResult" shadow="never" class="result-card">
+          <h3>发布结果</h3>
+          <el-descriptions :column="1">
+            <el-descriptions-item label="奖项 ID">{{ lastResult.awardId ?? "-" }}</el-descriptions-item>
+            <el-descriptions-item label="竞赛 ID">{{ lastResult.competitionId ?? "-" }}</el-descriptions-item>
+            <el-descriptions-item label="队伍 ID">{{ lastResult.teamId ?? "-" }}</el-descriptions-item>
+            <el-descriptions-item label="奖项名称">{{ lastResult.awardName ?? "-" }}</el-descriptions-item>
+            <el-descriptions-item label="获奖人数">{{ lastResult.recipientCount ?? "-" }}</el-descriptions-item>
+            <el-descriptions-item label="获奖用户 ID">
+              {{ lastResult.recipientUserIds?.length ? lastResult.recipientUserIds.join(", ") : "-" }}
+            </el-descriptions-item>
+          </el-descriptions>
+          <div class="result-hint">可使用获奖成员账号验证荣誉页。</div>
+        </el-card>
       </el-card>
-    </el-card>
+    </div>
 
     <div class="page-header admin-header">
       <h2>奖项记录</h2>
@@ -252,10 +361,26 @@ onMounted(() => {
 }
 
 .publish-form {
-  max-width: 520px;
+  max-width: 560px;
 }
 
-.publish-card,
+.publish-actions {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.admin-content-shell {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.publish-card {
+  width: 620px;
+  max-width: 100%;
+  margin: 0;
+}
+
 .records-card {
   max-width: 980px;
   margin: 0 auto;

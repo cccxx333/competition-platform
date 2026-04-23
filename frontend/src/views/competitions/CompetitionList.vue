@@ -911,6 +911,11 @@ onBeforeUnmount(() => {
             <StatusTag :status="row.status" kind="competition" />
           </template>
         </el-table-column>
+        <el-table-column label="报名截止" width="130">
+          <template #default="{ row }">
+            {{ formatDate(row.registrationDeadline) || "-" }}
+          </template>
+        </el-table-column>
         <el-table-column label="日期范围" min-width="200">
           <template #default="{ row }">
             {{ formatDateRange(row) }}

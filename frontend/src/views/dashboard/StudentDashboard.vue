@@ -2,6 +2,7 @@
 import { Trophy, Medal } from "@element-plus/icons-vue"
 import DashboardLayout from "@/components/Dashboard/DashboardLayout.vue"
 import OngoingCompetitionsPanel from "@/components/Dashboard/OngoingCompetitionsPanel.vue"
+import QuickLinksPanel from "@/components/Dashboard/QuickLinksPanel.vue"
 import { getMyHonors } from "@/api/honors"
 import { useAuthStore } from "@/stores/auth"
 
@@ -10,6 +11,12 @@ const loading = ref(false)
 const participationCount = ref(0)
 const awardCount = ref(0)
 const username = computed(() => authStore.user?.username?.trim() || "同学")
+const quickLinks = [
+  { label: "竞赛列表", path: "/competitions" },
+  { label: "竞赛报名", path: "/competitions/apply" },
+  { label: "我的申请", path: "/teams/my-applications" },
+  { label: "荣誉", path: "/me/honors" }
+]
 
 const loadCounts = async () => {
   loading.value = true
@@ -54,7 +61,10 @@ onMounted(loadCounts)
         </div>
       </template>
       <template #bottom>
-        <OngoingCompetitionsPanel />
+        <div class="dashboard-bottom-stack">
+          <QuickLinksPanel :items="quickLinks" />
+          <OngoingCompetitionsPanel />
+        </div>
       </template>
     </DashboardLayout>
   </div>
@@ -102,5 +112,11 @@ onMounted(loadCounts)
   font-size: 15px;
   color: #6b7280;
   margin-top: 8px;
+}
+
+.dashboard-bottom-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 </style>
