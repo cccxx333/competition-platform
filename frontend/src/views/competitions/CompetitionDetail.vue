@@ -96,13 +96,18 @@ const basicFields = computed(() => {
   ].filter(item => Boolean(item.value))
 })
 
+const registrationDeadlineText = computed(() => {
+  const data = detail.value
+  if (!data) return ""
+  return formatDate(data.registrationDeadline)
+})
+
 const timeFields = computed(() => {
   const data = detail.value
   if (!data) return []
   return [
     { label: "开始日期", value: formatDate(data.startDate) },
-    { label: "结束日期", value: formatDate(data.endDate) },
-    { label: "报名截止", value: formatDate(data.registrationDeadline) }
+    { label: "结束日期", value: formatDate(data.endDate) }
   ].filter(item => Boolean(item.value))
 })
 
@@ -208,6 +213,9 @@ watch(() => route.params.id, loadDetail)
             </el-descriptions-item>
             <el-descriptions-item v-if="detail.status" label="状态">
               <StatusTag :status="detail.status" kind="competition" />
+            </el-descriptions-item>
+            <el-descriptions-item v-if="registrationDeadlineText" label="报名截止时间">
+              {{ registrationDeadlineText }}
             </el-descriptions-item>
           </el-descriptions>
           <div v-else>暂无信息</div>

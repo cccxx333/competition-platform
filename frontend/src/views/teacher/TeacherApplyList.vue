@@ -46,7 +46,7 @@ const loadApplications = async () => {
     items.value = await listMyTeacherApplications(params)
   } catch (error: any) {
     items.value = []
-    errorMessage.value = showRequestError(error, "加载教师申请失败")
+    errorMessage.value = showRequestError(error, "加载创建队伍申请失败")
   } finally {
     loading.value = false
   }
@@ -60,7 +60,7 @@ watch(statusFilter, loadApplications)
   <div class="page-container">
 
     <div class="page-header">
-        <h2>我的教师申请</h2>
+        <h2>我的创建队伍申请</h2>
         <div class="page-header__filters">
           <el-select v-model="statusFilter" clearable placeholder="状态" style="width: 160px">
             <el-option label="待处理" value="PENDING" />

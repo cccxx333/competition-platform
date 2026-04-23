@@ -156,16 +156,29 @@ const closeSuccessDialog = () => {
 
 const buildApplyErrorMessage = (error: any) => {
   const status = error?.status ?? error?.response?.status
+  const rawMessage = String(error?.message ?? error?.response?.data?.message ?? "")
   if (status === 400) return getApiErrorMessage(error, "参数错误，请检查后重试。")
   if (status === 403) return getApiErrorMessage(error, "无权限。")
   if (status === 404) return getApiErrorMessage(error, "资源不存在（竞赛或队伍不存在）。")
-  if (status === 409) return getApiErrorMessage(error, "报名失败：存在冲突（可能已报名、队伍不可报名或人数已满）。")
+  if (status === 409) {
+    if (rawMessage.includes("team is not recruiting")) {
+      return "该队伍已停止招募，无法申请。"
+    }
+    if (rawMessage.includes("registration deadline passed")) {
+      return "报名截止时间已过，无法申请。"
+    }
+    return getApiErrorMessage(error, "报名失败：存在冲突（可能已报名、队伍不可报名或人数已满）。")
+  }
   return getApiErrorMessage(error, "服务异常，请稍后重试。")
 }
 
 const handleApplyClick = (row: TeamRecommendation) => {
   if (!row?.teamId) {
     showErrorDialog("队伍信息异常，请稍后重试。")
+    return
+  }
+  if (row.teamStatus === "CLOSED" || row.teamStatus === "DISBANDED") {
+    showErrorDialog("该队伍已停止招募，无法申请。")
     return
   }
   pendingApplyTeam.value = { teamId: row.teamId, teamName: row.teamName }

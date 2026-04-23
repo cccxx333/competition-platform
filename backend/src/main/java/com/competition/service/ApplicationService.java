@@ -62,6 +62,9 @@ public class ApplicationService {
         if (team.getCompetition() == null || !team.getCompetition().getId().equals(competition.getId())) {
             throw new ApiException(HttpStatus.CONFLICT, "team does not belong to competition");
         }
+
+        syncTeamStatusByDeadline(competition, team);
+
         if (team.getStatus() == Team.TeamStatus.DISBANDED) {
             throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
         }
@@ -307,5 +310,45 @@ public class ApplicationService {
             awardNameByTeamId.put(award.getTeamId(), award.getAwardName());
         }
         return awardNameByTeamId;
+    }
+
+    private void syncTeamStatusByDeadline(Competition competition, Team team) {
+        if (competition == null || team == null || competition.getRegistrationDeadline() == null) {
+            return;
+        }
+        if (!competition.getRegistrationDeadline().isBefore(LocalDate.now())) {
+            return;
+        }
+        if (team.getStatus() != Team.TeamStatus.RECRUITING) {
+            return;
+        }
+
+        List<Team> recruitingTeams = teamRepository.findByCompetitionIdAndStatus(
+                competition.getId(),
+                Team.TeamStatus.RECRUITING
+        );
+        if (recruitingTeams.isEmpty()) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        for (Team candidate : recruitingTeams) {
+            candidate.setStatus(Team.TeamStatus.CLOSED);
+            candidate.setClosedAt(now);
+            candidate.setClosedBy(null);
+            candidate.setUpdatedAt(now);
+        }
+        teamRepository.saveAll(recruitingTeams);
+
+        if (team.getId() != null) {
+            recruitingTeams.stream()
+                    .filter(candidate -> team.getId().equals(candidate.getId()))
+                    .findFirst()
+                    .ifPresent(updated -> {
+                        team.setStatus(updated.getStatus());
+                        team.setClosedAt(updated.getClosedAt());
+                        team.setClosedBy(updated.getClosedBy());
+                        team.setUpdatedAt(updated.getUpdatedAt());
+                    });
+        }
     }
 }

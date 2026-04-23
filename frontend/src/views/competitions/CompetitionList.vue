@@ -21,6 +21,7 @@ type RecommendationRow = {
   status?: CompetitionListItem["status"] | string
   startDate?: string
   endDate?: string
+  registrationDeadline?: string
   organizer?: string
   score?: number
   reason?: string
@@ -177,6 +178,7 @@ const fetchList = async () => {
             status: item.status,
             startDate: item.startDate,
             endDate: item.endDate,
+            registrationDeadline: item.registrationDeadline,
             organizer: item.organizer,
             score: typeof item.matchScore === "number" ? item.matchScore : undefined,
             reason: item.recommendReason,
@@ -206,6 +208,7 @@ const fetchList = async () => {
         status: item.status,
         startDate: item.startDate,
         endDate: item.endDate,
+        registrationDeadline: item.registrationDeadline,
         organizer: item.organizer,
         source: "list"
       }))
@@ -270,6 +273,10 @@ const handleEnrollAction = (row: RecommendationRow) => {
     return
   }
   if (isStudent.value) {
+    if (!canApplyBeforeDeadline(row)) {
+      ElMessage.warning("当前竞赛已超过报名截止时间，无法报名")
+      return
+    }
     router.push({
       path: "/competitions/apply",
       query: {
@@ -279,8 +286,27 @@ const handleEnrollAction = (row: RecommendationRow) => {
     return
   }
   if (isTeacher.value) {
+    if (!canApplyBeforeDeadline(row)) {
+      ElMessage.warning("当前竞赛已超过报名截止时间，无法发起创建队伍申请")
+      return
+    }
     openTeacherApplyDialog(row)
   }
+}
+
+const canApplyBeforeDeadline = (row: RecommendationRow) => {
+  const raw = row.registrationDeadline
+  if (!raw) return false
+  const parsed = parseDeadline(raw)
+  if (!parsed) return false
+  return Date.now() <= parsed.getTime()
+}
+
+const parseDeadline = (value: string) => {
+  const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+  const date = dateOnlyPattern.test(value) ? new Date(`${value}T23:59:59`) : new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return date
 }
 
 const openTeacherApplyDialog = (row: RecommendationRow) => {

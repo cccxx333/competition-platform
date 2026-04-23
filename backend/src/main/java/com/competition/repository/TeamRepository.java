@@ -5,12 +5,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
 public interface TeamRepository extends JpaRepository<Team, Long> {
     List<Team> findByStatus(Team.TeamStatus status);
     List<Team> findByCompetitionId(Long competitionId);
+    List<Team> findByCompetitionIdAndStatus(Long competitionId, Team.TeamStatus status);
+    List<Team> findByStatusAndCompetition_RegistrationDeadlineBefore(Team.TeamStatus status, LocalDate registrationDeadline);
     List<Team> findByLeaderId(Long leaderId);
     List<Team> findByLeaderIdAndNameContainingIgnoreCase(Long leaderId, String name);
     java.util.Optional<Team> findByIdAndLeaderId(Long id, Long leaderId);

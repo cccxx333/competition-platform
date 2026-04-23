@@ -21,25 +21,25 @@ export const constantRoutes: RouteRecordRaw[] = [
         path: "dashboard",
         name: "Dashboard",
         component: () => import("@/views/Dashboard.vue"),
-        meta: { title: "Dashboard" },
+        meta: { title: "概览" },
         children: [
           {
             path: "student",
             name: "StudentDashboard",
             component: () => import("@/views/dashboard/StudentDashboard.vue"),
-            meta: { title: "Dashboard" }
+            meta: { title: "概览" }
           },
           {
             path: "teacher",
             name: "TeacherDashboard",
             component: () => import("@/views/dashboard/TeacherDashboard.vue"),
-            meta: { title: "Dashboard" }
+            meta: { title: "概览" }
           },
           {
             path: "admin",
             name: "AdminDashboard",
             component: () => import("@/views/dashboard/AdminDashboard.vue"),
-            meta: { title: "Dashboard" }
+            meta: { title: "概览" }
           }
         ]
       },
@@ -47,25 +47,25 @@ export const constantRoutes: RouteRecordRaw[] = [
         path: "me/profile",
         name: "MyProfile",
         component: () => import("@/views/me/Profile.vue"),
-        meta: { title: "Profile" }
+        meta: { title: "个人信息" }
       },
       {
         path: "me/skills",
         name: "MySkills",
         component: () => import("@/views/me/Skills.vue"),
-        meta: { title: "Skills" }
+        meta: { title: "技能" }
       },
       {
         path: "me/honors",
         name: "MyHonors",
         component: () => import("@/views/me/Honors.vue"),
-        meta: { title: "Honors" }
+        meta: { title: "荣誉" }
       },
       {
         path: "competitions",
         name: "CompetitionList",
         component: () => import("@/views/competitions/CompetitionList.vue"),
-        meta: { title: "Competitions" }
+        meta: { title: "竞赛" }
       },
       {
         path: "competitions/apply",
@@ -77,7 +77,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         path: "competitions/:id",
         name: "CompetitionDetail",
         component: () => import("@/views/competitions/CompetitionDetail.vue"),
-        meta: { title: "Competition Detail", hidden: true }
+        meta: { title: "竞赛详情", hidden: true }
       },
       {
         path: "teacher/applications",
@@ -101,67 +101,67 @@ export const constantRoutes: RouteRecordRaw[] = [
         path: "admin/users",
         name: "AdminUserManagement",
         component: () => import("@/views/admin/AdminUserManagement.vue"),
-        meta: { title: "User Management" }
+        meta: { title: "用户管理" }
       },
       {
         path: "admin/awards/publish",
         name: "AdminAwardPublish",
         component: () => import("@/views/admin/AwardPublish.vue"),
-        meta: { title: "Publish Awards" }
+        meta: { title: "奖项发布" }
       },
       {
         path: "teams/my-applications",
         name: "MyTeamApplications",
         component: () => import("@/views/teams/MyApplications.vue"),
-        meta: { title: "My Applications" }
+        meta: { title: "我的申请" }
       },
       {
         path: "teams/my",
         name: "MyTeam",
         component: () => import("@/views/teams/MyTeam.vue"),
-        meta: { title: "My Team" }
+        meta: { title: "我的队伍" }
       },
       {
         path: "teams/lookup",
         name: "TeamLookup",
         component: () => import("@/views/teams/TeamLookup.vue"),
-        meta: { title: "Team Lookup", roles: ["ADMIN", "TEACHER"] }
+        meta: { title: "队伍查询", roles: ["ADMIN", "TEACHER"] }
       },
       {
         path: "teams/:teamId",
         name: "TeamDetail",
         component: () => import("@/views/teams/TeamDetail.vue"),
-        meta: { title: "Team Detail", hidden: true }
+        meta: { title: "队伍详情", hidden: true }
       },
       {
         path: "teams/:teamId/posts",
         name: "TeamPosts",
         component: () => import("@/views/teams/TeamPosts.vue"),
-        meta: { title: "Team Posts", hidden: true }
+        meta: { title: "队伍讨论", hidden: true }
       },
       {
         path: "teams/:teamId/posts/:postId",
         name: "PostThread",
         component: () => import("@/views/teams/PostThread.vue"),
-        meta: { title: "Post Thread", hidden: true }
+        meta: { title: "讨论详情", hidden: true }
       },
       {
         path: "teams/:teamId/members",
         name: "TeamMembers",
         component: () => import("@/views/teams/TeamMembers.vue"),
-        meta: { title: "Team Members", hidden: true }
+        meta: { title: "成员信息", hidden: true }
       },
       {
         path: "teams/:teamId/submissions",
         name: "TeamSubmissions",
         component: () => import("@/views/teams/TeamSubmissions.vue"),
-        meta: { title: "Team Submissions", hidden: true }
+        meta: { title: "队伍提交", hidden: true }
       },
       {
         path: "teams/review",
         name: "TeacherReviewApplications",
         component: () => import("@/views/teams/TeacherReview.vue"),
-        meta: { title: "Teacher Review" }
+        meta: { title: "申请审核" }
       }
     ]
   },
