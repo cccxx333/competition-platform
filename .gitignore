@@ -1,36 +1,89 @@
-# OS / IDE
+﻿# =========================
+# OS files
+# =========================
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# =========================
+# IDE / Editor
+# =========================
 .idea/
-.vscode/
 *.iml
+.vscode/
 
-# Backend (Maven / Spring Boot)
-/backend/target/
-/backend/logs/
+# =========================
+# Backend / Maven / Spring Boot
+# =========================
+backend/target/
+backend/logs/
+backend/uploads/
+backend/*.log
+backend/debug*.log
+backend/build*.log
+.m2repo/
+
+# Keep Maven Wrapper jar if present
+!backend/.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Optional local Spring profiles
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-local.yaml
+backend/src/main/resources/application-dev-local.yml
+backend/src/main/resources/application-dev-local.yaml
+
+# =========================
+# Frontend / Vue / Vite
+# =========================
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+frontend/coverage/
+frontend/types/auto/
+
+# Env files (keep examples)
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+!frontend/.env.*.example
+
+# =========================
+# Logs / cache / temp
+# =========================
 *.log
-/backend/src/main/resources/application-local.yml
+logs/
+tmp/
+temp/
+*.tmp
+*.cache
+*.swp
+*.bak
 
-# ===== Frontend (CURRENT: Vue3 / Vite / Element Plus) =====
-/frontend/node_modules/
-/frontend/dist/
-/frontend/.vite/
-/frontend/.cache/
-# 如有本地环境变量文件（按需保留或提交 .env.example）
-/frontend/.env
-/frontend/.env.*
-!/frontend/.env.example
-
-# ===== General Node (in case nested packages exist) =====
-**/node_modules/
-**/dist/
-**/.vite/
-
- .vscode/
- **/.vscode/
-
-# runtime uploads (do not commit)
+# =========================
+# Runtime uploads
+# =========================
 uploads/
 
-# ===== Local/dev docs & logs (do not commit to GitHub) =====
+# =========================
+# AI context / package outputs
+# =========================
+repomix-output*
+**/repomix-output*
+gitingest*
+**/gitingest*
+ai-context*
+**/*ai-context*
+
+# =========================
+# SQL backup dumps only
+# =========================
+backup_*.sql
+*_backup*.sql
+*.sql.bak
+
+# =========================
+# Project local docs
+# =========================
 docs_local/
