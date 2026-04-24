@@ -1,13 +1,15 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { client } from "@/api/client"
 import { getTeamDetail, type TeamDto } from "@/api/teams"
 import { listSubmissions, uploadSubmission, type TeamSubmission } from "@/api/submissions"
+import { useAuthStore } from "@/stores/auth"
 import { getApiErrorMessage } from "@/utils/errorMessage"
 import { getTeamWriteBlockReason, isDisbanded } from "@/utils/teamGuards"
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const team = ref<TeamDto | null>(null)
 const submissions = ref<TeamSubmission[]>([])
@@ -23,9 +25,22 @@ const teamId = computed(() => {
   const raw = Number(route.params.teamId)
   return Number.isNaN(raw) ? null : raw
 })
-const returnPath = computed(() => (teamId.value ? `/teams/${teamId.value}` : "/teams/lookup"))
+const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
+const fromManagedCompetitions = computed(() => String(route.query.from ?? "") === "managedCompetitions")
+const isManagedReadOnlyViewer = computed(() => fromManagedCompetitions.value && roleUpper.value === "TEACHER")
+const returnPath = computed(() =>
+  teamId.value
+    ? (fromManagedCompetitions.value ? `/teams/${teamId.value}?from=managedCompetitions` : `/teams/${teamId.value}`)
+    : "/teams/lookup"
+)
 const isTeamDisbanded = computed(() => isDisbanded(team.value))
-const writeBlockReason = computed(() => getTeamWriteBlockReason(team.value))
+const canUpload = computed(() => !isTeamDisbanded.value && !isManagedReadOnlyViewer.value)
+const writeBlockReason = computed(() => {
+  const baseReason = getTeamWriteBlockReason(team.value)
+  if (baseReason) return baseReason
+  if (isManagedReadOnlyViewer.value) return "当前仅支持只读查看"
+  return null
+})
 
 const currentSubmissionId = computed(() => {
   const explicit = submissions.value.find((item) => item.isCurrent)
@@ -63,8 +78,10 @@ const showRequestError = (error: any, fallback: string) => {
   return message
 }
 
-const handleDisbandedRedirect = () => {
-  errorDialogMessage.value = "队伍已解散，操作已禁止"
+const handleReadOnlyRedirect = () => {
+  errorDialogMessage.value = isTeamDisbanded.value
+    ? "队伍已解散，操作已禁止"
+    : "当前仅支持只读查看"
   errorDialogVisible.value = true
   redirectAfterError.value = returnPath.value
 }
@@ -84,7 +101,7 @@ const loadSubmissions = async () => {
     const status = error?.status ?? error?.response?.status
     const message = error?.message ?? ""
     if (status === 409 && (error?.isDisbanded || message.includes("disbanded"))) {
-      handleDisbandedRedirect()
+      handleReadOnlyRedirect()
     } else {
       showRequestError(error, "加载提交记录失败")
     }
@@ -143,8 +160,8 @@ const submitUpload = async () => {
     ElMessage.warning("请先选择文件")
     return
   }
-  if (isTeamDisbanded.value) {
-    handleDisbandedRedirect()
+  if (!canUpload.value) {
+    handleReadOnlyRedirect()
     return
   }
   uploadLoading.value = true
@@ -158,7 +175,7 @@ const submitUpload = async () => {
     const status = error?.status ?? error?.response?.status
     const message = error?.message ?? ""
     if (status === 409 && (error?.isDisbanded || message.includes("disbanded"))) {
-      handleDisbandedRedirect()
+      handleReadOnlyRedirect()
     } else {
       showRequestError(error, "上传文件失败")
     }
@@ -177,32 +194,23 @@ onMounted(loadSubmissions)
 
 <template>
   <div class="page-container">
-
     <div class="page-header">
-        <div>
-          <h2>文件提交</h2>
-          <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
-        </div>
-        <div class="page-actions">
-          <el-button @click="router.push(returnPath)">返回队伍详情</el-button>
-        </div>
+      <div>
+        <h2>文件提交</h2>
+        <div class="page-subtitle">队伍 ID：{{ teamId ?? "-" }}</div>
       </div>
+      <div class="page-actions">
+        <el-button @click="router.push(returnPath)">返回队伍详情</el-button>
+      </div>
+    </div>
 
-  <el-card shadow="never" v-loading="loading">
-    
-
-      <el-alert
-        v-if="writeBlockReason"
-        type="warning"
-        show-icon
-        :title="writeBlockReason"
-        class="status-alert"
-      />
+    <el-card shadow="never" v-loading="loading">
+      <el-alert v-if="writeBlockReason" type="warning" show-icon :title="writeBlockReason" class="status-alert" />
 
       <div class="upload-panel">
         <div class="upload-title">上传新文件</div>
         <div class="upload-row">
-          <input type="file" @change="handleFileChange" :disabled="isTeamDisbanded" />
+          <input type="file" @change="handleFileChange" :disabled="!canUpload" />
           <span v-if="selectedFile" class="file-name">{{ selectedFile.name }}</span>
         </div>
         <el-input
@@ -212,13 +220,13 @@ onMounted(loadSubmissions)
           maxlength="255"
           show-word-limit
           placeholder="备注（可选）"
-          :disabled="isTeamDisbanded"
+          :disabled="!canUpload"
         />
         <div class="upload-actions">
-          <el-button type="primary" :loading="uploadLoading" :disabled="!selectedFile || isTeamDisbanded" @click="submitUpload">
+          <el-button type="primary" :loading="uploadLoading" :disabled="!selectedFile || !canUpload" @click="submitUpload">
             提交
           </el-button>
-          <el-button :disabled="!selectedFile || isTeamDisbanded" @click="clearFile">清空</el-button>
+          <el-button :disabled="!selectedFile || !canUpload" @click="clearFile">清空</el-button>
         </div>
       </div>
 
@@ -233,7 +241,6 @@ onMounted(loadSubmissions)
             </el-tag>
             <span v-else>-</span>
           </template>
-        
         </el-table-column>
         <el-table-column label="文件名">
           <template #default="{ row }">
@@ -272,7 +279,8 @@ onMounted(loadSubmissions)
         <el-button type="primary" @click="onCloseErrorDialog">确定</el-button>
       </template>
     </el-dialog>
-  </div></template>
+  </div>
+</template>
 
 <style scoped>
 .page-header {

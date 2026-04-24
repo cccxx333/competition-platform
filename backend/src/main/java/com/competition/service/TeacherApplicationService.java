@@ -220,7 +220,15 @@ public class TeacherApplicationService {
             if (competition == null) {
                 throw new ApiException(HttpStatus.NOT_FOUND, "竞赛不存在");
             }
-            if (competition.getStatus() == Competition.CompetitionStatus.FINISHED) {
+            if (competition.getManager() != null
+                    && application.getTeacher() != null
+                    && competition.getManager().getId() != null
+                    && competition.getManager().getId().equals(application.getTeacher().getId())) {
+                throw new ApiException(
+                        HttpStatus.CONFLICT,
+                        "competition manager cannot be approved for team creation in the same competition"
+                );
+            }            if (competition.getStatus() == Competition.CompetitionStatus.FINISHED) {
                 throw new ApiException(HttpStatus.CONFLICT, "竞赛已结束，不能通过申请");
             }
             Team team = ensureTeamForApplication(application);

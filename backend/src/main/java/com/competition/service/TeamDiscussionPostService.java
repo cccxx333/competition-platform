@@ -36,7 +36,7 @@ public class TeamDiscussionPostService {
             throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
         }
         User currentUser = loadUser(currentUserId);
-        enforceTeamAccess(currentUser, team);
+        enforceTeamReadAccess(currentUser, team);
 
         return teamDiscussionPostRepository
                 .findByTeam_IdAndDeletedAtIsNullOrderByCreatedAtAsc(teamId)
@@ -51,7 +51,7 @@ public class TeamDiscussionPostService {
         }
         Team team = loadTeam(teamId);
         User currentUser = loadUser(currentUserId);
-        enforceTeamAccess(currentUser, team);
+        enforceTeamWriteAccess(currentUser, team);
 
         TeamDiscussionPost post = new TeamDiscussionPost();
         post.setTeam(team);
@@ -137,7 +137,30 @@ public class TeamDiscussionPostService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
     }
 
-    private void enforceTeamAccess(User currentUser, Team team) {
+    private void enforceTeamReadAccess(User currentUser, Team team) {
+        if (currentUser.getRole() == User.Role.ADMIN) {
+            return;
+        }
+        if (currentUser.getRole() == User.Role.TEACHER) {
+            boolean isLeader = team.getLeader() != null && team.getLeader().getId().equals(currentUser.getId());
+            boolean isManager = isCompetitionManager(team, currentUser.getId());
+            if (!isLeader && !isManager) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "not team leader or competition manager");
+            }
+            return;
+        }
+        if (currentUser.getRole() == User.Role.STUDENT) {
+            boolean isMember = teamMemberRepository
+                    .existsByTeamIdAndUserIdAndLeftAtIsNull(team.getId(), currentUser.getId());
+            if (!isMember) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "not team member");
+            }
+            return;
+        }
+        throw new ApiException(HttpStatus.FORBIDDEN, "no permission");
+    }
+
+    private void enforceTeamWriteAccess(User currentUser, Team team) {
         if (currentUser.getRole() == User.Role.ADMIN) {
             return;
         }
@@ -194,5 +217,13 @@ public class TeamDiscussionPostService {
         response.setCreatedAt(post.getCreatedAt());
         response.setUpdatedAt(post.getUpdatedAt());
         return response;
+    }
+
+    private boolean isCompetitionManager(Team team, Long userId) {
+        return team != null
+                && team.getCompetition() != null
+                && team.getCompetition().getManager() != null
+                && userId != null
+                && userId.equals(team.getCompetition().getManager().getId());
     }
 }

@@ -41,22 +41,35 @@ const teamId = computed(() => {
 
 const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
 const isAdmin = computed(() => roleUpper.value === "ADMIN")
+const fromManagedCompetitions = computed(() => String(route.query.from ?? "") === "managedCompetitions")
 const isLeader = computed(() => {
   const leaderId = team.value?.leader?.id
   const currentUserId = authStore.user?.id
   return Boolean(leaderId && currentUserId && leaderId === currentUserId)
 })
+const isManagedReadOnlyViewer = computed(() => fromManagedCompetitions.value && roleUpper.value === "TEACHER" && !isLeader.value && !isAdmin.value)
 const isTeamDisbanded = computed(() => isDisbanded(team.value))
-const returnLabel = computed(() => (roleUpper.value === "STUDENT" ? "返回我的队伍" : "返回队伍查询"))
-const returnPath = computed(() => (roleUpper.value === "STUDENT" ? "/teams/my" : "/teams/lookup"))
-const writeBlockReason = computed(() => getTeamWriteBlockReason(team.value))
+const returnLabel = computed(() => {
+  if (fromManagedCompetitions.value) return "返回负责竞赛"
+  return roleUpper.value === "STUDENT" ? "返回我的队伍" : "返回队伍查询"
+})
+const returnPath = computed(() => {
+  if (fromManagedCompetitions.value) return "/teacher/managed-competitions"
+  return roleUpper.value === "STUDENT" ? "/teams/my" : "/teams/lookup"
+})
+const writeBlockReason = computed(() => {
+  const baseReason = getTeamWriteBlockReason(team.value)
+  if (baseReason) return baseReason
+  if (isManagedReadOnlyViewer.value) return "当前仅支持只读查看"
+  return null
+})
 const currentCount = computed(() => {
   if (membersLoaded.value) return String(members.value.length)
   const fallback = team.value?.currentMembers
   return typeof fallback === "number" ? String(fallback) : "-"
 })
 
-const canShowClose = computed(() => roleUpper.value === "TEACHER")
+const canShowClose = computed(() => roleUpper.value === "TEACHER" && !isManagedReadOnlyViewer.value)
 const canClose = computed(() => canToggleRecruiting(team.value, roleUpper.value, isLeader.value))
 const recruitingToggleLabel = computed(() => (team.value?.status === "CLOSED" ? "恢复招募" : "停止招募"))
 
@@ -197,6 +210,30 @@ const submitDisbandTeam = async () => {
   }
 }
 
+const goMembers = () => {
+  if (!teamId.value) return
+  router.push({
+    path: `/teams/${teamId.value}/members`,
+    query: fromManagedCompetitions.value ? { from: "managedCompetitions" } : undefined
+  })
+}
+
+const goPosts = () => {
+  if (!teamId.value) return
+  router.push({
+    path: `/teams/${teamId.value}/posts`,
+    query: fromManagedCompetitions.value ? { from: "managedCompetitions" } : undefined
+  })
+}
+
+const goSubmissions = () => {
+  if (!teamId.value) return
+  router.push({
+    path: `/teams/${teamId.value}/submissions`,
+    query: fromManagedCompetitions.value ? { from: "managedCompetitions" } : undefined
+  })
+}
+
 onMounted(loadTeam)
 </script>
 
@@ -209,7 +246,7 @@ onMounted(loadTeam)
       </div>
       <div class="page-actions">
         <el-button @click="router.push(returnPath)">{{ returnLabel }}</el-button>
-        <el-button type="primary" :disabled="!teamId" @click="router.push(`/teams/${teamId}/members`)">
+        <el-button type="primary" :disabled="!teamId" @click="goMembers">
           成员信息
         </el-button>
       </div>
@@ -273,8 +310,8 @@ onMounted(loadTeam)
           <span v-if="canShowClose && !canClose" class="action-hint">{{ closeDisabledReason }}</span>
           <span v-if="isAdmin && isTeamDisbanded" class="action-hint">队伍已解散</span>
           <div v-if="teamId" class="card-actions">
-            <el-button @click="router.push(`/teams/${teamId}/posts`)">讨论区</el-button>
-            <el-button @click="router.push(`/teams/${teamId}/submissions`)">文件提交</el-button>
+            <el-button @click="goPosts">讨论区</el-button>
+            <el-button @click="goSubmissions">文件提交</el-button>
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ package com.competition.service;
 
 import com.competition.dto.CompetitionAdminUpdateRequest;
 import com.competition.entity.Competition;
+import com.competition.entity.TeacherApplication;
 import com.competition.entity.User;
 import com.competition.exception.ApiException;
 import com.competition.repository.CompetitionRepository;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.EnumSet;
 
 @Service
 @RequiredArgsConstructor
@@ -89,6 +91,7 @@ public class AdminCompetitionService {
             if (manager.getRole() != User.Role.TEACHER) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "manager must be TEACHER");
             }
+            validateManagerAssignment(competition.getId(), manager.getId());
             competition.setManager(manager);
         }
 
@@ -137,5 +140,31 @@ public class AdminCompetitionService {
 
         competitionSkillRepository.deleteByCompetitionId(competitionId);
         competitionRepository.delete(competition);
+    }
+
+    private void validateManagerAssignment(Long competitionId, Long teacherId) {
+        if (competitionId == null || teacherId == null) {
+            return;
+        }
+        boolean hasOpenOrApprovedApplication = teacherApplicationRepository
+                .existsByCompetition_IdAndTeacher_IdAndStatusIn(
+                        competitionId,
+                        teacherId,
+                        EnumSet.of(TeacherApplication.Status.PENDING, TeacherApplication.Status.APPROVED)
+                );
+        if (hasOpenOrApprovedApplication) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "cannot assign manager: teacher has pending/approved team application in this competition"
+            );
+        }
+
+        boolean alreadyTeamLeader = teamRepository.existsByCompetitionIdAndLeaderId(competitionId, teacherId);
+        if (alreadyTeamLeader) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "cannot assign manager: teacher is already a team leader in this competition"
+            );
+        }
     }
 }

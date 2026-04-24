@@ -1,11 +1,13 @@
 ﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { createTeamPost, listTeamPosts, type TeamDiscussionPost } from "@/api/discussions"
+import { useAuthStore } from "@/stores/auth"
 import { getApiErrorMessage } from "@/utils/errorMessage"
 import { getTeamWriteBlockReason } from "@/utils/teamGuards"
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const posts = ref<TeamDiscussionPost[]>([])
 const loading = ref(false)
@@ -15,18 +17,28 @@ const errorDialogVisible = ref(false)
 const errorDialogMessage = ref("")
 const redirectAfterError = ref<string | null>(null)
 const isTeamDisbanded = ref(false)
+const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
+const fromManagedCompetitions = computed(() => String(route.query.from ?? "") === "managedCompetitions")
+const isManagedReadOnlyViewer = computed(() => fromManagedCompetitions.value && roleUpper.value === "TEACHER")
 
 const teamId = computed(() => {
   const raw = Number(route.params.teamId)
   return Number.isNaN(raw) ? null : raw
 })
 
-const returnPath = computed(() => (teamId.value ? `/teams/${teamId.value}` : "/teams/lookup"))
-const rootPosts = computed(() => posts.value.filter((post) => !post.parentPostId))
-const canWrite = computed(() => !isTeamDisbanded.value)
-const writeBlockReason = computed(() =>
-  getTeamWriteBlockReason(isTeamDisbanded.value ? { status: "DISBANDED" } : null)
+const returnPath = computed(() =>
+  teamId.value
+    ? (fromManagedCompetitions.value ? `/teams/${teamId.value}?from=managedCompetitions` : `/teams/${teamId.value}`)
+    : "/teams/lookup"
 )
+const rootPosts = computed(() => posts.value.filter((post) => !post.parentPostId))
+const canWrite = computed(() => !isTeamDisbanded.value && !isManagedReadOnlyViewer.value)
+const writeBlockReason = computed(() => {
+  const baseReason = getTeamWriteBlockReason(isTeamDisbanded.value ? { status: "DISBANDED" } : null)
+  if (baseReason) return baseReason
+  if (isManagedReadOnlyViewer.value) return "当前仅支持只读查看"
+  return null
+})
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return "-"
@@ -110,7 +122,10 @@ const loadPosts = async () => {
 
 const openThread = (postId?: number) => {
   if (!teamId.value || !postId) return
-  router.push(`/teams/${teamId.value}/posts/${postId}`)
+  router.push({
+    path: `/teams/${teamId.value}/posts/${postId}`,
+    query: fromManagedCompetitions.value ? { from: "managedCompetitions" } : undefined
+  })
 }
 
 const submitPost = async () => {

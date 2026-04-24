@@ -22,6 +22,9 @@ const errorDialogVisible = ref(false)
 const errorDialogMessage = ref("")
 const redirectAfterError = ref<string | null>(null)
 const isTeamDisbanded = ref(false)
+const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
+const fromManagedCompetitions = computed(() => String(route.query.from ?? "") === "managedCompetitions")
+const isManagedReadOnlyViewer = computed(() => fromManagedCompetitions.value && roleUpper.value === "TEACHER")
 
 const teamId = computed(() => {
   const raw = Number(route.params.teamId)
@@ -34,11 +37,18 @@ const postId = computed(() => {
 })
 
 const currentUserId = computed(() => authStore.user?.id ?? null)
-const returnPath = computed(() => (teamId.value ? `/teams/${teamId.value}/posts` : "/teams/lookup"))
-const canWrite = computed(() => !isTeamDisbanded.value)
-const writeBlockReason = computed(() =>
-  getTeamWriteBlockReason(isTeamDisbanded.value ? { status: "DISBANDED" } : null)
+const returnPath = computed(() =>
+  teamId.value
+    ? (fromManagedCompetitions.value ? `/teams/${teamId.value}/posts?from=managedCompetitions` : `/teams/${teamId.value}/posts`)
+    : "/teams/lookup"
 )
+const canWrite = computed(() => !isTeamDisbanded.value && !isManagedReadOnlyViewer.value)
+const writeBlockReason = computed(() => {
+  const baseReason = getTeamWriteBlockReason(isTeamDisbanded.value ? { status: "DISBANDED" } : null)
+  if (baseReason) return baseReason
+  if (isManagedReadOnlyViewer.value) return "当前仅支持只读查看"
+  return null
+})
 
 const rootPost = computed(() => {
   if (!postId.value) return null
@@ -161,6 +171,7 @@ const submitReply = async () => {
 }
 
 const canDeletePost = (post: TeamDiscussionPost) => {
+  if (isManagedReadOnlyViewer.value) return false
   if (!currentUserId.value || !post.authorId) return false
   return post.authorId === currentUserId.value
 }

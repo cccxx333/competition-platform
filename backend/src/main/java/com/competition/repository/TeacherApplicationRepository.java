@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+
 @Repository
 public interface TeacherApplicationRepository extends JpaRepository<TeacherApplication, Long> {
     Page<TeacherApplication> findByTeacher_Id(Long teacherId, Pageable pageable);
@@ -30,6 +32,12 @@ public interface TeacherApplicationRepository extends JpaRepository<TeacherAppli
             @Param("keyword") String keyword,
             @Param("managerId") Long managerId,
             Pageable pageable);
+
+    boolean existsByCompetition_IdAndTeacher_IdAndStatusIn(
+            Long competitionId,
+            Long teacherId,
+            Collection<TeacherApplication.Status> statuses
+    );
 
     void deleteByCompetition_Id(Long competitionId);
 }

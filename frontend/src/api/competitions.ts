@@ -79,7 +79,7 @@ export type CompetitionCreatePayload = {
   minTeamSize: number
   maxTeamSize: number
   description?: string
-  managerId?: number | null
+  managerId: number
   requiredSkills?: Array<{
     skillId: number
     importance?: number

@@ -59,6 +59,19 @@ export type TeamAwardSummary = {
   [key: string]: unknown
 }
 
+export type ManagedCompetitionTeam = {
+  teamId?: number
+  teamName?: string
+  competitionId?: number
+  competitionName?: string
+  teacherId?: number
+  teacherName?: string
+  currentMemberCount?: number
+  maxMemberCount?: number | null
+  status?: TeamStatus
+  [key: string]: unknown
+}
+
 export type TeamListResult = {
   items: TeamDto[]
   total?: number
@@ -178,5 +191,14 @@ export async function listMyTeams(params: { keyword?: string } = {}): Promise<Te
     return unwrapData<TeamDto[]>(response?.data) ?? []
   } catch (error: any) {
     throw toError(error, "Failed to load my teams")
+  }
+}
+
+export async function listManagedCompetitionTeams(competitionId: number): Promise<ManagedCompetitionTeam[]> {
+  try {
+    const response = await client.get(`/teacher/managed-competitions/${competitionId}/teams`)
+    return unwrapData<ManagedCompetitionTeam[]>(response?.data) ?? []
+  } catch (error: any) {
+    throw toError(error, "Failed to load managed competition teams")
   }
 }

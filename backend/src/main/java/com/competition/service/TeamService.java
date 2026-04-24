@@ -1,6 +1,7 @@
 package com.competition.service;
 
 import com.competition.dto.CompetitionDTO;
+import com.competition.dto.ManagedCompetitionTeamDTO;
 import com.competition.dto.TeamAwardSummaryResponse;
 import com.competition.dto.TeamDTO;
 import com.competition.dto.TeamSkillDTO;
@@ -13,6 +14,7 @@ import com.competition.entity.TeamMember;
 import com.competition.entity.TeamSkill;
 import com.competition.entity.User;
 import com.competition.repository.ApplicationRepository;
+import com.competition.repository.CompetitionRepository;
 import com.competition.exception.ApiException;
 import com.competition.repository.TeamAwardRepository;
 import com.competition.repository.TeamMemberRepository;
@@ -45,6 +47,7 @@ public class TeamService {
     private final ApplicationRepository applicationRepository;
     private final TeamAwardRepository teamAwardRepository;
     private final TeamSkillRepository teamSkillRepository;
+    private final CompetitionRepository competitionRepository;
 
     @Transactional(readOnly = true)
     public Page<TeamDTO> getTeams(Pageable pageable) {
@@ -55,7 +58,7 @@ public class TeamService {
     @Transactional(readOnly = true)
     public Team getTeamById(Long id) {
         return teamRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("队伍不存在"));
+                .orElseThrow(() -> new RuntimeException("team not found"));
     }
 
     @Transactional(readOnly = true)
@@ -85,7 +88,7 @@ public class TeamService {
 
     public TeamDTO createTeam(Long userId, TeamDTO teamDTO) {
         User leader = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("用户不存在"));
+                .orElseThrow(() -> new RuntimeException("user not found"));
 
         Team team = new Team();
         team.setName(teamDTO.getName());
@@ -111,8 +114,10 @@ public class TeamService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "team not found"));
 
         if (currentUser.getRole() == User.Role.TEACHER) {
-            if (team.getLeader() == null || !team.getLeader().getId().equals(currentUserId)) {
-                throw new ApiException(HttpStatus.FORBIDDEN, "not team leader");
+            boolean isLeader = team.getLeader() != null && team.getLeader().getId().equals(currentUserId);
+            boolean isCompetitionManager = isCompetitionManager(team, currentUserId);
+            if (!isLeader && !isCompetitionManager) {
+                throw new ApiException(HttpStatus.FORBIDDEN, "not team leader or competition manager");
             }
         } else if (currentUser.getRole() == User.Role.STUDENT) {
             boolean isMember = teamMemberRepository.existsByTeamIdAndUserIdAndLeftAtIsNull(teamId, currentUserId);
@@ -123,6 +128,42 @@ public class TeamService {
 
         return teamMemberRepository.findByTeamIdAndLeftAtIsNull(teamId).stream()
                 .map(this::toMemberView)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ManagedCompetitionTeamDTO> listManagedCompetitionTeams(Long currentUserId, Long competitionId) {
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
+        if (currentUser.getRole() != User.Role.TEACHER) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "only TEACHER can view managed competition teams");
+        }
+
+        Competition competition = competitionRepository.findById(competitionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "competition not found"));
+        if (competition.getManager() == null || !currentUserId.equals(competition.getManager().getId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "not competition manager");
+        }
+
+        return teamRepository.findByCompetitionId(competitionId).stream()
+                .map(team -> {
+                    ManagedCompetitionTeamDTO dto = new ManagedCompetitionTeamDTO();
+                    dto.setTeamId(team.getId());
+                    dto.setTeamName(team.getName());
+                    dto.setCompetitionId(competition.getId());
+                    dto.setCompetitionName(competition.getName());
+                    if (team.getLeader() != null) {
+                        dto.setTeacherId(team.getLeader().getId());
+                        dto.setTeacherName(team.getLeader().getRealName() != null
+                                ? team.getLeader().getRealName()
+                                : team.getLeader().getUsername());
+                    }
+                    long currentCount = teamMemberRepository.countByTeamIdAndLeftAtIsNull(team.getId());
+                    dto.setCurrentMemberCount((int) currentCount);
+                    dto.setMaxMemberCount(competition.getMaxTeamSize());
+                    dto.setStatus(team.getStatus());
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -163,14 +204,14 @@ public class TeamService {
 
     public void leaveTeam(Long userId, Long teamId) {
         TeamMember member = teamMemberRepository.findByTeamIdAndUserId(teamId, userId)
-                .orElseThrow(() -> new RuntimeException("您不是该队伍成员"));
+                .orElseThrow(() -> new RuntimeException("鎮ㄤ笉鏄闃熶紞鎴愬憳"));
 
         Team team = member.getTeam();
         if (team.getStatus() == Team.TeamStatus.DISBANDED) {
             throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
         }
         if (team.getLeader() != null && team.getLeader().getId().equals(userId)) {
-            throw new RuntimeException("队长不能离开队伍，请先转让队长或解散队伍");
+            throw new RuntimeException("闃熼暱涓嶈兘绂诲紑闃熶紞锛岃鍏堣浆璁╅槦闀挎垨瑙ｆ暎闃熶紞");
         }
 
         teamMemberRepository.delete(member);
@@ -241,9 +282,9 @@ public class TeamService {
 
     public TeamDTO disbandTeamByAdmin(Long teamId) {
         Team team = teamRepository.findById(teamId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "队伍不存在"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "team not found"));
         if (team.getStatus() == Team.TeamStatus.DISBANDED) {
-            throw new ApiException(HttpStatus.CONFLICT, "队伍已解散");
+            throw new ApiException(HttpStatus.CONFLICT, "team already disbanded");
         }
         team.setStatus(Team.TeamStatus.DISBANDED);
         team.setUpdatedAt(LocalDateTime.now());
@@ -485,6 +526,14 @@ public class TeamService {
         response.setRole(member.getRole() != null ? member.getRole().name() : null);
         response.setJoinedAt(member.getJoinedAt());
         return response;
+    }
+
+    private boolean isCompetitionManager(Team team, Long userId) {
+        return team != null
+                && team.getCompetition() != null
+                && team.getCompetition().getManager() != null
+                && userId != null
+                && userId.equals(team.getCompetition().getManager().getId());
     }
 
     private UserDTO convertUserToDTO(User user) {

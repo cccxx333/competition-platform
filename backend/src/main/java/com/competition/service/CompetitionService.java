@@ -9,12 +9,14 @@ import com.competition.entity.Competition;
 import com.competition.entity.CompetitionSkill;
 import com.competition.entity.Skill;
 import com.competition.entity.Team;
+import com.competition.entity.TeacherApplication;
 import com.competition.entity.User;
 import com.competition.exception.ApiException;
 import com.competition.repository.CompetitionRepository;
 import com.competition.repository.CompetitionSkillRepository;
 import com.competition.repository.SkillRepository;
 import com.competition.repository.TeamRepository;
+import com.competition.repository.TeacherApplicationRepository;
 import com.competition.repository.UserRepository;
 import com.competition.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -50,6 +53,7 @@ public class CompetitionService {
     private final SkillRepository skillRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
+    private final TeacherApplicationRepository teacherApplicationRepository;
     private final RecommendationService recommendationService;
     private final UserBehaviorService userBehaviorService;
     private final JwtUtils jwtUtils;
@@ -64,6 +68,9 @@ public class CompetitionService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found"));
         if (admin.getRole() != User.Role.ADMIN) {
             throw new ApiException(HttpStatus.FORBIDDEN, "only ADMIN can create competition");
+        }
+        if (request.getManagerId() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "managerId is required");
         }
         validateCompetitionDates(
                 request.getRegistrationDeadline(),
@@ -402,6 +409,9 @@ public class CompetitionService {
         }
         if (request.getManagerId() != null) {
             User manager = resolveTeacherManager(request.getManagerId());
+            if (competition.getId() != null) {
+                validateManagerAssignment(competition.getId(), manager.getId());
+            }
             competition.setManager(manager);
         }
     }
@@ -413,6 +423,29 @@ public class CompetitionService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "manager must be TEACHER");
         }
         return manager;
+    }
+
+    private void validateManagerAssignment(Long competitionId, Long teacherId) {
+        boolean hasOpenOrApprovedApplication = teacherApplicationRepository
+                .existsByCompetition_IdAndTeacher_IdAndStatusIn(
+                        competitionId,
+                        teacherId,
+                        EnumSet.of(TeacherApplication.Status.PENDING, TeacherApplication.Status.APPROVED)
+                );
+        if (hasOpenOrApprovedApplication) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "cannot assign manager: teacher has pending/approved team application in this competition"
+            );
+        }
+
+        boolean alreadyTeamLeader = teamRepository.existsByCompetitionIdAndLeaderId(competitionId, teacherId);
+        if (alreadyTeamLeader) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "cannot assign manager: teacher is already a team leader in this competition"
+            );
+        }
     }
 
     private void validateCompetitionDates(LocalDate registrationDeadline,

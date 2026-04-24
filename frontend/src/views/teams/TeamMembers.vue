@@ -25,15 +25,27 @@ const teamId = computed(() => {
   return Number.isNaN(raw) ? null : raw
 })
 const roleUpper = computed(() => String(authStore.user?.role ?? "").toUpperCase())
+const fromManagedCompetitions = computed(() => String(route.query.from ?? "") === "managedCompetitions")
 const isLeader = computed(() => {
   const leaderId = team.value?.leader?.id
   const currentUserId = authStore.user?.id
   return Boolean(leaderId && currentUserId && leaderId === currentUserId)
 })
+const isManagedReadOnlyViewer = computed(() => fromManagedCompetitions.value && roleUpper.value === "TEACHER" && !isLeader.value)
 const isTeamDisbanded = computed(() => isDisbanded(team.value))
 const returnLabel = computed(() => "返回队伍详情")
-const returnPath = computed(() => (teamId.value ? `/teams/${teamId.value}` : "/teams/lookup"))
-const writeBlockReason = computed(() => getTeamWriteBlockReason(team.value))
+const returnPath = computed(() => {
+  if (teamId.value) {
+    return fromManagedCompetitions.value ? `/teams/${teamId.value}?from=managedCompetitions` : `/teams/${teamId.value}`
+  }
+  return "/teams/lookup"
+})
+const writeBlockReason = computed(() => {
+  const baseReason = getTeamWriteBlockReason(team.value)
+  if (baseReason) return baseReason
+  if (isManagedReadOnlyViewer.value) return "当前仅支持只读查看"
+  return null
+})
 
 const getFallbackMessage = (status?: number) => {
   if (status === 400) return "参数错误"
@@ -81,7 +93,7 @@ const loadMembers = async () => {
   }
 }
 
-const canShowRemove = computed(() => roleUpper.value === "TEACHER")
+const canShowRemove = computed(() => roleUpper.value === "TEACHER" && !isManagedReadOnlyViewer.value)
 
 const isSelf = (member: TeamMemberView) => {
   const currentUserId = authStore.user?.id

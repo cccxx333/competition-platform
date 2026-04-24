@@ -1,16 +1,24 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import { ElMessage } from "element-plus"
 import { listCompetitions, type CompetitionListItem } from "@/api/competitions"
+import { listManagedCompetitionTeams, type ManagedCompetitionTeam } from "@/api/teams"
 import StatusTag from "@@/components/StatusTag/index.vue"
 import { useAuthStore } from "@/stores/auth"
 
 type StatusFilterValue = "" | "UPCOMING" | "ONGOING" | "FINISHED"
 
+const router = useRouter()
 const authStore = useAuthStore()
 const loading = ref(false)
 const items = ref<CompetitionListItem[]>([])
 const total = ref(0)
 const errorMessage = ref("")
+
+const teamDialogVisible = ref(false)
+const teamDialogLoading = ref(false)
+const teamDialogError = ref("")
+const selectedCompetition = ref<CompetitionListItem | null>(null)
+const managedTeams = ref<ManagedCompetitionTeam[]>([])
 
 const filters = reactive({
   keyword: "",
@@ -36,6 +44,13 @@ const formatDateRange = (startDate?: string | null, endDate?: string | null) => 
   const end = formatDate(endDate)
   if (start === "-" && end === "-") return "-"
   return `${start} ~ ${end}`
+}
+
+const formatMemberCount = (row: ManagedCompetitionTeam) => {
+  const current = typeof row.currentMemberCount === "number" ? row.currentMemberCount : 0
+  const max = row.maxMemberCount
+  if (typeof max === "number") return `${current}/${max}`
+  return String(current)
 }
 
 const fetchList = async () => {
@@ -67,6 +82,34 @@ const fetchList = async () => {
   }
 }
 
+const openTeamsDialog = async (row: CompetitionListItem) => {
+  if (!row?.id) return
+  selectedCompetition.value = row
+  teamDialogVisible.value = true
+  teamDialogLoading.value = true
+  teamDialogError.value = ""
+  managedTeams.value = []
+  try {
+    managedTeams.value = await listManagedCompetitionTeams(row.id)
+  } catch (error: any) {
+    teamDialogError.value = error?.message || "加载队伍列表失败"
+    ElMessage.error(teamDialogError.value)
+  } finally {
+    teamDialogLoading.value = false
+  }
+}
+
+const goTeamDetailFromManagedCompetitions = (row: ManagedCompetitionTeam) => {
+  if (!row.teamId) return
+  router.push({
+    path: `/teams/${row.teamId}`,
+    query: {
+      from: "managedCompetitions",
+      competitionId: row.competitionId ? String(row.competitionId) : undefined
+    }
+  })
+}
+
 const handleSearch = () => {
   pagination.page = 0
   fetchList()
@@ -94,8 +137,8 @@ onMounted(async () => {
   if (!authStore.user?.id) {
     try {
       await authStore.loadMe()
-    } catch (error) {
-      // Ignore here and let fetchList show empty/error state.
+    } catch {
+      // let fetchList handle it
     }
   }
   fetchList()
@@ -112,7 +155,7 @@ onMounted(async () => {
       <div class="filter-row">
         <el-input
           v-model="filters.keyword"
-          placeholder="请输入竞赛名"
+          placeholder="请输入竞赛名称"
           clearable
           class="filter-keyword"
           @keyup.enter="handleSearch"
@@ -129,7 +172,7 @@ onMounted(async () => {
       <el-alert v-if="errorMessage" type="error" :title="errorMessage" show-icon :closable="false" class="table-alert" />
 
       <el-table :data="items" style="width: 100%">
-        <el-table-column prop="name" label="竞赛名" min-width="220" />
+        <el-table-column prop="name" label="竞赛名称" min-width="220" />
         <el-table-column label="状态" width="130">
           <template #default="{ row }">
             <StatusTag :status="row.status" kind="competition" />
@@ -145,9 +188,9 @@ onMounted(async () => {
             {{ formatDateRange(row.startDate, row.endDate) }}
           </template>
         </el-table-column>
-        <el-table-column prop="organizer" label="主办方" min-width="200">
+        <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            {{ row.organizer || "-" }}
+            <el-button link type="primary" @click="openTeamsDialog(row)">查看队伍</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -163,6 +206,46 @@ onMounted(async () => {
         />
       </div>
     </el-card>
+
+    <el-dialog
+      v-model="teamDialogVisible"
+      :title="selectedCompetition?.name ? `${selectedCompetition.name} - 队伍列表` : '竞赛队伍'"
+      width="900px"
+      destroy-on-close
+    >
+      <el-alert
+        v-if="teamDialogError"
+        type="error"
+        :title="teamDialogError"
+        show-icon
+        :closable="false"
+        class="table-alert"
+      />
+      <el-table v-else v-loading="teamDialogLoading" :data="managedTeams" style="width: 100%">
+        <el-table-column prop="teamName" label="队伍名称" min-width="180" />
+        <el-table-column prop="teacherName" label="指导教师" min-width="140">
+          <template #default="{ row }">
+            {{ row.teacherName || "-" }}
+          </template>
+        </el-table-column>
+        <el-table-column label="已招募人数" width="130">
+          <template #default="{ row }">
+            {{ formatMemberCount(row) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="队伍状态" width="130">
+          <template #default="{ row }">
+            <StatusTag :status="row.status" kind="team" />
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="goTeamDetailFromManagedCompetitions(row)">详情</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-if="!teamDialogLoading && !teamDialogError && managedTeams.length === 0" description="暂无队伍" />
+    </el-dialog>
   </div>
 </template>
 
