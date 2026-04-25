@@ -88,6 +88,7 @@ public class TeacherApplicationService {
         TeacherApplication application = new TeacherApplication();
         application.setCompetition(competition);
         application.setTeacher(teacher);
+        application.setTeamName(normalizeTeamName(request.getTeamName()));
         application.setStatus(TeacherApplication.Status.PENDING);
         application.setAppliedAt(LocalDateTime.now());
 
@@ -268,30 +269,46 @@ public class TeacherApplicationService {
             throw new ApiException(HttpStatus.NOT_FOUND, "teacher not found");
         }
 
-        Team existing = teamRepository.findByCompetitionIdAndLeaderId(competition.getId(), teacher.getId());
-        if (existing != null) {
-            return existing;
-        }
-
         Team team = new Team();
         team.setCompetition(competition);
         team.setLeader(teacher);
         team.setStatus(Team.TeamStatus.RECRUITING);
-        // Name is finalized after persistence when teamId is available.
-        team.setName("队伍待命名");
+        team.setName(resolveTeamName(application, null));
         team.setDescription(null);
 
         try {
             Team savedTeam = teamRepository.save(team);
-            savedTeam.setName(buildDefaultTeamName(savedTeam.getId()));
-            return teamRepository.save(savedTeam);
-        } catch (DataIntegrityViolationException ex) {
-            Team retry = teamRepository.findByCompetitionIdAndLeaderId(competition.getId(), teacher.getId());
-            if (retry != null) {
-                return retry;
+            String finalName = resolveTeamName(application, savedTeam.getId());
+            if (!finalName.equals(savedTeam.getName())) {
+                savedTeam.setName(finalName);
+                return teamRepository.save(savedTeam);
             }
-            throw new ApiException(HttpStatus.CONFLICT, "team already exists");
+            return savedTeam;
+        } catch (DataIntegrityViolationException ex) {
+            throw new ApiException(HttpStatus.CONFLICT, "failed to create team for application");
         }
+    }
+
+    private String normalizeTeamName(String teamName) {
+        if (teamName == null) {
+            return null;
+        }
+        String trimmed = teamName.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        if (trimmed.length() > 100) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "teamName length must be <= 100");
+        }
+        return trimmed;
+    }
+
+    private String resolveTeamName(TeacherApplication application, Long teamId) {
+        String requestedName = application != null ? normalizeTeamName(application.getTeamName()) : null;
+        if (requestedName != null) {
+            return requestedName;
+        }
+        return buildDefaultTeamName(teamId);
     }
 
     private String buildDefaultTeamName(Long teamId) {
@@ -344,6 +361,7 @@ public class TeacherApplicationService {
         response.setId(application.getId());
         response.setCompetitionId(application.getCompetition() != null ? application.getCompetition().getId() : null);
         response.setTeacherId(application.getTeacher() != null ? application.getTeacher().getId() : null);
+        response.setTeamName(application.getTeamName());
         response.setStatus(application.getStatus());
         response.setAppliedAt(application.getAppliedAt());
         response.setReviewedAt(application.getReviewedAt());
@@ -372,6 +390,7 @@ public class TeacherApplicationService {
             dto.setCompetitionId(application.getCompetition().getId());
             dto.setCompetitionName(application.getCompetition().getName());
         }
+        dto.setTeamName(application.getTeamName());
         dto.setStatus(application.getStatus());
         dto.setCreatedAt(application.getAppliedAt());
         dto.setUpdatedAt(application.getReviewedAt());
@@ -404,6 +423,7 @@ public class TeacherApplicationService {
             dto.setCompetitionId(application.getCompetition().getId());
             dto.setCompetitionName(application.getCompetition().getName());
         }
+        dto.setTeamName(application.getTeamName());
         dto.setStatus(application.getStatus());
         dto.setCreatedAt(application.getAppliedAt());
         return dto;

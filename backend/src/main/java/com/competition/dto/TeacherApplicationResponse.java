@@ -10,6 +10,7 @@ public class TeacherApplicationResponse {
     private Long id;
     private Long competitionId;
     private Long teacherId;
+    private String teamName;
     private TeacherApplication.Status status;
     private LocalDateTime appliedAt;
     private LocalDateTime reviewedAt;

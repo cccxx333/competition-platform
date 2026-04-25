@@ -35,10 +35,15 @@ public class DatabaseBootstrapInitializer {
             "award_recipients"
     };
     private static final String TABLE_TEACHER_APPLICATIONS = "teacher_applications";
+    private static final String COLUMN_TEACHER_APPLICATION_TEAM_NAME = "team_name";
     private static final String INDEX_TEACHER_APPLICATION_COMPETITION_TEACHER =
             "uk_teacher_applications_competition_teacher";
     private static final String INDEX_TEACHER_APPLICATION_COMPETITION_ID =
             "idx_teacher_applications_competition_id";
+    private static final String TABLE_TEAMS = "teams";
+    private static final String INDEX_TEAMS_COMPETITION_LEADER = "uk_teams_competition_leader";
+    private static final String INDEX_TEAMS_COMPETITION_ID = "idx_teams_competition_id";
+    private static final String INDEX_TEAMS_LEADER_ID = "idx_teams_leader_id";
     private static final String SCHEMA_SQL = "sql/schema_v3.sql";
     private static final String DATA_SQL = "sql/init.sql";
 
@@ -89,7 +94,9 @@ public class DatabaseBootstrapInitializer {
             boolean firstInit = !tableExists(connection, CHECK_TABLE);
             boolean schemaMissing = anyTableMissing(connection, REQUIRED_TABLES);
             if (!schemaMissing) {
+                migrateTeacherApplicationTeamNameColumn(connection);
                 migrateTeacherApplicationUniqueIndex(connection);
+                migrateTeamCompetitionLeaderUniqueIndex(connection);
                 log.info("Database schema already initialized. Skip schema/data scripts.");
                 return;
             }
@@ -104,7 +111,9 @@ public class DatabaseBootstrapInitializer {
                 log.info("Database already has base data (table '{}' exists). Skip data script.", CHECK_TABLE);
             }
 
+            migrateTeacherApplicationTeamNameColumn(connection);
             migrateTeacherApplicationUniqueIndex(connection);
+            migrateTeamCompetitionLeaderUniqueIndex(connection);
             log.info("Database bootstrap completed successfully.");
         } catch (Exception e) {
             log.error("DB bootstrap failed.", e);
@@ -180,6 +189,26 @@ public class DatabaseBootstrapInitializer {
         }
     }
 
+    private void migrateTeacherApplicationTeamNameColumn(Connection connection) {
+        if (!tableExists(connection, TABLE_TEACHER_APPLICATIONS)) {
+            return;
+        }
+        if (columnExists(connection, TABLE_TEACHER_APPLICATIONS, COLUMN_TEACHER_APPLICATION_TEAM_NAME)) {
+            return;
+        }
+
+        String addColumnSql = "ALTER TABLE " + TABLE_TEACHER_APPLICATIONS +
+                " ADD COLUMN " + COLUMN_TEACHER_APPLICATION_TEAM_NAME + " VARCHAR(100) NULL AFTER teacher_id";
+        try (PreparedStatement ps = connection.prepareStatement(addColumnSql)) {
+            ps.executeUpdate();
+            log.info("Added column '{}.{}'.",
+                    TABLE_TEACHER_APPLICATIONS, COLUMN_TEACHER_APPLICATION_TEAM_NAME);
+        } catch (Exception e) {
+            log.warn("Skip adding column '{}.{}': {}",
+                    TABLE_TEACHER_APPLICATIONS, COLUMN_TEACHER_APPLICATION_TEAM_NAME, e.getMessage());
+        }
+    }
+
     private void ensureTeacherApplicationCompetitionIndex(Connection connection) {
         if (indexExists(connection, TABLE_TEACHER_APPLICATIONS, INDEX_TEACHER_APPLICATION_COMPETITION_ID)) {
             return;
@@ -193,6 +222,44 @@ public class DatabaseBootstrapInitializer {
         } catch (Exception e) {
             log.warn("Skip adding index '{}' on table '{}': {}",
                     INDEX_TEACHER_APPLICATION_COMPETITION_ID, TABLE_TEACHER_APPLICATIONS, e.getMessage());
+        }
+    }
+
+    private void migrateTeamCompetitionLeaderUniqueIndex(Connection connection) {
+        if (!tableExists(connection, TABLE_TEAMS)) {
+            return;
+        }
+        if (!indexExists(connection, TABLE_TEAMS, INDEX_TEAMS_COMPETITION_LEADER)) {
+            return;
+        }
+
+        ensureIndex(connection, TABLE_TEAMS, INDEX_TEAMS_COMPETITION_ID, "competition_id");
+        ensureIndex(connection, TABLE_TEAMS, INDEX_TEAMS_LEADER_ID, "leader_id");
+
+        String dropIndexSql = "ALTER TABLE " + TABLE_TEAMS +
+                " DROP INDEX " + INDEX_TEAMS_COMPETITION_LEADER;
+        try (PreparedStatement ps = connection.prepareStatement(dropIndexSql)) {
+            ps.executeUpdate();
+            log.info("Dropped legacy unique index '{}' on table '{}'.",
+                    INDEX_TEAMS_COMPETITION_LEADER, TABLE_TEAMS);
+        } catch (Exception e) {
+            log.warn("Skip dropping legacy unique index '{}' on table '{}': {}",
+                    INDEX_TEAMS_COMPETITION_LEADER, TABLE_TEAMS, e.getMessage());
+        }
+    }
+
+    private void ensureIndex(Connection connection, String tableName, String indexName, String columnName) {
+        if (indexExists(connection, tableName, indexName)) {
+            return;
+        }
+        String addIndexSql = "ALTER TABLE " + tableName +
+                " ADD INDEX " + indexName + " (" + columnName + ")";
+        try (PreparedStatement ps = connection.prepareStatement(addIndexSql)) {
+            ps.executeUpdate();
+            log.info("Added index '{}' on table '{}'.", indexName, tableName);
+        } catch (Exception e) {
+            log.warn("Skip adding index '{}' on table '{}': {}",
+                    indexName, tableName, e.getMessage());
         }
     }
 
@@ -210,6 +277,23 @@ public class DatabaseBootstrapInitializer {
             }
         } catch (Exception e) {
             throw new IllegalStateException("Failed to check index existence: " + indexName, e);
+        }
+    }
+
+    private boolean columnExists(Connection connection, String tableName, String columnName) {
+        String sql = "SELECT COUNT(*) FROM information_schema.columns " +
+                "WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, tableName);
+            ps.setString(2, columnName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return false;
+                }
+                return rs.getInt(1) > 0;
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to check column existence: " + columnName, e);
         }
     }
 }

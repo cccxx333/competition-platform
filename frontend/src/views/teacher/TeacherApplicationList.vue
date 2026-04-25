@@ -122,6 +122,11 @@ onMounted(fetchList)
 
       <el-table :data="items" style="width: 100%">
         <el-table-column prop="competitionName" label="竞赛" min-width="200" />
+        <el-table-column label="队伍名称" min-width="160">
+          <template #default="{ row }">
+            {{ row.teamName || "自动生成" }}
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="140">
           <template #default="{ row }">
             <StatusTag :status="row.status" kind="teacherApplication" />
@@ -166,6 +171,10 @@ onMounted(fetchList)
     </el-card>
 
     <el-dialog v-model="detailDialogVisible" title="申请详情" width="520px" @close="closeDetailDialog">
+      <div class="detail-row">
+        <div class="detail-label">队伍名称</div>
+        <div class="detail-value">{{ selectedApplication?.teamName || "自动生成" }}</div>
+      </div>
       <div class="detail-row">
         <div class="detail-label">队伍所需技能</div>
         <div class="detail-value">{{ formatSkills(selectedApplication?.skills) }}</div>

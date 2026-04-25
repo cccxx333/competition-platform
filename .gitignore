@@ -69,6 +69,7 @@ uploads/
 # =========================
 # AI context / package outputs
 # =========================
+.agents/
 repomix-output*
 **/repomix-output*
 gitingest*
@@ -87,3 +88,4 @@ backup_*.sql
 # Project local docs
 # =========================
 docs_local/
+docs/

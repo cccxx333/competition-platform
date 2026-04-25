@@ -89,13 +89,15 @@ CREATE TABLE IF NOT EXISTS teams (
     CONSTRAINT fk_teams_competition FOREIGN KEY (competition_id) REFERENCES competitions (id),
     CONSTRAINT fk_teams_leader FOREIGN KEY (leader_id) REFERENCES users (id),
     CONSTRAINT fk_teams_closed_by FOREIGN KEY (closed_by) REFERENCES users (id),
-    UNIQUE KEY uk_teams_competition_leader (competition_id, leader_id)
+    KEY idx_teams_competition_id (competition_id),
+    KEY idx_teams_leader_id (leader_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS teacher_applications (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     competition_id BIGINT NOT NULL,
     teacher_id BIGINT NOT NULL,
+    team_name VARCHAR(100),
     status VARCHAR(20) DEFAULT 'PENDING',
     applied_at DATETIME,
     reviewed_at DATETIME,

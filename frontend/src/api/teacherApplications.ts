@@ -11,6 +11,7 @@ export type TeacherApplicationItem = {
   id?: number
   competitionId?: number
   teacherId?: number
+  teamName?: string
   status?: TeacherApplicationStatus
   appliedAt?: string
   reviewedAt?: string
@@ -41,6 +42,7 @@ export type TeacherApplicationListItem = {
   id?: number
   competitionId?: number
   competitionName?: string
+  teamName?: string
   status?: TeacherApplicationStatus
   createdAt?: string
   updatedAt?: string
@@ -57,6 +59,7 @@ export type AdminTeacherApplicationListItem = {
   teacherAccountNo?: string
   competitionId?: number
   competitionName?: string
+  teamName?: string
   status?: TeacherApplicationStatus
   createdAt?: string
 }

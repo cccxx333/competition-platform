@@ -14,9 +14,7 @@ import java.util.Set;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString(onlyExplicitlyIncluded = true)
 @Entity
-@Table(name = "teams", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_teams_competition_leader", columnNames = {"competition_id", "leader_id"})
-})
+@Table(name = "teams")
 public class Team {
     public enum TeamStatus {
         RECRUITING, CLOSED, DISBANDED

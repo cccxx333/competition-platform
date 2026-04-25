@@ -18,7 +18,6 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     List<Team> findByLeaderId(Long leaderId);
     List<Team> findByLeaderIdAndNameContainingIgnoreCase(Long leaderId, String name);
     java.util.Optional<Team> findByIdAndLeaderId(Long id, Long leaderId);
-    Team findByCompetitionIdAndLeaderId(Long competitionId, Long leaderId);
     boolean existsByCompetitionIdAndLeaderId(Long competitionId, Long leaderId);
 
     @Query("SELECT t FROM Team t WHERE t.status = 'RECRUITING'")

@@ -70,6 +70,7 @@ const teacherApplyDialogLoading = ref(false)
 const teacherApplyDialogError = ref("")
 const teacherApplyCompetitionId = ref<number | null>(null)
 const teacherApplyCompetitionName = ref("")
+const teacherApplyTeamName = ref("")
 const teacherApplyDescription = ref("")
 const skillsLoading = ref(false)
 const allSkills = ref<Skill[]>([])
@@ -357,6 +358,7 @@ const openTeacherApplyDialog = (row: RecommendationRow) => {
   }
   teacherApplyCompetitionId.value = row.id
   teacherApplyCompetitionName.value = row.name ?? `竞赛 ${row.id}`
+  teacherApplyTeamName.value = ""
   teacherApplyDescription.value = ""
   teacherApplyDialogError.value = ""
   teacherApplySkillRows.value = [{ skillId: null, weight: 3 }]
@@ -369,6 +371,7 @@ const resetTeacherApplyDialogState = () => {
   teacherApplyDialogError.value = ""
   teacherApplyCompetitionId.value = null
   teacherApplyCompetitionName.value = ""
+  teacherApplyTeamName.value = ""
   teacherApplyDescription.value = ""
 }
 
@@ -411,6 +414,10 @@ const submitTeacherApply = async () => {
   teacherApplyDialogError.value = ""
   try {
     const payload: TeacherApplicationCreatePayload = {}
+    const teamName = teacherApplyTeamName.value.trim()
+    if (teamName) {
+      payload.teamName = teamName
+    }
     const description = teacherApplyDescription.value.trim()
     if (description) {
       payload.description = description
@@ -1089,6 +1096,14 @@ onBeforeUnmount(() => {
         <div class="teacher-apply-dialog__summary-value">{{ teacherApplyCompetitionName }}</div>
       </div>
       <el-form label-position="top" class="teacher-apply-dialog__form">
+        <el-form-item label="队伍名称（可选）">
+          <el-input
+            v-model="teacherApplyTeamName"
+            maxlength="100"
+            show-word-limit
+            placeholder="不填则审核通过后自动生成"
+          />
+        </el-form-item>
         <el-form-item label="队伍说明（可选）">
           <el-input
             v-model="teacherApplyDescription"

@@ -13,6 +13,7 @@ const allSkills = ref<Skill[]>([])
 const skillOptions = computed(() => allSkills.value.filter((s): s is Skill & { id: number } => typeof s.id === "number"))
 const preferredSkillRows = ref<Array<{ skillId: number | null; weight: number }>>([{ skillId: null, weight: 3 }])
 const form = reactive<TeacherApplicationCreatePayload>({
+  teamName: "",
   description: ""
 })
 const selectedSkillIds = computed(
@@ -68,6 +69,9 @@ const handleSubmit = async () => {
   loading.value = true
   try {
     const payload: TeacherApplicationCreatePayload = {}
+    if (form.teamName && form.teamName.trim()) {
+      payload.teamName = form.teamName.trim()
+    }
     if (form.description && form.description.trim()) {
       payload.description = form.description.trim()
     }
@@ -130,6 +134,14 @@ onMounted(loadSkills)
       />
 
       <el-form label-width="120px">
+        <el-form-item label="队伍名称">
+          <el-input
+            v-model="form.teamName"
+            maxlength="100"
+            show-word-limit
+            placeholder="可选，不填则自动生成"
+          />
+        </el-form-item>
         <el-form-item label="说明">
           <el-input
             v-model="form.description"

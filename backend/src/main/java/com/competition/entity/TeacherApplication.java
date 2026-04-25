@@ -36,6 +36,9 @@ public class TeacherApplication {
     @JsonIgnore
     private User teacher;
 
+    @Column(name = "team_name", length = 100)
+    private String teamName;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     @ToString.Include

@@ -183,6 +183,11 @@ onMounted(fetchList)
         <el-table-column prop="teacherName" label="教师" min-width="100" />
         <el-table-column prop="teacherAccountNo" label="工号" width="180" />
         <el-table-column prop="competitionName" label="竞赛" min-width="160" />
+        <el-table-column label="队伍名称" min-width="150">
+          <template #default="{ row }">
+            {{ row.teamName || "自动生成" }}
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="140">
           <template #default="{ row }">
             <StatusTag :status="row.status" kind="teacherApplication" />

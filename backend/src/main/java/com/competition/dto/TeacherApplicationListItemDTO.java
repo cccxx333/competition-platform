@@ -11,6 +11,7 @@ public class TeacherApplicationListItemDTO {
     private Long id;
     private Long competitionId;
     private String competitionName;
+    private String teamName;
     private TeacherApplication.Status status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -13,6 +13,7 @@ public class AdminTeacherApplicationListItemDTO {
     private String teacherAccountNo;
     private Long competitionId;
     private String competitionName;
+    private String teamName;
     private TeacherApplication.Status status;
     private LocalDateTime createdAt;
 }
