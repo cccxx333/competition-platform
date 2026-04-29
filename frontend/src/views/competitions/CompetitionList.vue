@@ -37,6 +37,8 @@ type RecommendationRow = {
     skillName?: string
     importance?: number
   }>
+  fallbackApplied?: boolean
+  fallbackReason?: string
 }
 
 const rows = ref<RecommendationRow[]>([])
@@ -111,8 +113,6 @@ const filters = reactive({
 const sourceMode = ref<"list" | "algorithm">("list")
 const isAlgorithmMode = computed(() => sourceMode.value === "algorithm")
 const topK = ref(10)
-const fallbackNotice = ref("")
-const FALLBACK_NOTICE_TEXT = "当前推荐基于通用策略，补全技能信息后将优先展示更匹配的竞赛。"
 
 const pagination = reactive({
   page: 0,
@@ -192,10 +192,21 @@ const sortRows = (data: RecommendationRow[]) => {
   })
 }
 
+const algorithmTipMessage = computed(() => {
+  if (sourceMode.value !== "algorithm" || rows.value.length === 0) return ""
+  const first = rows.value[0] as CompetitionListItem & RecommendationRow
+  const fallbackApplied = Boolean(first?.fallbackApplied)
+  const fallbackReason = String(first?.fallbackReason ?? "")
+  if (!fallbackApplied) return ""
+  if (fallbackReason === "CF_FALLBACK") {
+    return "当前结果基于技能匹配生成（内容推荐），协同过滤信号暂不足，已先展示可报名且匹配度更高的竞赛。"
+  }
+  return "当前未满足个性化推荐条件，已展示可报名竞赛列表。完善技能画像并积累浏览/报名行为后，可获得更精准推荐。"
+})
+
 const fetchList = async () => {
   loading.value = true
   errorMessage.value = ""
-  fallbackNotice.value = ""
   try {
     if (sourceMode.value === "algorithm") {
       const { items: data } = await listCompetitions({
@@ -206,7 +217,6 @@ const fetchList = async () => {
         size: topK.value
       })
       if (data.length > 0) {
-        const hasFallbackFlag = data.some((item) => item.fallbackApplied === true)
         rows.value = sortRows(
           data.map((item) => ({
             id: item.id,
@@ -218,12 +228,17 @@ const fetchList = async () => {
             organizer: item.organizer,
             score: typeof item.matchScore === "number" ? item.matchScore : undefined,
             reason: item.recommendReason,
-            source: "algorithm"
+            source: "algorithm",
+            managerId: item.managerId,
+            managerName: typeof item.managerName === "string" ? item.managerName : undefined,
+            minTeamSize: item.minTeamSize,
+            maxTeamSize: item.maxTeamSize,
+            description: item.description,
+            requiredSkills: item.requiredSkills,
+            fallbackApplied: item.fallbackApplied,
+            fallbackReason: item.fallbackReason
           }))
         )
-        if (hasFallbackFlag) {
-          fallbackNotice.value = FALLBACK_NOTICE_TEXT
-        }
       } else {
         rows.value = []
       }
@@ -261,12 +276,10 @@ const fetchList = async () => {
       if (typeof size === "number" && size !== pagination.size) {
         pagination.size = size
       }
-      fallbackNotice.value = ""
     }
   } catch (error: any) {
     rows.value = []
     total.value = null
-    fallbackNotice.value = ""
     errorMessage.value = showRequestError(error, "加载竞赛失败")
   } finally {
     loading.value = false
@@ -886,18 +899,17 @@ onBeforeUnmount(() => {
         </el-row>
       </el-form>
       <el-alert
-        v-if="fallbackNotice"
-        type="info"
-        :closable="false"
-        :title="fallbackNotice"
-        style="margin-bottom: 12px"
-      />
-
-      <el-alert
         v-if="errorMessage"
         type="error"
         :closable="false"
         :title="errorMessage"
+        style="margin-bottom: 12px"
+      />
+      <el-alert
+        v-if="algorithmTipMessage"
+        type="info"
+        :closable="false"
+        :title="algorithmTipMessage"
         style="margin-bottom: 12px"
       />
 
