@@ -57,6 +57,7 @@ public class CompetitionService {
     private final RecommendationService recommendationService;
     private final UserBehaviorService userBehaviorService;
     private final JwtUtils jwtUtils;
+    private final CompetitionTeamStatusSyncService competitionTeamStatusSyncService;
     private static final int DEFAULT_TOP_K = 10;
     private static final int MAX_TOP_K = 50;
 
@@ -287,6 +288,7 @@ public class CompetitionService {
                         TeamRecommendationResponse response = new TeamRecommendationResponse();
                         response.setTeamId(team.getId());
                         response.setTeamName(team.getName());
+                        response.setLeaderUsername(team.getLeader() != null ? team.getLeader().getUsername() : null);
                         response.setTeamStatus(team.getStatus());
                         response.setMatchScore(matchScores.getOrDefault(team.getId(), 0.0));
                         response.setReasons(recommendationService.buildTeamRecommendReasons(currentUserId, team));
@@ -379,6 +381,7 @@ public class CompetitionService {
                 .orElseThrow(() -> new RuntimeException("竞赛不存在"));
         applyUpdate(competition, request);
         Competition savedCompetition = competitionRepository.save(competition);
+        competitionTeamStatusSyncService.syncCompetitionTeams(savedCompetition);
         return convertToResponse(savedCompetition);
     }
 

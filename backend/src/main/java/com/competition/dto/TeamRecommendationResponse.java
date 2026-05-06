@@ -8,6 +8,7 @@ import java.util.List;
 public class TeamRecommendationResponse {
     private Long teamId;
     private String teamName;
+    private String leaderUsername;
     private Team.TeamStatus teamStatus;
     private Double matchScore;
     private List<TeamRecommendReason> reasons;

@@ -30,6 +30,7 @@ public class AdminCompetitionService {
     private final TeacherApplicationRepository teacherApplicationRepository;
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
+    private final CompetitionTeamStatusSyncService competitionTeamStatusSyncService;
 
     public Competition updateCompetition(Long adminUserId, Long competitionId, CompetitionAdminUpdateRequest request) {
         if (request == null) {
@@ -113,7 +114,9 @@ public class AdminCompetitionService {
             competition.setCompetitionSkills(newSkills);
         }
 
-        return competitionRepository.save(competition);
+        Competition saved = competitionRepository.save(competition);
+        competitionTeamStatusSyncService.syncCompetitionTeams(saved);
+        return saved;
     }
 
     public void deleteCompetition(Long adminUserId, Long competitionId) {

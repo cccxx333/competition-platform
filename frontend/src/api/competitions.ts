@@ -104,6 +104,7 @@ export type TeamRecommendReason = {
 export type TeamRecommendation = {
   teamId?: number
   teamName?: string
+  leaderUsername?: string
   teamStatus?: "RECRUITING" | "CLOSED" | "DISBANDED" | string
   matchScore?: number
   reasons?: TeamRecommendReason[]

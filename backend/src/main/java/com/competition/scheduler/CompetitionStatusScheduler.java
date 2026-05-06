@@ -2,6 +2,7 @@ package com.competition.scheduler;
 
 import com.competition.entity.Competition;
 import com.competition.repository.CompetitionRepository;
+import com.competition.service.CompetitionTeamStatusSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,6 +21,7 @@ public class CompetitionStatusScheduler {
     private static final long FIXED_DELAY_MS = 60000;
 
     private final CompetitionRepository competitionRepository;
+    private final CompetitionTeamStatusSyncService competitionTeamStatusSyncService;
 
     // Auto sync may override manual status changes if time fields disagree.
     @Scheduled(fixedDelay = FIXED_DELAY_MS)
@@ -54,7 +56,14 @@ public class CompetitionStatusScheduler {
 
         if (!changed.isEmpty()) {
             competitionRepository.saveAll(changed);
+            int teamChanged = 0;
+            for (Competition competition : changed) {
+                teamChanged += competitionTeamStatusSyncService.syncCompetitionTeams(competition);
+            }
             log.info("Competition status sync updated {} competitions.", changed.size());
+            if (teamChanged > 0) {
+                log.info("Competition status sync updated {} related teams.", teamChanged);
+            }
         }
     }
 

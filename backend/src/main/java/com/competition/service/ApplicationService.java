@@ -42,6 +42,7 @@ public class ApplicationService {
     private final TeamMemberRepository teamMemberRepository;
     private final TeamAwardRepository teamAwardRepository;
     private final UserBehaviorService userBehaviorService;
+    private final CompetitionTeamStatusSyncService competitionTeamStatusSyncService;
 
     public ApplicationResponse createApplication(Long currentUserId, ApplicationCreateRequest req) {
         if (req == null || req.getCompetitionId() == null || req.getTeamId() == null) {
@@ -63,10 +64,13 @@ public class ApplicationService {
             throw new ApiException(HttpStatus.CONFLICT, "team does not belong to competition");
         }
 
-        syncTeamStatusByDeadline(competition, team);
+        competitionTeamStatusSyncService.syncCompetitionTeams(competition);
 
         if (team.getStatus() == Team.TeamStatus.DISBANDED) {
             throw new ApiException(HttpStatus.CONFLICT, "team is disbanded");
+        }
+        if (competition.getStatus() == Competition.CompetitionStatus.FINISHED) {
+            throw new ApiException(HttpStatus.CONFLICT, "competition is finished");
         }
         if (team.getStatus() != Team.TeamStatus.RECRUITING) {
             throw new ApiException(HttpStatus.CONFLICT, "team is not recruiting");
@@ -312,43 +316,4 @@ public class ApplicationService {
         return awardNameByTeamId;
     }
 
-    private void syncTeamStatusByDeadline(Competition competition, Team team) {
-        if (competition == null || team == null || competition.getRegistrationDeadline() == null) {
-            return;
-        }
-        if (!competition.getRegistrationDeadline().isBefore(LocalDate.now())) {
-            return;
-        }
-        if (team.getStatus() != Team.TeamStatus.RECRUITING) {
-            return;
-        }
-
-        List<Team> recruitingTeams = teamRepository.findByCompetitionIdAndStatus(
-                competition.getId(),
-                Team.TeamStatus.RECRUITING
-        );
-        if (recruitingTeams.isEmpty()) {
-            return;
-        }
-        LocalDateTime now = LocalDateTime.now();
-        for (Team candidate : recruitingTeams) {
-            candidate.setStatus(Team.TeamStatus.CLOSED);
-            candidate.setClosedAt(now);
-            candidate.setClosedBy(null);
-            candidate.setUpdatedAt(now);
-        }
-        teamRepository.saveAll(recruitingTeams);
-
-        if (team.getId() != null) {
-            recruitingTeams.stream()
-                    .filter(candidate -> team.getId().equals(candidate.getId()))
-                    .findFirst()
-                    .ifPresent(updated -> {
-                        team.setStatus(updated.getStatus());
-                        team.setClosedAt(updated.getClosedAt());
-                        team.setClosedBy(updated.getClosedBy());
-                        team.setUpdatedAt(updated.getUpdatedAt());
-                    });
-        }
-    }
 }

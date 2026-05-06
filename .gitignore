@@ -89,3 +89,4 @@ backup_*.sql
 # =========================
 docs_local/
 docs/
+scripts/

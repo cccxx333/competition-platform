@@ -1,16 +1,11 @@
 package com.competition.scheduler;
 
-import com.competition.entity.Team;
-import com.competition.repository.TeamRepository;
+import com.competition.service.CompetitionTeamStatusSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -19,27 +14,14 @@ public class TeamRecruitingStatusScheduler {
 
     private static final long FIXED_DELAY_MS = 60000;
 
-    private final TeamRepository teamRepository;
+    private final CompetitionTeamStatusSyncService competitionTeamStatusSyncService;
 
     @Scheduled(fixedDelay = FIXED_DELAY_MS)
     @Transactional
     public void closeExpiredRecruitingTeams() {
-        LocalDate today = LocalDate.now();
-        List<Team> expiredRecruitingTeams = teamRepository
-                .findByStatusAndCompetition_RegistrationDeadlineBefore(Team.TeamStatus.RECRUITING, today);
-        if (expiredRecruitingTeams.isEmpty()) {
-            return;
+        int changed = competitionTeamStatusSyncService.syncAllCompetitions();
+        if (changed > 0) {
+            log.info("Team recruiting status scheduler synced {} teams.", changed);
         }
-
-        LocalDateTime now = LocalDateTime.now();
-        for (Team team : expiredRecruitingTeams) {
-            team.setStatus(Team.TeamStatus.CLOSED);
-            team.setClosedAt(now);
-            team.setClosedBy(null);
-            team.setUpdatedAt(now);
-        }
-        teamRepository.saveAll(expiredRecruitingTeams);
-        log.info("Team recruiting status sync updated {} teams to CLOSED.", expiredRecruitingTeams.size());
     }
 }
-

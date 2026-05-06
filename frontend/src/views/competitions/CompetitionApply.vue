@@ -1,11 +1,10 @@
-<script lang="ts" setup>
+﻿<script lang="ts" setup>
 import {
   getCompetitionDetail,
   getRecommendedTeams,
   listApplyableCompetitions,
   type ApplyableCompetitionItem,
-  type TeamRecommendation,
-  type TeamRecommendReason
+  type TeamRecommendation
 } from "@/api/competitions"
 import { createApplication } from "@/api/teamApplications"
 import { getApiErrorMessage } from "@/utils/errorMessage"
@@ -127,19 +126,6 @@ const applyCompetitionFromRoute = async () => {
   await fetchTeams(competitionId)
 }
 
-const buildReasonText = (reasons?: TeamRecommendReason[]) => {
-  if (!reasons || reasons.length === 0) {
-    return "原因：暂无匹配技能"
-  }
-  const items = reasons.map((reason) => {
-    const name = reason.skillName ?? "技能"
-    const skillId = reason.skillId ?? "-"
-    const weight = reason.weight ?? 1
-    return `${name}（${skillId}×${weight}）`
-  })
-  return `原因：Matched：${items.join("，")}`
-}
-
 const showErrorDialog = (message: string) => {
   errorDialogMessage.value = message
   errorDialogVisible.value = true
@@ -247,7 +233,7 @@ watch(
         <h2>竞赛报名</h2>
       </div>
 
-  <el-card shadow="never">
+  <el-card shadow="never" class="apply-card">
     
 
       <el-form label-width="0" class="apply-form">
@@ -286,6 +272,11 @@ watch(
 
         <el-table :data="teamRows" v-loading="teamLoading" style="width: 100%" empty-text="暂无可申请队伍">
           <el-table-column prop="teamName" label="队伍名称" min-width="180" />
+          <el-table-column label="指导教师" min-width="140">
+            <template #default="{ row }">
+              <span>{{ row.leaderUsername ?? "-" }}</span>
+            </template>
+          </el-table-column>
           <el-table-column label="状态" width="140">
             <template #default="{ row }">
               <el-tag :type="row.teamStatus === 'RECRUITING' ? 'success' : row.teamStatus === 'CLOSED' ? 'info' : 'danger'">
@@ -294,14 +285,9 @@ watch(
             </template>
           
           </el-table-column>
-          <el-table-column label="匹配分" width="120">
+          <el-table-column label="推荐分数" width="120">
             <template #default="{ row }">
               <span>{{ typeof row.matchScore === "number" ? row.matchScore.toFixed(3) : "-" }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="推荐信息" min-width="260">
-            <template #default="{ row }">
-              {{ buildReasonText(row.reasons) }}
             </template>
           </el-table-column>
           <el-table-column label="操作" width="120">
@@ -369,6 +355,15 @@ watch(
 
 .apply-form {
   margin-bottom: 12px;
+}
+
+.apply-card {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.apply-card :deep(.el-card__body) {
+  padding: 18px 22px 22px;
 }
 
 .team-panel {
